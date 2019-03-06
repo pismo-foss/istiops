@@ -15,15 +15,19 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
-	//"k8s.io/api/core/v1"
 
-	// import all known client auth plugins
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	"istio.io/api/networking/v1alpha3"
 	"istio.io/istio/pilot/pkg/config/kube/crd"
 	"istio.io/istio/pilot/pkg/model"
 )
@@ -46,6 +50,9 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("get called")
 
+		stdout := bufio.NewWriter(os.Stdout)
+		defer stdout.Flush()
+
 		configClient, err := newClient()
 		if err != nil {
 			panic(err)
@@ -67,7 +74,7 @@ to quickly create a Cobra application.`,
 			"qa")
 
 		if exists {
-			fmt.Print(config)
+			printShortVirtualService(config, stdout)
 		}
 	},
 }
@@ -111,4 +118,49 @@ func supportedTypes(configClient model.ConfigStore) []string {
 		types[i] = crd.ResourceName(types[i])
 	}
 	return types
+}
+
+func printShortVirtualService(config *model.Config, w io.Writer) {
+	virtualService, ok := config.Spec.(*v1alpha3.VirtualService)
+	if !ok {
+		fmt.Fprintf(w, "Not a virtualservice: %v", config)
+		return
+	}
+	fmt.Fprintf(w, "%s\t%s\t%s\t%5d\t%4d\t%s\t%s\n",
+		config.Name,
+		strings.Join(virtualService.Gateways, ","),
+		strings.Join(virtualService.Hosts, ","),
+		len(virtualService.Http),
+		len(virtualService.Tcp),
+		config.Namespace,
+		renderTimestamp(config.CreationTimestamp))
+}
+
+//renderTimestamp creates a human-readable age similar to docker and kubectl CLI output
+func renderTimestamp(ts metav1.Time) string {
+	if ts.IsZero() {
+		return "<unknown>"
+	}
+
+	seconds := int(time.Since(ts.Time).Seconds())
+	if seconds < -2 {
+		return fmt.Sprintf("<invalid>")
+	} else if seconds < 0 {
+		return fmt.Sprintf("0s")
+	} else if seconds < 60 {
+		return fmt.Sprintf("%ds", seconds)
+	}
+
+	minutes := int(time.Since(ts.Time).Minutes())
+	if minutes < 60 {
+		return fmt.Sprintf("%dm", minutes)
+	}
+
+	hours := int(time.Since(ts.Time).Hours())
+	if hours < 24 {
+		return fmt.Sprintf("%dh", hours)
+	} else if hours < 365*24 {
+		return fmt.Sprintf("%dd", hours/24)
+	}
+	return fmt.Sprintf("%dy", int((hours/24)/365))
 }
