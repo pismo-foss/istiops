@@ -14,7 +14,7 @@
 
 package main
 
-import "github.com/andriosr/istiops/cmd"
+import "github.com/pismo/istiops/cmd"
 
 func main() {
 	cmd.Execute()
