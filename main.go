@@ -19,7 +19,7 @@ import (
 func main() {
 	apiStruct := services.ApiStruct{
 		Name:      "api-pipelinetest",
-		Namespace: "ext",
+		Namespace: "default",
 		Version:   "bluegreeneb",
 		Build:     "2210"}
 
