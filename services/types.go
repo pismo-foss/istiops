@@ -37,8 +37,6 @@ type ApiStruct struct {
 	Namespace   string     `json:"namespace"`
 	Version     string     `json:"version"`
 	Build       string     `json:"build"`
-	HttpPort    uint32     `json:"http_port"`
-	GrpcPort    uint32     `json:"grpc_port"`
 	ApiValues   *ApiValues `json:"api_values"`
 }
 
@@ -52,13 +50,13 @@ type ApiValues struct {
 
 type Deployment struct {
 	Role     string           `yaml:"role"`
-	Replicas map[string]int64 `yaml:"replicas"`
+	Replicas map[string]uint64 `yaml:"replicas"`
 	Image    Image            `yaml:"image"`
 }
 
 type Image struct {
 	HealthCheck    map[string]string `yaml:"healthCheck"`
-	Ports          map[string]int64  `yaml:"ports"`
+	Ports          map[string]uint32  `yaml:"ports"`
 	DockerRegistry string            `yaml:"dockerRegistry"`
 	PullPolicy     string            `yaml:"pullPolicy"`
 }

@@ -12,7 +12,7 @@ func TestCreateHttpRouteResource(t *testing.T) {
 		Namespace: "default",
 		Version:   "bluegreeneb",
 		Build:     "2210",
-		HttpPort:  8080,
+		ApiValues: &ApiValues{Deployment: Deployment{Image: Image{Ports: map[string]uint32{"http": 8080}}}},
 	}
 
 	err := CreateRouteResource(apiStruct, "test-http-happy", context.Background())
@@ -25,8 +25,7 @@ func TestCreateGrpcRouteResource(t *testing.T) {
 		Namespace: "default",
 		Version:   "bluegreeneb",
 		Build:     "2210",
-		GrpcPort:  8777,
-		HttpPort:  8005,
+		ApiValues: &ApiValues{Deployment: Deployment{Image: Image{Ports: map[string]uint32{"http": 8005, "grpc": 8777}}}},
 	}
 
 	err := CreateRouteResource(apiStruct, "test-grpc-happy", context.Background())
