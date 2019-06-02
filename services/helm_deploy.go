@@ -49,20 +49,20 @@ func DeployHelm(api ApiStruct, cid string, ctx context.Context) error {
 	}
 	utils.Info(fmt.Sprintf("Values extracted: %v", api.ApiValues), cid)
 
-	if err := createDeployment(api, *api.ApiValues, "random-cid", ctx); err != nil {
+	if err := createDeployment(api, "random-cid", ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
-func createDeployment(api ApiStruct, apiValues ApiValues, cid string, ctx context.Context) error {
+func createDeployment(api ApiStruct, cid string, ctx context.Context) error {
 	api_fullname := fmt.Sprintf("%s-%s-%s-%s", api.Name, api.Namespace, api.Version, api.Build)
-	apiValues.Deployment.Image.DockerRegistry = "270036487593.dkr.ecr.us-east-1.amazonaws.com/"
+	api.ApiValues.Deployment.Image.DockerRegistry = "270036487593.dkr.ecr.us-east-1.amazonaws.com/"
 	deploymentsClient := kubernetesClient.AppsV1().Deployments(api.Namespace)
 
 	// Getting dynamic protocol & ports
 	containerPorts := []v1core.ContainerPort{}
-	for portName, portValue := range apiValues.Deployment.Image.Ports {
+	for portName, portValue := range api.ApiValues.Deployment.Image.Ports {
 		containerPorts = append(containerPorts, v1core.ContainerPort{
 			Name:          portName,
 			Protocol:      v1core.ProtocolTCP,
@@ -70,13 +70,13 @@ func createDeployment(api ApiStruct, apiValues ApiValues, cid string, ctx contex
 		})
 	}
 
-	fmt.Println(apiValues.Deployment.Image.DockerRegistry + api.Name + ":" + api.Version)
+	fmt.Println(api.ApiValues.Deployment.Image.DockerRegistry + api.Name + ":" + api.Version)
 	deployment := &v1apps.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: api_fullname,
 		},
 		Spec: v1apps.DeploymentSpec{
-			Replicas: int32Ptr(int32(apiValues.Deployment.Replicas[api.Namespace])),
+			Replicas: int32Ptr(int32(api.ApiValues.Deployment.Replicas[api.Namespace])),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app":     api.Name,
@@ -98,7 +98,7 @@ func createDeployment(api ApiStruct, apiValues ApiValues, cid string, ctx contex
 					Containers: []v1core.Container{
 						{
 							Name:  api.Name,
-							Image: apiValues.Deployment.Image.DockerRegistry + api.Name + ":" + api.Version,
+							Image: api.ApiValues.Deployment.Image.DockerRegistry + api.Name + ":" + api.Version,
 							Ports: containerPorts,
 						},
 					},

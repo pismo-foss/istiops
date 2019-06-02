@@ -8,7 +8,7 @@ import (
 
 func TestCreateHttpRouteResource(t *testing.T) {
 	apiStruct := ApiStruct{
-		Name:      "api-pipetest",
+		Name:      "api-pipelinetest",
 		Namespace: "default",
 		Version:   "bluegreeneb",
 		Build:     "2210",
@@ -21,7 +21,7 @@ func TestCreateHttpRouteResource(t *testing.T) {
 
 func TestCreateGrpcRouteResource(t *testing.T) {
 	apiStruct := ApiStruct{
-		Name:      "api-pipetest",
+		Name:      "api-pipelinetest",
 		Namespace: "default",
 		Version:   "bluegreeneb",
 		Build:     "2210",
