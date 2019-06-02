@@ -1,5 +1,5 @@
 deployment:
-  role: api-p2ptransactions-role
+  role: api-pipelinetest-role
   replicas:
     qa: 1
     ext: 2

@@ -17,7 +17,7 @@ import (
 
 func main() {
 	apiStruct := services.ApiStruct{
-		Name:      "api-statements",
+		Name:      "api-pipelinetest",
 		Namespace: "ext",
 		Version:   "pipethree",
 		Build:     "80"}

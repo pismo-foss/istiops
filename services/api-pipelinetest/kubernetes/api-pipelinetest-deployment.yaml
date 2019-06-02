@@ -1,22 +1,22 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-    name: api-p2ptransactions-deployment
+    name: api-pipelinetest-deployment
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        name: api-p2ptransactions
-        app: api-p2ptransactions
+        name: api-pipelinetest
+        app: api-pipelinetest
         version: pr-17
       annotations:
-        iam.amazonaws.com/role: api-p2ptransactions-role
+        iam.amazonaws.com/role: api-pipelinetest-role
     spec:
       serviceAccountName: default
       containers:
-      - name: api-p2ptransactions
-        image: 270036487593.dkr.ecr.us-east-1.amazonaws.com/api-p2ptransactions:PR-17
+      - name: api-pipelinetest
+        image: 270036487593.dkr.ecr.us-east-1.amazonaws.com/api-pipelinetest:PR-17
         livenessProbe:
           exec:
             command:
@@ -37,9 +37,9 @@ spec:
           successThreshold: 1
         envFrom:
         - configMapRef:
-            name: api-p2ptransactions-config
+            name: api-pipelinetest-config
         - secretRef:
-            name: api-p2ptransactions-secrets
+            name: api-pipelinetest-secrets
         - configMapRef:
             name: commons-config
         ports:
@@ -48,11 +48,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: api-p2ptransactions
+  name: api-pipelinetest
 spec:
   ports:
     - name: http
       port: 8080
       targetPort: 8080
   selector:
-    name: api-p2ptransactions
+    name: api-pipelinetest
