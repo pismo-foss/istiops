@@ -69,7 +69,6 @@ func createDeployment(api ApiStruct, cid string, ctx context.Context) error {
 		})
 	}
 
-	fmt.Println(api.ApiValues.Deployment.Image.DockerRegistry + api.Name + ":" + api.Version)
 	deployment := &v1apps.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: api.ApiFullname,
