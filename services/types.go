@@ -66,5 +66,5 @@ type Image struct {
 var (
 	kubernetesClient *kubernetes.Clientset
 	istioClient      *versionedclient.Clientset
-	PismoDomains     = map[string]string{"ext": ".pismolabs.io", "prod": ".pismo.io", "itau": ".pismo.cloud", "default": ".pismolabs.io"}
+	PismoDomains     = map[string]string{"default": ".pismolabs.io"}
 )

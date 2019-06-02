@@ -8,8 +8,8 @@ spec:
   minReplicas: {{ .Values.deployment.replicas.dev | default 1 }}
   {{ else if eq .Values.target "qa" }}
   minReplicas: {{ .Values.deployment.replicas.qa | default 1 }}
-  {{ else if eq .Values.target "ext" }}
-  minReplicas: {{ .Values.deployment.replicas.ext | default 2 }}
+  {{ else if eq .Values.target "default" }}
+  minReplicas: {{ .Values.deployment.replicas.default | default 2 }}
   {{ else if eq .Values.target "prod" }}
   minReplicas: {{ .Values.deployment.replicas.prod | default 2 }}
   {{ else if eq .Values.target "itau" }}

@@ -42,14 +42,14 @@ func DeployHelm(api ApiStruct, cid string, ctx context.Context) error {
 		return err
 	}
 
-	apiValues := &ApiValues{}
-	if err := yaml.Unmarshal(valuesBytes, apiValues); err != nil {
+	api.ApiValues = &ApiValues{}
+	if err := yaml.Unmarshal(valuesBytes, api.ApiValues); err != nil {
 		utils.Error(fmt.Sprintf(err.Error()), cid)
 		return err
 	}
-	utils.Info(fmt.Sprintf("Values extracted: %v", apiValues), cid)
+	utils.Info(fmt.Sprintf("Values extracted: %v", api.ApiValues), cid)
 
-	if err := createDeployment(api, *apiValues, "random-cid", ctx); err != nil {
+	if err := createDeployment(api, *api.ApiValues, "random-cid", ctx); err != nil {
 		return err
 	}
 	return nil
