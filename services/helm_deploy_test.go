@@ -9,7 +9,7 @@ import (
 func TestDeployHelm(t *testing.T) {
 	apiStruct := ApiStruct{
 		Name:      "api-pipelinetest",
-		Namespace: "ext",
+		Namespace: "default",
 		Version:   "bluegreeneb",
 		Build:     "2210"}
 

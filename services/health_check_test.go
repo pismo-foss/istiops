@@ -8,8 +8,8 @@ import (
 
 func TestK8sHealthCheck(t *testing.T) {
 	apiStruct := ApiStruct{
-		Name:      "api-statements",
-		Namespace: "ext",
+		Name:      "api-pipelinetest",
+		Namespace: "default",
 		Version:   "bluegreeneb",
 		Build:     "2210"}
 
