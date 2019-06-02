@@ -63,8 +63,6 @@ func createDeployment(api ApiStruct, apiValues ApiValues, cid string, ctx contex
 	// Getting dynamic protocol & ports
 	containerPorts := []v1core.ContainerPort{}
 	for portName, portValue := range apiValues.Deployment.Image.Ports {
-		fmt.Println(portName)
-		fmt.Println(portValue)
 		containerPorts = append(containerPorts, v1core.ContainerPort{
 			Name: portName,
 			Protocol: v1core.ProtocolTCP,
