@@ -27,7 +27,8 @@ func main() {
 		apiStruct.Name,
 		apiStruct.Namespace,
 		apiStruct.Version,
-		apiStruct.Build)
+		apiStruct.Build
+	)
 
 	services.DeployHelm(apiStruct, "cid-random", context.Background())
 	services.K8sHealthCheck("cid-random", 5, apiStruct, context.Background())
