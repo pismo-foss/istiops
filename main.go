@@ -24,8 +24,13 @@ func main() {
 		Version:   "PR-129",
 		Build:     "2210"}
 
-	// some k8s resources does not allow special characters
-	simplifiedVersion := strings.Replace(apiStruct.Version, ".", "", -1)
+	// some k8s resources does not allow special and uppercase characters
+	replacer := strings.NewReplacer(
+		".", "",
+		"-", "",
+		"/", "")
+	simplifiedVersion := replacer.Replace(apiStruct.Version)
+	simplifiedVersion = strings.ToLower(simplifiedVersion)
 
 	apiStruct.ApiFullname = fmt.Sprintf("%s-%s-%s-%s",
 		apiStruct.Name,
