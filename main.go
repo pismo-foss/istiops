@@ -23,12 +23,6 @@ func main() {
 		Version:   "bluegreeneb",
 		Build:     "2210"}
 
-	apiStruct.ApiFullname = fmt.Sprintf("%s-%s-%s-%s",
-		apiStruct.Name,
-		apiStruct.Namespace,
-		apiStruct.Version,
-		apiStruct.Build)
-
 	services.DeployHelm(apiStruct, "cid-random", context.Background())
 	services.K8sHealthCheck("cid-random", 5, apiStruct, context.Background())
 }
