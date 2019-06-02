@@ -19,8 +19,8 @@ func main() {
 	apiStruct := services.ApiStruct{
 		Name:      "api-pipelinetest",
 		Namespace: "ext",
-		Version:   "pipethree",
-		Build:     "80"}
+		Version:   "bluegreeneb",
+		Build:     "2210"}
 
 	services.DeployHelm(apiStruct, "cid-random", context.Background())
 	services.K8sHealthCheck("cid-random", 5, apiStruct, context.Background())

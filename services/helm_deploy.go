@@ -10,7 +10,6 @@ import (
 	v1core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
-	"reflect"
 )
 
 func DeployHelm(api ApiStruct, cid string, ctx context.Context) error {
@@ -58,19 +57,22 @@ func DeployHelm(api ApiStruct, cid string, ctx context.Context) error {
 
 func createDeployment(api ApiStruct, apiValues ApiValues, cid string, ctx context.Context) error {
 	api_fullname := fmt.Sprintf("%s-%s-%s-%s", api.Name, api.Namespace, api.Version, api.Build)
+	apiValues.Deployment.Image.DockerRegistry = "270036487593.dkr.ecr.us-east-1.amazonaws.com/"
 	deploymentsClient := kubernetesClient.AppsV1().Deployments(api.Namespace)
 
 	// Getting dynamic protocol & ports
 	containerPorts := []v1core.ContainerPort{}
-	fmt.Println(reflect.TypeOf(containerPorts))
-
 	for portName, portValue := range apiValues.Deployment.Image.Ports {
 		fmt.Println(portName)
 		fmt.Println(portValue)
+		containerPorts = append(containerPorts, v1core.ContainerPort{
+			Name: portName,
+			Protocol: v1core.ProtocolTCP,
+			ContainerPort: int32(portValue),
+		})
 	}
 
-	fmt.Println(containerPorts)
-
+	fmt.Println(apiValues.Deployment.Image.DockerRegistry + api.Name + ":" + api.Version)
 	deployment := &v1apps.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: api_fullname,
@@ -98,19 +100,8 @@ func createDeployment(api ApiStruct, apiValues ApiValues, cid string, ctx contex
 					Containers: []v1core.Container{
 						{
 							Name:  api.Name,
-							Image: apiValues.Deployment.Image.DockerRegistry + api.Name + api.Version + api.Build,
-							Ports: []v1core.ContainerPort{
-								{
-									Name:          "http",
-									Protocol:      v1core.ProtocolTCP,
-									ContainerPort: 8005,
-								},
-								{
-									Name:          "grpc",
-									Protocol:      v1core.ProtocolTCP,
-									ContainerPort: 87777,
-								},
-							},
+							Image: apiValues.Deployment.Image.DockerRegistry + api.Name + ":" + api.Version,
+							Ports: containerPorts,
 						},
 					},
 				},
