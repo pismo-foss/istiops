@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
-	v1alpha32 "github.com/pismo/istiops/pkg/apis/networking/v1alpha3"
+	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/pismo/istiops/utils"
 	"istio.io/api/networking/v1alpha3"
 	v1core "k8s.io/api/core/v1"
