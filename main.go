@@ -14,19 +14,23 @@ import (
 	_ "k8s.io/client-go/dynamic"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	_ "k8s.io/client-go/tools/clientcmd"
+	"strings"
 )
 
 func main() {
 	apiStruct := services.ApiStruct{
 		Name:      "api-pipelinetest",
 		Namespace: "default",
-		Version:   "bluegreeneb",
+		Version:   "PR-129",
 		Build:     "2210"}
+
+	// some k8s resources does not allow special characters
+	simplifiedVersion := strings.Replace(apiStruct.Version, ".", "", -1)
 
 	apiStruct.ApiFullname = fmt.Sprintf("%s-%s-%s-%s",
 		apiStruct.Name,
 		apiStruct.Namespace,
-		apiStruct.Version,
+		simplifiedVersion,
 		apiStruct.Build)
 
 	services.DeployHelm(apiStruct, "cid-random", context.Background())

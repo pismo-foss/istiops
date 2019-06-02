@@ -49,14 +49,14 @@ type ApiValues struct {
 }
 
 type Deployment struct {
-	Role     string           `yaml:"role"`
+	Role     string            `yaml:"role"`
 	Replicas map[string]uint64 `yaml:"replicas"`
-	Image    Image            `yaml:"image"`
+	Image    Image             `yaml:"image"`
 }
 
 type Image struct {
 	HealthCheck    map[string]string `yaml:"healthCheck"`
-	Ports          map[string]uint32  `yaml:"ports"`
+	Ports          map[string]uint32 `yaml:"ports"`
 	DockerRegistry string            `yaml:"dockerRegistry"`
 	PullPolicy     string            `yaml:"pullPolicy"`
 }

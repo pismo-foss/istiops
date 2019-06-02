@@ -56,7 +56,6 @@ func DeployHelm(api ApiStruct, cid string, ctx context.Context) error {
 }
 
 func createDeployment(api ApiStruct, cid string, ctx context.Context) error {
-	api_fullname := fmt.Sprintf("%s-%s-%s-%s", api.Name, api.Namespace, api.Version, api.Build)
 	api.ApiValues.Deployment.Image.DockerRegistry = "270036487593.dkr.ecr.us-east-1.amazonaws.com/"
 	deploymentsClient := kubernetesClient.AppsV1().Deployments(api.Namespace)
 
@@ -73,7 +72,7 @@ func createDeployment(api ApiStruct, cid string, ctx context.Context) error {
 	fmt.Println(api.ApiValues.Deployment.Image.DockerRegistry + api.Name + ":" + api.Version)
 	deployment := &v1apps.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: api_fullname,
+			Name: api.ApiFullname,
 		},
 		Spec: v1apps.DeploymentSpec{
 			Replicas: int32Ptr(int32(api.ApiValues.Deployment.Replicas[api.Namespace])),
@@ -81,7 +80,7 @@ func createDeployment(api ApiStruct, cid string, ctx context.Context) error {
 				MatchLabels: map[string]string{
 					"app":     api.Name,
 					"build":   api.Build,
-					"release": api_fullname,
+					"release": api.ApiFullname,
 					"version": api.Version,
 				},
 			},
@@ -90,7 +89,7 @@ func createDeployment(api ApiStruct, cid string, ctx context.Context) error {
 					Labels: map[string]string{
 						"app":     api.Name,
 						"build":   api.Build,
-						"release": api_fullname,
+						"release": api.ApiFullname,
 						"version": api.Version,
 					},
 				},
@@ -108,7 +107,7 @@ func createDeployment(api ApiStruct, cid string, ctx context.Context) error {
 	}
 
 	// Create Deployment
-	utils.Info(fmt.Sprintf("Creating new deployment %s...", api_fullname), cid)
+	utils.Info(fmt.Sprintf("Creating new deployment %s...", api.ApiFullname), cid)
 	result, err := deploymentsClient.Create(deployment)
 	if err != nil {
 		utils.Fatal(fmt.Sprintf(err.Error()), cid)

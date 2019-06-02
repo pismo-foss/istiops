@@ -83,7 +83,6 @@ func retrieveVirtualService(api ApiStruct, cid string, parentCtx context.Context
 		vs.Spec.Hosts = []string{api.Name, api.Name + "-" + api.Namespace + PismoDomains[api.Namespace]}
 		vs.Spec.Gateways = []string{INTRASERVICE_GATEWAY, INTERNAL_GATEWAY}
 
-
 		if api.ApiValues.Deployment.Image.Ports["grpc"] > 0 {
 			defaultMatch := &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Prefix{Prefix: "/"}}}
 			defaultDestination := &v1alpha3.HTTPRouteDestination{Destination: &v1alpha3.Destination{Host: api.Name, Subset: "", Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: api.ApiValues.Deployment.Image.Ports["grpc"]}}}}
@@ -153,7 +152,7 @@ spec:
     app: api-transactionsgateway
   sessionAffinity: None
   type: ClusterIP
- */
+*/
 func retrieveService(api ApiStruct, cid string, parentCtx context.Context) (service *v1core.Service, new bool, error error) {
 	utils.Info(fmt.Sprintf("Retrieving svc: %s", api.Name), cid)
 
@@ -172,7 +171,6 @@ func retrieveService(api ApiStruct, cid string, parentCtx context.Context) (serv
 		svc := &v1core.Service{}
 		svc.Name = api.Name
 		svc.Namespace = api.Namespace
-
 
 		return svc, true, nil
 	}
