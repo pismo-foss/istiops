@@ -33,7 +33,7 @@ func init() {
 
 type ApiStruct struct {
 	Name        string     `json:"name"`
-	ApiFullName string     `json:"api_fullname"`
+	ApiFullname string     `json:"api_fullname"`
 	Namespace   string     `json:"namespace"`
 	Version     string     `json:"version"`
 	Build       string     `json:"build"`
