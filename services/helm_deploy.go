@@ -50,7 +50,9 @@ func DeployHelm(api ApiStruct, cid string, ctx context.Context) error {
 	}
 	utils.Info(fmt.Sprintf("Values extracted: %v", apiValues), cid)
 
-	createDeployment(api, *apiValues, "random-cid", ctx)
+	if err := createDeployment(api, *apiValues, "random-cid", ctx); err != nil {
+		return err
+	}
 	return nil
 }
 
