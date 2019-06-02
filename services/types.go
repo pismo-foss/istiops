@@ -37,8 +37,6 @@ type ApiStruct struct {
 	Namespace   string     `json:"namespace"`
 	Version     string     `json:"version"`
 	Build       string     `json:"build"`
-	HttpPort    uint32     `json:"http_port"`
-	GrpcPort    uint32     `json:"grpc_port"`
 	ApiValues   *ApiValues `json:"api_values"`
 }
 
