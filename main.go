@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/pismo/istiops/pipeline"
-	"github.com/pismo/istiops/pkg"
+	"github.com/pismo/istiops/utils"
 	_ "github.com/pkg/errors"
 	_ "github.com/sirupsen/logrus"
 	_ "github.com/snowzach/rotatefilehook"
@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	apiStruct := pkg.ApiStruct{
+	apiStruct := utils.ApiStruct{
 		Name:      "api-statements",
 		Namespace: "default",
 		Version:   "bluegreeneb",
