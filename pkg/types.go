@@ -32,12 +32,13 @@ func init() {
 }
 
 type ApiStruct struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Version   string `json:"version"`
-	Build     string `json:"build"`
-	HttpPort  uint32 `json:"http_port"`
-	GrpcPort  uint32 `json:"grpc_port"`
+	Name        string `json:"name"`
+	Namespace   string `json:"namespace"`
+	ApiFullname string `json:"fullname"`
+	Version     string `json:"version"`
+	Build       string `json:"build"`
+	HttpPort    uint32 `json:"http_port"`
+	GrpcPort    uint32 `json:"grpc_port"`
 }
 
 type ApiValues struct {
