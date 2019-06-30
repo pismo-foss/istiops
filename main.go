@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/pismo/istiops/services"
 	_ "github.com/pkg/errors"
 	_ "github.com/sirupsen/logrus"
