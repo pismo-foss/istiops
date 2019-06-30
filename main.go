@@ -13,15 +13,31 @@ import (
 	_ "k8s.io/client-go/dynamic"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	_ "k8s.io/client-go/tools/clientcmd"
+	"strings"
 )
 
 func main() {
 	apiStruct := services.ApiStruct{
-		Name:      "api-pipelinetest",
+		Name:      "api-statements",
 		Namespace: "default",
 		Version:   "bluegreeneb",
 		Build:     "2210"}
 
+	// some k8s resources does not allow special and uppercase characters
+	replacer := strings.NewReplacer(
+		".", "",
+		"-", "",
+		"/", "")
+	simplifiedVersion := replacer.Replace(apiStruct.Version)
+	simplifiedVersion = strings.ToLower(simplifiedVersion)
+
+	//apiStruct.ApiFullname = fmt.Sprintf("%s-%s-%s-%s",
+	//	apiStruct.Name,
+	//	apiStruct.Namespace,
+	//	simplifiedVersion,
+	//	apiStruct.Build)
+
+	// services.CreateRouteResource(apiStruct, "cid-random", context.Background())
 	services.DeployHelm(apiStruct, "cid-random", context.Background())
-	services.K8sHealthCheck("cid-random", 5, apiStruct, context.Background())
+	// services.K8sHealthCheck("cid-random", 5, apiStruct, context.Background())
 }

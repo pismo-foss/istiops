@@ -32,12 +32,12 @@ func init() {
 }
 
 type ApiStruct struct {
-	Name        string     `json:"name"`
-	ApiFullname string     `json:"api_fullname"`
-	Namespace   string     `json:"namespace"`
-	Version     string     `json:"version"`
-	Build       string     `json:"build"`
-	ApiValues   *ApiValues `json:"api_values"`
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Version   string `json:"version"`
+	Build     string `json:"build"`
+	HttpPort  uint32 `json:"http_port"`
+	GrpcPort  uint32 `json:"grpc_port"`
 }
 
 type ApiValues struct {
@@ -50,19 +50,26 @@ type ApiValues struct {
 
 type Deployment struct {
 	Role     string           `yaml:"role"`
-	Replicas map[string]uint64 `yaml:"replicas"`
+	Replicas map[string]int64 `yaml:"replicas"`
 	Image    Image            `yaml:"image"`
 }
 
 type Image struct {
-	HealthCheck    map[string]string `yaml:"healthCheck"`
-	Ports          map[string]uint32  `yaml:"ports"`
-	DockerRegistry string            `yaml:"dockerRegistry"`
-	PullPolicy     string            `yaml:"pullPolicy"`
+	HealthCheck    Probes           `yaml:"healthCheck"`
+	Ports          map[string]int64 `yaml:"ports"`
+	DockerRegistry string           `yaml:"dockerRegistry"`
+	PullPolicy     string           `yaml:"pullPolicy"`
+}
+
+type Probes struct {
+	HealthPort             int64  `yaml:"healthPort"`
+	LivenessProbeEndpoint  string `yaml:"livenessProbeEndpoint"`
+	ReadinessProbeEndpoint string `yaml:"readinessProbeEndpoint"`
+	Enabled                bool   `yaml:"enabled"`
 }
 
 var (
 	kubernetesClient *kubernetes.Clientset
 	istioClient      *versionedclient.Clientset
-	PismoDomains     = map[string]string{"default": ".pismolabs.io"}
+	PismoDomains     = map[string]string{"ext": ".pismolabs.io", "prod": ".pismo.io", "itau": ".pismo.cloud", "default": ".pismolabs.io"}
 )

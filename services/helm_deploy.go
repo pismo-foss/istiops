@@ -12,24 +12,24 @@ import (
 	"os"
 )
 
-func DeployHelm(api ApiStruct, cid string, ctx context.Context) error {
-	utils.Info(fmt.Sprintf("Applying configmap to %s environment...", api.Namespace), cid)
+func getConfigmapValues(api ApiStruct, cid string, ctx context.Context) (*ApiValues, error) {
+	apiValues := &ApiValues{}
 
 	pwd, err := os.Getwd()
 	if err != nil {
 		utils.Error(fmt.Sprintf(err.Error()), cid)
-		return err
+		return apiValues, err
 	}
 
 	cmBytes, err := ioutil.ReadFile(pwd + "/" + api.Name + "/kubernetes/" + api.Namespace + "/" + api.Name + "-config.yaml")
 	if err != nil {
 		utils.Fatal(fmt.Sprintf(err.Error()), cid)
-		return err
+		return apiValues, err
 	}
 	cm := &v1core.ConfigMap{}
 	if err := yaml.Unmarshal(cmBytes, cm); err != nil {
 		utils.Fatal(fmt.Sprintf(err.Error()), cid)
-		return err
+		return apiValues, err
 	}
 
 	cm.Name = api.Name + "-config"
@@ -39,30 +39,40 @@ func DeployHelm(api ApiStruct, cid string, ctx context.Context) error {
 	valuesBytes, err := ioutil.ReadFile(pwd + "/" + api.Name + "/values.yaml")
 	if err != nil {
 		utils.Error(fmt.Sprintf(err.Error()), cid)
-		return err
+		return apiValues, err
 	}
 
-	api.ApiValues = &ApiValues{}
-	if err := yaml.Unmarshal(valuesBytes, api.ApiValues); err != nil {
+	if err := yaml.Unmarshal(valuesBytes, apiValues); err != nil {
+		utils.Error(fmt.Sprintf(err.Error()), cid)
+		return apiValues, err
+	}
+	utils.Info(fmt.Sprintf("Values extracted: %v", apiValues), cid)
+	return apiValues, nil
+}
+
+func DeployHelm(api ApiStruct, cid string, ctx context.Context) error {
+	utils.Info(fmt.Sprintf("Applying configmap to %s environment...", api.Namespace), cid)
+	apiValues, err := getConfigmapValues(api, cid, ctx)
+	if err != nil {
 		utils.Error(fmt.Sprintf(err.Error()), cid)
 		return err
 	}
-	utils.Info(fmt.Sprintf("Values extracted: %v", api.ApiValues), cid)
 
-	if err := createDeployment(api, "random-cid", ctx); err != nil {
-		return err
-	}
+	createDeployment(api, *apiValues, "random-cid", ctx)
 	return nil
 }
 
-func createDeployment(api ApiStruct, cid string, ctx context.Context) error {
+func createDeployment(api ApiStruct, apiValues ApiValues, cid string, ctx context.Context) error {
 	api_fullname := fmt.Sprintf("%s-%s-%s-%s", api.Name, api.Namespace, api.Version, api.Build)
-	api.ApiValues.Deployment.Image.DockerRegistry = "270036487593.dkr.ecr.us-east-1.amazonaws.com/"
+	if apiValues.Deployment.Image.DockerRegistry == "" {
+		apiValues.Deployment.Image.DockerRegistry = "270036487593.dkr.ecr.us-east-1.amazonaws.com/"
+	}
 	deploymentsClient := kubernetesClient.AppsV1().Deployments(api.Namespace)
 
 	// Getting dynamic protocol & ports
 	containerPorts := []v1core.ContainerPort{}
-	for portName, portValue := range api.ApiValues.Deployment.Image.Ports {
+
+	for portName, portValue := range apiValues.Deployment.Image.Ports {
 		containerPorts = append(containerPorts, v1core.ContainerPort{
 			Name:          portName,
 			Protocol:      v1core.ProtocolTCP,
@@ -70,13 +80,12 @@ func createDeployment(api ApiStruct, cid string, ctx context.Context) error {
 		})
 	}
 
-	fmt.Println(api.ApiValues.Deployment.Image.DockerRegistry + api.Name + ":" + api.Version)
 	deployment := &v1apps.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: api_fullname,
 		},
 		Spec: v1apps.DeploymentSpec{
-			Replicas: int32Ptr(int32(api.ApiValues.Deployment.Replicas[api.Namespace])),
+			Replicas: int32Ptr(int32(apiValues.Deployment.Replicas[api.Namespace])),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app":     api.Name,
@@ -87,6 +96,9 @@ func createDeployment(api ApiStruct, cid string, ctx context.Context) error {
 			},
 			Template: v1core.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"iam.amazonaws.com/role": apiValues.Deployment.Role,
+					},
 					Labels: map[string]string{
 						"app":     api.Name,
 						"build":   api.Build,
@@ -95,12 +107,49 @@ func createDeployment(api ApiStruct, cid string, ctx context.Context) error {
 					},
 				},
 				Spec: v1core.PodSpec{
+					RestartPolicy: "Always",
 					Containers: []v1core.Container{
 						{
-							Name:  api.Name,
-							Image: api.ApiValues.Deployment.Image.DockerRegistry + api.Name + ":" + api.Version,
-							Ports: containerPorts,
+							Name:            api.Name,
+							Image:           apiValues.Deployment.Image.DockerRegistry + api.Name + ":" + api.Version,
+							Ports:           containerPorts,
+							ImagePullPolicy: "Always",
+							LivenessProbe: &v1core.Probe{
+								Handler: v1core.Handler{
+									Exec: &v1core.ExecAction{
+										Command: []string{
+											"curl",
+											"-fsS",
+											fmt.Sprintf("http://localhost:%d%s", apiValues.Deployment.Image.HealthCheck.HealthPort, apiValues.Deployment.Image.HealthCheck.LivenessProbeEndpoint),
+										},
+									},
+								},
+								InitialDelaySeconds: 15,
+								FailureThreshold:    3,
+								PeriodSeconds:       30,
+								SuccessThreshold:    1,
+								TimeoutSeconds:      1,
+							},
+							ReadinessProbe: &v1core.Probe{
+								Handler: v1core.Handler{
+									Exec: &v1core.ExecAction{
+										Command: []string{
+											"curl",
+											"-fsS",
+											fmt.Sprintf("http://localhost:%d%s", apiValues.Deployment.Image.HealthCheck.HealthPort, apiValues.Deployment.Image.HealthCheck.ReadinessProbeEndpoint),
+										},
+									},
+								},
+								InitialDelaySeconds: 15,
+								FailureThreshold:    3,
+								PeriodSeconds:       30,
+								SuccessThreshold:    1,
+								TimeoutSeconds:      1,
+							},
 						},
+					},
+					NodeSelector: map[string]string{
+						"kops.k8s.io/instancegroup": "nodes",
 					},
 				},
 			},
