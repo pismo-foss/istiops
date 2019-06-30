@@ -16,6 +16,8 @@ import (
 	"time"
 )
 
+// DeployApi deploys an api for a given api struct.
+// this function will create a configmap, a service, and a deployment and then health check the application.
 func DeployApi(api utils.ApiStruct, cid string, ctx context.Context) error {
 	utils.Info(fmt.Sprintf("Creating deploy in %s environment...", api.Namespace), cid)
 
@@ -39,13 +41,15 @@ func DeployApi(api utils.ApiStruct, cid string, ctx context.Context) error {
 	}
 
 	time.Sleep(2  * time.Second)
-	if err := K8sHealthCheck(cid, 180, api, ctx); err != nil {
+	if err := K8sHealthCheck(cid, 180, api.ApiFullname, api.Namespace, ctx); err != nil {
 		return err
 	}
 
 	return nil
 }
 
+// createConfig deploys an configmap with the given api struct.
+// this function will create if it doesn't exists or patch the existing resource if exists.
 func createConfig(api utils.ApiStruct, cid string, ctx context.Context) error {
 
 	configmapClient := kubernetesClient.CoreV1().ConfigMaps(api.Namespace)
@@ -85,6 +89,8 @@ func createConfig(api utils.ApiStruct, cid string, ctx context.Context) error {
 	return nil
 }
 
+// createService deploys an service with the given api struct.
+// this function will create if it doesn't exists or patch the existing resource if exists.
 func createService(api utils.ApiStruct, cid string, ctx context.Context) error {
 
 	k8sClientService := kubernetesClient.CoreV1().Services(api.Namespace)
@@ -133,6 +139,9 @@ func createService(api utils.ApiStruct, cid string, ctx context.Context) error {
 	return nil
 }
 
+
+// createDeployment deploys an deployment with the given api struct.
+// this function will create the deployment if it doesn't exists. Otherwise it will throw an error.
 func createDeployment(api utils.ApiStruct, cid string, ctx context.Context) error {
 
 	apiValues := api.ApiValues
@@ -220,7 +229,7 @@ func createDeployment(api utils.ApiStruct, cid string, ctx context.Context) erro
 										},
 									},
 								},
-								InitialDelaySeconds: 10,
+								InitialDelaySeconds: 15,
 								FailureThreshold:    3,
 								PeriodSeconds:       30,
 								SuccessThreshold:    1,
@@ -248,6 +257,7 @@ func createDeployment(api utils.ApiStruct, cid string, ctx context.Context) erro
 }
 
 
+// getConfigmapValues retrieves an configmap value inside the project folder /kubernetes/{namespace}/{api-name}-config.yaml
 func getConfigmapValues(api utils.ApiStruct, cid string, ctx context.Context) (v1core.ConfigMap, error) {
 	cm := v1core.ConfigMap{}
 	pwd, err := os.Getwd()
@@ -272,6 +282,7 @@ func getConfigmapValues(api utils.ApiStruct, cid string, ctx context.Context) (v
 	return cm, nil
 }
 
+// getApiValues retrieves the values.yaml inside the project folder /rootProjectdir/values.yaml
 func getApiValues(api utils.ApiStruct, cid string, ctx context.Context) (utils.ApiValues, error) {
 	apiValues := utils.ApiValues{}
 
@@ -303,6 +314,7 @@ func getApiValues(api utils.ApiStruct, cid string, ctx context.Context) (utils.A
 }
 
 
+// validateCreateDeploymentArgs this function validates the given apiStruct fields necessary to build a deployment.
 func validateCreateDeploymentArgs(apiStruct utils.ApiStruct) error {
 
 	if apiStruct.HttpPort <= 0 && apiStruct.GrpcPort <= 0 {

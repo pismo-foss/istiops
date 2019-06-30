@@ -18,6 +18,9 @@ const (
 	EXTERNAL_GATEWAY           = "istio-gateway"
 )
 
+// CreateRouteResource deploys an virtualservice with a destinationrule for a given api struct.
+// this function will create a virtualservice, and  an destinationrule
+// if they exist already, this function wil override with the custom definitions
 func CreateRouteResource(api utils.ApiStruct, cid string, parentCtx context.Context) error {
 	ctx := context.WithValue(parentCtx, "cid", cid)
 
@@ -59,6 +62,8 @@ func CreateRouteResource(api utils.ApiStruct, cid string, parentCtx context.Cont
 	return nil
 }
 
+// retrieveVirtualService this function retrieves an virtualservice that already exists.
+// if it doesn't exists it will return a new one in memory with the given apistruct parameters as the initialization values.
 func retrieveVirtualService(api utils.ApiStruct, cid string, parentCtx context.Context) (virtualService *v1alpha32.VirtualService, new bool, error error) {
 	name := api.Name + VIRTUALSERVICE_RULE_SUFFIX
 	utils.Info(fmt.Sprintf("Retrieving virtualservice: %s", name), cid)
@@ -108,6 +113,8 @@ func retrieveVirtualService(api utils.ApiStruct, cid string, parentCtx context.C
 	return vs, false, nil
 }
 
+// retrieveDestinationRule this function retrieves an destinationrule that already exists.
+// if it doesn't exists it will return a new one in memory with the given apistruct parameters as the initialization values.
 func retrieveDestinationRule(api utils.ApiStruct, cid string, parentCtx context.Context) (destinationRule *v1alpha32.DestinationRule, new bool, error error) {
 	drName := api.Name + DESTINATION_RULE_SUFFIX
 	utils.Info(fmt.Sprintf("Retrieving destinationrule: %s", drName), cid)
