@@ -63,7 +63,6 @@ func DeployHelm(api utils.ApiStruct, cid string, ctx context.Context) error {
 }
 
 func createDeployment(api utils.ApiStruct, apiValues utils.ApiValues, cid string, ctx context.Context) error {
-	api_fullname := fmt.Sprintf("%s-%s-%s-%s", api.Name, api.Namespace, api.Version, api.Build)
 	if apiValues.Deployment.Image.DockerRegistry == "" {
 		apiValues.Deployment.Image.DockerRegistry = "270036487593.dkr.ecr.us-east-1.amazonaws.com/"
 	}
@@ -82,7 +81,7 @@ func createDeployment(api utils.ApiStruct, apiValues utils.ApiValues, cid string
 
 	deployment := &v1apps.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: api_fullname,
+			Name: api.ApiFullname,
 		},
 		Spec: v1apps.DeploymentSpec{
 			Replicas: int32Ptr(int32(apiValues.Deployment.Replicas[api.Namespace])),
@@ -90,7 +89,7 @@ func createDeployment(api utils.ApiStruct, apiValues utils.ApiValues, cid string
 				MatchLabels: map[string]string{
 					"app":     api.Name,
 					"build":   api.Build,
-					"release": api_fullname,
+					"release": api.ApiFullname,
 					"version": api.Version,
 				},
 			},
@@ -102,7 +101,7 @@ func createDeployment(api utils.ApiStruct, apiValues utils.ApiValues, cid string
 					Labels: map[string]string{
 						"app":     api.Name,
 						"build":   api.Build,
-						"release": api_fullname,
+						"release": api.ApiFullname,
 						"version": api.Version,
 					},
 				},
@@ -164,7 +163,7 @@ func createDeployment(api utils.ApiStruct, apiValues utils.ApiValues, cid string
 	}
 
 	// Create Deployment
-	utils.Info(fmt.Sprintf("Creating new deployment %s...", api_fullname), cid)
+	utils.Info(fmt.Sprintf("Creating new deployment %s...", api.ApiFullname), cid)
 	result, err := deploymentsClient.Create(deployment)
 	if err != nil {
 		utils.Fatal(fmt.Sprintf(err.Error()), cid)
