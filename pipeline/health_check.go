@@ -41,9 +41,9 @@ func K8sHealthCheck(cid string, timeout int, api utils.ApiStruct, ctx context.Co
 								utils.Debug(fmt.Sprintf("container '%s' for  pod is healthy! %s...", cst.Name, p.Name), cid)
 								break
 							}
-							time.Sleep(5 * time.Second)
+							time.Sleep(1 * time.Second)
 							// if the container is not in status 'Running' after 5 minutes, terminate health check with exit 1
-							if sum >= 60 {
+							if sum >= 1 {
 								utils.Fatal(fmt.Sprintf("Container '%s' from pod '%s' had the validation time expired due to an unknown failure. Check the pod's logs for additional details", cst.Name, p.Name), cid)
 							}
 						}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/pismo/istiops/pipeline"
 	"github.com/pismo/istiops/pkg"
 	_ "github.com/pkg/errors"
@@ -32,8 +33,13 @@ func main() {
 	simplifiedVersion := replacer.Replace(apiStruct.Version)
 	simplifiedVersion = strings.ToLower(simplifiedVersion)
 
+	apiStruct.ApiFullname = fmt.Sprintf("%s-%s-%s-%s",
+		apiStruct.Name,
+		apiStruct.Namespace,
+		simplifiedVersion,
+		apiStruct.Build)
 
-	// services.CreateRouteResource(apiStruct, "cid-random", context.Background())
+	// pipeline.CreateRouteResource(apiStruct, "cid-random", context.Background())
 	pipeline.DeployHelm(apiStruct, "cid-random", context.Background())
-	// services.K8sHealthCheck("cid-random", 5, apiStruct, context.Background())
+	// pipeline.K8sHealthCheck("cid-random", 5, apiStruct, context.Background())
 }

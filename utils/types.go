@@ -3,6 +3,7 @@ package utils
 type ApiStruct struct {
 	Name      string `json:"name"`
 	ApiHostName string `json:"api_host_name"`
+	ApiFullname string `json:"fullname"`
 	Namespace string `json:"namespace"`
 	Version   string `json:"version"`
 	Build     string `json:"build"`
