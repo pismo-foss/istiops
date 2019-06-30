@@ -1,4 +1,4 @@
-package services
+package pkg
 
 import (
 	"context"
@@ -79,7 +79,7 @@ func retrieveVirtualService(api ApiStruct, cid string, parentCtx context.Context
 		vs.Name = api.Name + VIRTUALSERVICE_RULE_SUFFIX
 		vs.Namespace = api.Namespace
 
-		vs.Spec.Hosts = []string{api.Name, api.Name + "-" + api.Namespace + PismoDomains[api.Namespace]}
+		vs.Spec.Hosts = []string{api.Name, api.Name + "-" + api.Namespace + ".pismolabs.io"}
 		vs.Spec.Gateways = []string{INTRASERVICE_GATEWAY, INTERNAL_GATEWAY}
 
 		if api.GrpcPort > 0 {

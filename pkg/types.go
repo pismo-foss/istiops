@@ -1,4 +1,4 @@
-package services
+package pkg
 
 import (
 	versionedclient "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
@@ -71,5 +71,4 @@ type Probes struct {
 var (
 	kubernetesClient *kubernetes.Clientset
 	istioClient      *versionedclient.Clientset
-	PismoDomains     = map[string]string{"ext": ".pismolabs.io", "prod": ".pismo.io", "itau": ".pismo.cloud", "default": ".pismolabs.io"}
 )

@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"github.com/pismo/istiops/services"
+	"github.com/pismo/istiops/pipeline"
+	"github.com/pismo/istiops/pkg"
 	_ "github.com/pkg/errors"
 	_ "github.com/sirupsen/logrus"
 	_ "github.com/snowzach/rotatefilehook"
@@ -17,7 +18,7 @@ import (
 )
 
 func main() {
-	apiStruct := services.ApiStruct{
+	apiStruct := pkg.ApiStruct{
 		Name:      "api-statements",
 		Namespace: "default",
 		Version:   "bluegreeneb",
@@ -38,6 +39,6 @@ func main() {
 	//	apiStruct.Build)
 
 	// services.CreateRouteResource(apiStruct, "cid-random", context.Background())
-	services.DeployHelm(apiStruct, "cid-random", context.Background())
+	pipeline.DeployHelm(apiStruct, "cid-random", context.Background())
 	// services.K8sHealthCheck("cid-random", 5, apiStruct, context.Background())
 }

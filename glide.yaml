@@ -1,9 +1,8 @@
 package: github.com/pismo/istiops
 ignore:
   - github.com/pismo/istiops/cmd
-  - github.com/pismo/istiops/files
+  - github.com/pismo/istiops/pipeline
   - github.com/pismo/istiops/pkg
-  - github.com/pismo/istiops/services
   - github.com/pismo/istiops/utils
 import:
   - package: github.com/pkg/errors

@@ -1,8 +1,9 @@
-package services
+package pipeline
 
 import (
 	"context"
 	"fmt"
+	"github.com/pismo/istiops/pkg"
 	"github.com/pismo/istiops/utils"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -12,8 +13,8 @@ import (
 	"os"
 )
 
-func getConfigmapValues(api ApiStruct, cid string, ctx context.Context) (*ApiValues, error) {
-	apiValues := &ApiValues{}
+func getConfigmapValues(api pkg.ApiStruct, cid string, ctx context.Context) (*pkg.ApiValues, error) {
+	apiValues := &pkg.ApiValues{}
 
 	pwd, err := os.Getwd()
 	if err != nil {
@@ -50,7 +51,7 @@ func getConfigmapValues(api ApiStruct, cid string, ctx context.Context) (*ApiVal
 	return apiValues, nil
 }
 
-func DeployHelm(api ApiStruct, cid string, ctx context.Context) error {
+func DeployHelm(api pkg.ApiStruct, cid string, ctx context.Context) error {
 	utils.Info(fmt.Sprintf("Applying configmap to %s environment...", api.Namespace), cid)
 	apiValues, err := getConfigmapValues(api, cid, ctx)
 	if err != nil {
@@ -62,7 +63,7 @@ func DeployHelm(api ApiStruct, cid string, ctx context.Context) error {
 	return nil
 }
 
-func createDeployment(api ApiStruct, apiValues ApiValues, cid string, ctx context.Context) error {
+func createDeployment(api pkg.ApiStruct, apiValues pkg.ApiValues, cid string, ctx context.Context) error {
 	api_fullname := fmt.Sprintf("%s-%s-%s-%s", api.Name, api.Namespace, api.Version, api.Build)
 	if apiValues.Deployment.Image.DockerRegistry == "" {
 		apiValues.Deployment.Image.DockerRegistry = "270036487593.dkr.ecr.us-east-1.amazonaws.com/"
