@@ -120,7 +120,10 @@ func createDeployment(api ApiStruct, apiValues ApiValues, cid string, ctx contex
 										Command: []string{
 											"curl",
 											"-fsS",
-											fmt.Sprintf("http://localhost:%d%s", apiValues.Deployment.Image.HealthCheck.HealthPort, apiValues.Deployment.Image.HealthCheck.LivenessProbeEndpoint),
+											fmt.Sprintf("http://localhost:%d%s",
+												apiValues.Deployment.Image.HealthCheck.HealthPort,
+												apiValues.Deployment.Image.HealthCheck.LivenessProbeEndpoint,
+											),
 										},
 									},
 								},
@@ -136,7 +139,11 @@ func createDeployment(api ApiStruct, apiValues ApiValues, cid string, ctx contex
 										Command: []string{
 											"curl",
 											"-fsS",
-											fmt.Sprintf("http://localhost:%d%s", apiValues.Deployment.Image.HealthCheck.HealthPort, apiValues.Deployment.Image.HealthCheck.ReadinessProbeEndpoint),
+											fmt.Sprintf(
+												"http://localhost:%d%s",
+												apiValues.Deployment.Image.HealthCheck.HealthPort,
+												apiValues.Deployment.Image.HealthCheck.ReadinessProbeEndpoint,
+											),
 										},
 									},
 								},
