@@ -121,7 +121,10 @@ func createDeployment(api pkg.ApiStruct, apiValues pkg.ApiValues, cid string, ct
 										Command: []string{
 											"curl",
 											"-fsS",
-											fmt.Sprintf("http://localhost:%d%s", apiValues.Deployment.Image.HealthCheck.HealthPort, apiValues.Deployment.Image.HealthCheck.LivenessProbeEndpoint),
+											fmt.Sprintf("http://localhost:%d%s",
+												apiValues.Deployment.Image.HealthCheck.HealthPort,
+												apiValues.Deployment.Image.HealthCheck.LivenessProbeEndpoint,
+											),
 										},
 									},
 								},
@@ -137,7 +140,11 @@ func createDeployment(api pkg.ApiStruct, apiValues pkg.ApiValues, cid string, ct
 										Command: []string{
 											"curl",
 											"-fsS",
-											fmt.Sprintf("http://localhost:%d%s", apiValues.Deployment.Image.HealthCheck.HealthPort, apiValues.Deployment.Image.HealthCheck.ReadinessProbeEndpoint),
+											fmt.Sprintf(
+												"http://localhost:%d%s",
+												apiValues.Deployment.Image.HealthCheck.HealthPort,
+												apiValues.Deployment.Image.HealthCheck.ReadinessProbeEndpoint,
+											),
 										},
 									},
 								},
