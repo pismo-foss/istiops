@@ -8,11 +8,11 @@ import (
 
 func TestCreateHttpRouteResource(t *testing.T) {
 	apiStruct := ApiStruct{
-		Name:      "api-pipelinetest",
+		Name:      "api-pipetest",
 		Namespace: "default",
 		Version:   "bluegreeneb",
 		Build:     "2210",
-		ApiValues: &ApiValues{Deployment: Deployment{Image: Image{Ports: map[string]uint32{"http": 8080}}}},
+		HttpPort:  8080,
 	}
 
 	err := CreateRouteResource(apiStruct, "test-http-happy", context.Background())
@@ -21,11 +21,12 @@ func TestCreateHttpRouteResource(t *testing.T) {
 
 func TestCreateGrpcRouteResource(t *testing.T) {
 	apiStruct := ApiStruct{
-		Name:      "api-pipelinetest",
+		Name:      "api-pipetest",
 		Namespace: "default",
 		Version:   "bluegreeneb",
 		Build:     "2210",
-		ApiValues: &ApiValues{Deployment: Deployment{Image: Image{Ports: map[string]uint32{"http": 8005, "grpc": 8777}}}},
+		GrpcPort:  8777,
+		HttpPort:  8005,
 	}
 
 	err := CreateRouteResource(apiStruct, "test-grpc-happy", context.Background())

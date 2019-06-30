@@ -8,8 +8,8 @@ import (
 
 func TestDeployHelm(t *testing.T) {
 	apiStruct := ApiStruct{
-		Name:      "api-pipelinetest",
-		Namespace: "default",
+		Name:      "api-p2ptransactions",
+		Namespace: "qa",
 		Version:   "bluegreeneb",
 		Build:     "2210"}
 

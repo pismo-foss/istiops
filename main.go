@@ -19,9 +19,9 @@ import (
 
 func main() {
 	apiStruct := services.ApiStruct{
-		Name:      "api-pipelinetest",
-		Namespace: "default",
-		Version:   "PR-129",
+		Name:      "api-statements",
+		Namespace: "qa",
+		Version:   "bluegreeneb",
 		Build:     "2210"}
 
 	// some k8s resources does not allow special and uppercase characters
@@ -38,6 +38,7 @@ func main() {
 		simplifiedVersion,
 		apiStruct.Build)
 
+	// services.CreateRouteResource(apiStruct, "cid-random", context.Background())
 	services.DeployHelm(apiStruct, "cid-random", context.Background())
-	services.K8sHealthCheck("cid-random", 5, apiStruct, context.Background())
+	// services.K8sHealthCheck("cid-random", 5, apiStruct, context.Background())
 }

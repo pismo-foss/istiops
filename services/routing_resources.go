@@ -6,7 +6,6 @@ import (
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/pismo/istiops/utils"
 	"istio.io/api/networking/v1alpha3"
-	v1core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -83,9 +82,9 @@ func retrieveVirtualService(api ApiStruct, cid string, parentCtx context.Context
 		vs.Spec.Hosts = []string{api.Name, api.Name + "-" + api.Namespace + PismoDomains[api.Namespace]}
 		vs.Spec.Gateways = []string{INTRASERVICE_GATEWAY, INTERNAL_GATEWAY}
 
-		if api.ApiValues.Deployment.Image.Ports["grpc"] > 0 {
+		if api.GrpcPort > 0 {
 			defaultMatch := &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Prefix{Prefix: "/"}}}
-			defaultDestination := &v1alpha3.HTTPRouteDestination{Destination: &v1alpha3.Destination{Host: api.Name, Subset: "", Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: api.ApiValues.Deployment.Image.Ports["grpc"]}}}}
+			defaultDestination := &v1alpha3.HTTPRouteDestination{Destination: &v1alpha3.Destination{Host: api.Name, Subset: "", Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: api.GrpcPort}}}}
 
 			defaultRoute := &v1alpha3.HTTPRoute{}
 			defaultRoute.Match = append(defaultRoute.Match, defaultMatch)
@@ -96,7 +95,7 @@ func retrieveVirtualService(api ApiStruct, cid string, parentCtx context.Context
 		}
 
 		defaultMatch := &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}}
-		defaultDestination := &v1alpha3.HTTPRouteDestination{Destination: &v1alpha3.Destination{Host: api.Name, Subset: "", Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: api.ApiValues.Deployment.Image.Ports["http"]}}}}
+		defaultDestination := &v1alpha3.HTTPRouteDestination{Destination: &v1alpha3.Destination{Host: api.Name, Subset: "", Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: api.HttpPort}}}}
 
 		defaultRoute := &v1alpha3.HTTPRoute{}
 		defaultRoute.Match = append(defaultRoute.Match, defaultMatch)
@@ -136,44 +135,4 @@ func retrieveDestinationRule(api ApiStruct, cid string, parentCtx context.Contex
 	}
 
 	return dr, false, nil
-}
-
-/*
-  name: api-transactionsgateway
-  namespace: ext
-spec:
-
-  ports:
-  - name: http-api-transactionsgateway
-    port: 8080
-    protocol: TCP
-    targetPort: 8080
-  selector:
-    app: api-transactionsgateway
-  sessionAffinity: None
-  type: ClusterIP
-*/
-func retrieveService(api ApiStruct, cid string, parentCtx context.Context) (service *v1core.Service, new bool, error error) {
-	utils.Info(fmt.Sprintf("Retrieving svc: %s", api.Name), cid)
-
-	svc, err := kubernetesClient.CoreV1().Services(api.Namespace).Get(api.Name, v1.GetOptions{})
-	if err != nil {
-		customErr, ok := err.(*errors.StatusError)
-		if !ok {
-			return nil, false, err
-		}
-
-		if customErr.Status().Code != 404 {
-			return nil, false, err
-		}
-
-		utils.Info(fmt.Sprintf("DestinationRule: %s not found, will create one now", api.Name), cid)
-		svc := &v1core.Service{}
-		svc.Name = api.Name
-		svc.Namespace = api.Namespace
-
-		return svc, true, nil
-	}
-
-	return svc, false, nil
 }
