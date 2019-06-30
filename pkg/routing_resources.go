@@ -15,10 +15,10 @@ const (
 	VIRTUALSERVICE_RULE_SUFFIX = "-virtualservice"
 	INTRASERVICE_GATEWAY       = "mesh"
 	INTERNAL_GATEWAY           = "istio-gateway-internal"
-	EXTERNL_GATEWAY            = "istio-gateway"
+	EXTERNAL_GATEWAY           = "istio-gateway"
 )
 
-func CreateRouteResource(api ApiStruct, cid string, parentCtx context.Context) error {
+func CreateRouteResource(api utils.ApiStruct, cid string, parentCtx context.Context) error {
 	ctx := context.WithValue(parentCtx, "cid", cid)
 
 	//Handling destinationRule
@@ -59,7 +59,7 @@ func CreateRouteResource(api ApiStruct, cid string, parentCtx context.Context) e
 	return nil
 }
 
-func retrieveVirtualService(api ApiStruct, cid string, parentCtx context.Context) (virtualService *v1alpha32.VirtualService, new bool, error error) {
+func retrieveVirtualService(api utils.ApiStruct, cid string, parentCtx context.Context) (virtualService *v1alpha32.VirtualService, new bool, error error) {
 	name := api.Name + VIRTUALSERVICE_RULE_SUFFIX
 	utils.Info(fmt.Sprintf("Retrieving virtualservice: %s", name), cid)
 
@@ -79,7 +79,7 @@ func retrieveVirtualService(api ApiStruct, cid string, parentCtx context.Context
 		vs.Name = api.Name + VIRTUALSERVICE_RULE_SUFFIX
 		vs.Namespace = api.Namespace
 
-		vs.Spec.Hosts = []string{api.Name, api.Name + "-" + api.Namespace + ".pismolabs.io"}
+		vs.Spec.Hosts = []string{api.Name, api.ApiHostName}
 		vs.Spec.Gateways = []string{INTRASERVICE_GATEWAY, INTERNAL_GATEWAY}
 
 		if api.GrpcPort > 0 {
@@ -108,7 +108,7 @@ func retrieveVirtualService(api ApiStruct, cid string, parentCtx context.Context
 	return vs, false, nil
 }
 
-func retrieveDestinationRule(api ApiStruct, cid string, parentCtx context.Context) (destinationRule *v1alpha32.DestinationRule, new bool, error error) {
+func retrieveDestinationRule(api utils.ApiStruct, cid string, parentCtx context.Context) (destinationRule *v1alpha32.DestinationRule, new bool, error error) {
 	drName := api.Name + DESTINATION_RULE_SUFFIX
 	utils.Info(fmt.Sprintf("Retrieving destinationrule: %s", drName), cid)
 

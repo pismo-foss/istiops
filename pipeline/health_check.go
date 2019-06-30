@@ -3,14 +3,13 @@ package pipeline
 import (
 	"context"
 	"fmt"
-	"github.com/pismo/istiops/pkg"
 	"github.com/pismo/istiops/utils"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"time"
 )
 
-func K8sHealthCheck(cid string, timeout int, api pkg.ApiStruct, ctx context.Context) error {
+func K8sHealthCheck(cid string, timeout int, api utils.ApiStruct, ctx context.Context) error {
 	api_fullname := fmt.Sprintf("%s-%s-%s-%s", api.Name, api.Namespace, api.Version, api.Build)
 	utils.Info("Starting kubernetes' healthcheck based in 'rollout' with a 180 seconds of timeout...", cid)
 

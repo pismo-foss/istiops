@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/pismo/istiops/pipeline"
 	"github.com/pismo/istiops/pkg"
-	"fmt"
 	_ "github.com/pkg/errors"
 	_ "github.com/sirupsen/logrus"
 	_ "github.com/snowzach/rotatefilehook"
