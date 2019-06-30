@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/pismo/istiops/services"
 	_ "github.com/pkg/errors"
 	_ "github.com/sirupsen/logrus"
@@ -31,11 +32,11 @@ func main() {
 	simplifiedVersion := replacer.Replace(apiStruct.Version)
 	simplifiedVersion = strings.ToLower(simplifiedVersion)
 
-	//apiStruct.ApiFullname = fmt.Sprintf("%s-%s-%s-%s",
-	//	apiStruct.Name,
-	//	apiStruct.Namespace,
-	//	simplifiedVersion,
-	//	apiStruct.Build)
+	apiStruct.ApiFullname = fmt.Sprintf("%s-%s-%s-%s",
+		apiStruct.Name,
+		apiStruct.Namespace,
+		simplifiedVersion,
+		apiStruct.Build)
 
 	// services.CreateRouteResource(apiStruct, "cid-random", context.Background())
 	services.DeployHelm(apiStruct, "cid-random", context.Background())
