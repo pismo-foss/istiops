@@ -7,7 +7,7 @@ deployment:
       enabled: true
     ports:
       http: 8080
-    dockerRegistry: 270036487593.dkr.ecr.us-east-1.amazonaws.com
+    dockerRegistry: 270036487593.dkr.ecr.sa-east-1.amazonaws.com/
     pullPolicy: Always
 
 resources: {}

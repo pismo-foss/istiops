@@ -1,14 +1,40 @@
 package utils
 
+import (
+	"fmt"
+	"strings"
+)
+
+func BuildApiStruct(name string, namespace string, version string, build string) ApiStruct {
+	apiStruct := ApiStruct{
+		Name: name,
+		Namespace: namespace,
+		Version: version,
+		Build: build,
+	}
+	replacer := strings.NewReplacer(".", "", "-", "", "/", "")
+	simplifiedVersion := replacer.Replace(apiStruct.Version)
+	simplifiedVersion = strings.ToLower(simplifiedVersion)
+
+	apiStruct.ApiFullname = fmt.Sprintf("%s-%s-%s-%s",
+		apiStruct.Name,
+		apiStruct.Namespace,
+		simplifiedVersion,
+		apiStruct.Build)
+
+	return apiStruct
+}
+
 type ApiStruct struct {
 	Name      string `json:"name"`
 	ApiHostName string `json:"api_host_name"`
-	ApiFullname string `json:"fullname"`
+	ApiFullname string `json:"api_fullname"`
 	Namespace string `json:"namespace"`
 	Version   string `json:"version"`
 	Build     string `json:"build"`
 	HttpPort  uint32 `json:"http_port"`
 	GrpcPort  uint32 `json:"grpc_port"`
+	ApiValues ApiValues `json:"api_values"`
 }
 
 type ApiValues struct {

@@ -8,12 +8,8 @@ import (
 )
 
 func TestDeployHelm(t *testing.T) {
-	apiStruct := utils.ApiStruct{
-		Name:      "api-pipelinetest",
-		Namespace: "default",
-		Version:   "bluegreeneb",
-		Build:     "2210"}
-
-	err := DeployHelm(apiStruct, "cid-happy-yest", context.Background())
+	apiStruct := utils.BuildApiStruct("api-pipelinetest", "default", "1.0.0", "2210")
+	apiStruct.HttpPort = 8080
+	err := DeployApi(apiStruct, "cid-happy-yest", context.Background())
 	assert.Nil(t, err)
 }

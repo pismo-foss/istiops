@@ -8,6 +8,13 @@ import (
 	"os"
 )
 
+const (
+	WARN_NO_REGISTRY_FOUND = "Unable to get base docker registry. Check arguments."
+	WARN_NO_PORT_SPECIFIED = "No grpc or http port specified!"
+	WARN_NO_NECESSARY_NAMES_SPECIFIED = "No Name/namespace/version/build specified, check arguments!"
+	WARN_NO_HEALTHCHECK_OR_READINESS_ENDPOINT_CONFIGURED = "Http port or Liveness or Readiness endpoint not informed."
+)
+
 func init() {
 	var err error
 	homedir := homedir.HomeDir()

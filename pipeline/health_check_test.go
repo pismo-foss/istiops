@@ -8,12 +8,7 @@ import (
 )
 
 func TestK8sHealthCheck(t *testing.T) {
-	apiStruct := utils.ApiStruct{
-		Name:      "api-pipelinetest",
-		Namespace: "default",
-		Version:   "bluegreeneb",
-		Build:     "2210"}
-
+	apiStruct := utils.BuildApiStruct("api-pipelinetest", "default", "1.0.0", "2210")
 	err := K8sHealthCheck("cid-happy-test", 5, apiStruct, context.Background())
 	assert.Nil(t, err)
 }
