@@ -2,10 +2,11 @@ package pipeline
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/pismo/istiops/utils"
+	v1core "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 	"time"
 )
 
@@ -13,45 +14,57 @@ func K8sHealthCheck(cid string, timeout int, api utils.ApiStruct, ctx context.Co
 	api_fullname := fmt.Sprintf("%s-%s-%s-%s", api.Name, api.Namespace, api.Version, api.Build)
 	utils.Info("Starting kubernetes' healthcheck based in 'rollout' with a 180 seconds of timeout...", cid)
 
-	dpl, err := kubernetesClient.AppsV1().Deployments(api.Namespace).List(v1.ListOptions{})
+
+	pods, err := kubernetesClient.CoreV1().Pods(api.Namespace).List(v1.ListOptions{
+		LabelSelector: "release=" + api_fullname,
+	})
 	if err != nil {
-		utils.Fatal(err.Error(), cid)
 		return err
 	}
 
-	for _, v := range dpl.Items {
-		if strings.Contains(v.Name, api_fullname) {
-			// -> todo : timeout implementation
-			pods, err := kubernetesClient.CoreV1().Pods(api.Namespace).List(v1.ListOptions{})
-			if err != nil {
-				utils.Fatal(err.Error(), cid)
-				return err
+	watch, err := kubernetesClient.CoreV1().Pods(api.Namespace).Watch(v1.ListOptions{
+		LabelSelector: "release=" + api_fullname,
+	})
+	if err != nil {
+		return err
+	}
+
+
+	c1 := make(chan bool, 1)
+	i := 0
+	podsSize := len(pods.Items)
+	go func() {
+
+		for event := range watch.ResultChan() {
+
+			p, ok := event.Object.(*v1core.Pod)
+			if !ok {
+				utils.Fatal("unexpected type", cid)
 			}
 
-			// validate pod statuses per container
-			for _, p := range pods.Items {
-				if strings.Contains(p.Name, api_fullname) {
-					utils.Info(fmt.Sprintf("Waiting for a healthy status for pod: '%s'...", p.Name), cid)
-					sum := 0
-					for _, cst := range p.Status.ContainerStatuses {
-						// waiting for container to be healthy
-						for {
-							sum++
-							if cst.State.Running != nil {
-								utils.Debug(fmt.Sprintf("container '%s' for  pod is healthy! %s...", cst.Name, p.Name), cid)
-								break
-							}
-							time.Sleep(1 * time.Second)
-							// if the container is not in status 'Running' after 5 minutes, terminate health check with exit 1
-							if sum >= 1 {
-								utils.Fatal(fmt.Sprintf("Container '%s' from pod '%s' had the validation time expired due to an unknown failure. Check the pod's logs for additional details", cst.Name, p.Name), cid)
-							}
-						}
-					}
+			utils.Info(fmt.Sprintf("Pod %s at status %s", p.Name, p.Status.Phase), cid)
+			for _, containerStatus := range p.Status.ContainerStatuses {
+				if containerStatus.Ready {
+					i++
 				}
 			}
+
+			if i == podsSize {
+				c1 <- true
+			}
 		}
+
+	}()
+
+
+	select {
+	case res := <-c1:
+		fmt.Println(fmt.Sprintf("DONE======= %v", res))
+	case <-time.After(45 * time.Second):
+		return errors.New("TIMEOUT")
 	}
+
+
 	utils.Info("Application is running successfuly in pod!", cid)
 	return nil
 }
