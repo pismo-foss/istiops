@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"os"
+	"time"
 )
 
 func DeployApi(api utils.ApiStruct, cid string, ctx context.Context) error {
@@ -37,6 +38,7 @@ func DeployApi(api utils.ApiStruct, cid string, ctx context.Context) error {
 		return err
 	}
 
+	time.Sleep(2  * time.Second)
 	if err := K8sHealthCheck(cid, 180, api, ctx); err != nil {
 		return err
 	}
@@ -218,7 +220,7 @@ func createDeployment(api utils.ApiStruct, cid string, ctx context.Context) erro
 										},
 									},
 								},
-								InitialDelaySeconds: 15,
+								InitialDelaySeconds: 10,
 								FailureThreshold:    3,
 								PeriodSeconds:       30,
 								SuccessThreshold:    1,

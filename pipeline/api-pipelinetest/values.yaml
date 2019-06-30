@@ -1,7 +1,7 @@
 deployment:
   role: api-pipelinetest-role
   replicas:
-    default: 1
+    default: 3
   image:
     healthCheck:
       enabled: true

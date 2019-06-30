@@ -29,8 +29,14 @@ func K8sHealthCheck(cid string, timeout time.Duration, api utils.ApiStruct, ctx 
 
 
 	c1 := make(chan bool, 1)
-	i := 0
 	podsSize := len(pods.Items)
+	podsReady := map[string]bool{}
+
+	for _, v := range pods.Items {
+		utils.Info(fmt.Sprintf("Waiting pod %s to be ready...", v.ObjectMeta.Name), cid)
+		podsReady[v.ObjectMeta.Name] = false
+	}
+
 	go func() {
 
 		for event := range watch.ResultChan() {
@@ -40,23 +46,31 @@ func K8sHealthCheck(cid string, timeout time.Duration, api utils.ApiStruct, ctx 
 				utils.Fatal("unexpected type", cid)
 			}
 
-			utils.Info(fmt.Sprintf("Pod %s at status %s", p.Name, p.Status.Phase), cid)
 			numberOfContainers := len(p.Status.ContainerStatuses)
 
 			y := 0
 			for _, containerStatus := range p.Status.ContainerStatuses {
 
 				if containerStatus.Ready {
+					utils.Info(fmt.Sprintf("Container %s ready", containerStatus.Name), cid, utils.Fields{"pod": p.Name})
 					y++
 				}
 
 				if y == numberOfContainers {
-					i++
+					utils.Info(fmt.Sprintf("All containers running for pod %s", p.ObjectMeta.Name), cid, utils.Fields{"pod": p.Name})
+					podsReady[p.ObjectMeta.Name] = true
 				}
 
 			}
 
-			if i == podsSize {
+			j := 0
+			for _, v := range podsReady {
+				if v == true {
+					j++
+				}
+			}
+
+			if j ==  podsSize {
 				c1 <- true
 			}
 		}
