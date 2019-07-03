@@ -4,16 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"time"
+
 	"github.com/pismo/istiops/utils"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
 	v1apps "k8s.io/api/apps/v1"
 	v1core "k8s.io/api/core/v1"
 	metaErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"os"
-	"time"
 )
 
 // DeployApi deploys an api for a given api struct.
@@ -36,11 +37,12 @@ func DeployApi(api utils.ApiStruct, cid string, ctx context.Context) error {
 		return err
 	}
 
+	fmt.Println("test")
 	if err := createDeployment(api, cid, ctx); err != nil {
 		return err
 	}
 
-	time.Sleep(2  * time.Second)
+	time.Sleep(2 * time.Second)
 	if err := K8sHealthCheck(cid, 180, api.ApiFullname, api.Namespace, ctx); err != nil {
 		return err
 	}
@@ -71,7 +73,6 @@ func createConfig(api utils.ApiStruct, cid string, ctx context.Context) error {
 			return err
 		}
 
-
 		utils.Info(fmt.Sprintf("Applying configmap: %s", cm.Name), cid)
 		_, err = configmapClient.Create(&cm)
 		if err != nil {
@@ -96,7 +97,6 @@ func createService(api utils.ApiStruct, cid string, ctx context.Context) error {
 	k8sClientService := kubernetesClient.CoreV1().Services(api.Namespace)
 	utils.Info(fmt.Sprintf("Creating services in %s environment...", api.Namespace), cid)
 
-
 	service, err := k8sClientService.Get(api.Name, metav1.GetOptions{})
 	if err != nil {
 		customErr, ok := err.(*metaErrors.StatusError)
@@ -118,7 +118,7 @@ func createService(api utils.ApiStruct, cid string, ctx context.Context) error {
 		port.Name = "http-" + api.Name
 		port.Port = int32(api.HttpPort)
 		port.Protocol = "TCP"
-		port.TargetPort = intstr.IntOrString{Type:intstr.String, IntVal: int32(api.HttpPort)}
+		port.TargetPort = intstr.IntOrString{Type: intstr.String, IntVal: int32(api.HttpPort)}
 
 		service.Spec.Ports = append(service.Spec.Ports, port)
 
@@ -139,19 +139,23 @@ func createService(api utils.ApiStruct, cid string, ctx context.Context) error {
 	return nil
 }
 
-
 // createDeployment deploys an deployment with the given api struct.
 // this function will create the deployment if it doesn't exists. Otherwise it will throw an error.
 func createDeployment(api utils.ApiStruct, cid string, ctx context.Context) error {
-
 	apiValues := api.ApiValues
-	if err := validateCreateDeploymentArgs(api); err != nil {
+
+	// if err := validateCreateDeploymentArgs(api); err != nil {
+	// 	return err
+	// }
+
+	cm, err := getConfigmapValues(api, cid, ctx)
+	if err != nil {
 		return err
 	}
 
 	deploymentsClient := kubernetesClient.AppsV1().Deployments(api.Namespace)
-
 	// Getting dynamic protocol & ports
+
 	containerPorts := []v1core.ContainerPort{}
 
 	for portName, portValue := range apiValues.Deployment.Image.Ports {
@@ -196,6 +200,15 @@ func createDeployment(api utils.ApiStruct, cid string, ctx context.Context) erro
 							Image:           apiValues.Deployment.Image.DockerRegistry + api.Name + ":" + api.Version,
 							Ports:           containerPorts,
 							ImagePullPolicy: "Always",
+							EnvFrom: []v1core.EnvFromSource{
+								v1core.EnvFromSource{
+									ConfigMapRef: &v1core.ConfigMapEnvSource{
+										LocalObjectReference: v1core.LocalObjectReference{
+											Name: cm.Name,
+										},
+									},
+								},
+							},
 							LivenessProbe: &v1core.Probe{
 								Handler: v1core.Handler{
 									Exec: &v1core.ExecAction{
@@ -248,6 +261,7 @@ func createDeployment(api utils.ApiStruct, cid string, ctx context.Context) erro
 	// Create Deployment
 	utils.Info(fmt.Sprintf("Creating new deployment %s...", api.ApiFullname), cid)
 	result, err := deploymentsClient.Create(deployment)
+	fmt.Println(result)
 	if err != nil {
 		return err
 	}
@@ -255,7 +269,6 @@ func createDeployment(api utils.ApiStruct, cid string, ctx context.Context) erro
 
 	return nil
 }
-
 
 // getConfigmapValues retrieves an configmap value inside the project folder /kubernetes/{namespace}/{api-name}-config.yaml
 func getConfigmapValues(api utils.ApiStruct, cid string, ctx context.Context) (v1core.ConfigMap, error) {
@@ -276,7 +289,7 @@ func getConfigmapValues(api utils.ApiStruct, cid string, ctx context.Context) (v
 		return cm, err
 	}
 
-	cm.Name = api.Name + "-config"
+	cm.Name = api.ApiFullname + "-config"
 	cm.Namespace = api.Namespace
 	utils.Info(fmt.Sprintf("Configmap extracted: %s", cm.Name), cid)
 	return cm, nil
@@ -303,7 +316,7 @@ func getApiValues(api utils.ApiStruct, cid string, ctx context.Context) (utils.A
 		return apiValues, err
 	}
 
-	if apiValues.Deployment.Image.HealthCheck.Enabled && (apiValues.Deployment.Image.HealthCheck.LivenessProbeEndpoint == "" || apiValues.Deployment.Image.HealthCheck.ReadinessProbeEndpoint  == "") {
+	if apiValues.Deployment.Image.HealthCheck.Enabled && (apiValues.Deployment.Image.HealthCheck.LivenessProbeEndpoint == "" || apiValues.Deployment.Image.HealthCheck.ReadinessProbeEndpoint == "") {
 		apiValues.Deployment.Image.HealthCheck.ReadinessProbeEndpoint = "/health"
 		apiValues.Deployment.Image.HealthCheck.LivenessProbeEndpoint = "/health"
 		apiValues.Deployment.Image.HealthCheck.HealthPort = apiValues.Deployment.Image.Ports["http"]
@@ -313,10 +326,8 @@ func getApiValues(api utils.ApiStruct, cid string, ctx context.Context) (utils.A
 	return apiValues, nil
 }
 
-
 // validateCreateDeploymentArgs this function validates the given apiStruct fields necessary to build a deployment.
 func validateCreateDeploymentArgs(apiStruct utils.ApiStruct) error {
-
 	if apiStruct.HttpPort <= 0 && apiStruct.GrpcPort <= 0 {
 		return errors.New(WARN_NO_PORT_SPECIFIED)
 	}
@@ -333,7 +344,6 @@ func validateCreateDeploymentArgs(apiStruct utils.ApiStruct) error {
 	if deployment.Image.HealthCheck.Enabled && (deployment.Image.HealthCheck.HealthPort <= 0 || deployment.Image.HealthCheck.LivenessProbeEndpoint == "" || deployment.Image.HealthCheck.ReadinessProbeEndpoint == "") {
 		return errors.New(WARN_NO_HEALTHCHECK_OR_READINESS_ENDPOINT_CONFIGURED)
 	}
-
 
 	return nil
 }
