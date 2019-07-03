@@ -272,7 +272,6 @@ func createDeployment(api utils.ApiStruct, cid string, ctx context.Context) erro
 	// Create Deployment
 	utils.Info(fmt.Sprintf("Creating new deployment %s...", api.ApiFullname), cid)
 	result, err := deploymentsClient.Create(deployment)
-	fmt.Println(result)
 	if err != nil {
 		return err
 	}
