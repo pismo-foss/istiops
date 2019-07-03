@@ -13,7 +13,6 @@ func TestCreateHttpRouteResource(t *testing.T) {
 	apiStruct.HttpPort = 8080
 	apiStruct.ApiHostName = apiStruct.Name + "-" + apiStruct.Namespace + pipeline.PismoDomains[apiStruct.Name]
 
-
 	err := CreateRouteResource(apiStruct, "test-http-happy", context.Background())
 	assert.Nil(t, err)
 }

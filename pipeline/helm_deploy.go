@@ -13,6 +13,7 @@ import (
 	v1apps "k8s.io/api/apps/v1"
 	v1core "k8s.io/api/core/v1"
 	metaErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -209,6 +210,16 @@ func createDeployment(api utils.ApiStruct, cid string, ctx context.Context) erro
 									},
 								},
 							},
+							Resources: v1core.ResourceRequirements{
+								Limits: v1core.ResourceList{
+									"cpu":    resource.MustParse(apiValues.Resources.Limits.Cpu),
+									"memory": resource.MustParse(apiValues.Resources.Limits.Memory),
+								},
+								Requests: v1core.ResourceList{
+									"cpu":    resource.MustParse(apiValues.Resources.Requests.Cpu),
+									"memory": resource.MustParse(apiValues.Resources.Requests.Memory),
+								},
+							},
 							LivenessProbe: &v1core.Probe{
 								Handler: v1core.Handler{
 									Exec: &v1core.ExecAction{
@@ -320,6 +331,23 @@ func getApiValues(api utils.ApiStruct, cid string, ctx context.Context) (utils.A
 		apiValues.Deployment.Image.HealthCheck.ReadinessProbeEndpoint = "/health"
 		apiValues.Deployment.Image.HealthCheck.LivenessProbeEndpoint = "/health"
 		apiValues.Deployment.Image.HealthCheck.HealthPort = apiValues.Deployment.Image.Ports["http"]
+	}
+
+	// set default Limits & Requests values in case of an empty ones in `values.yaml`
+	if apiValues.Resources.Limits.Cpu == "" {
+		apiValues.Resources.Limits.Cpu = "1"
+	}
+
+	if apiValues.Resources.Limits.Memory == "" {
+		apiValues.Resources.Limits.Memory = "1Gi"
+	}
+
+	if apiValues.Resources.Requests.Cpu == "" {
+		apiValues.Resources.Requests.Cpu = "0.1"
+	}
+
+	if apiValues.Resources.Requests.Memory == "" {
+		apiValues.Resources.Requests.Memory = "256Mi"
 	}
 
 	utils.Info(fmt.Sprintf("Values extracted: %v", apiValues), cid)

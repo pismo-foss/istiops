@@ -29,7 +29,6 @@ func K8sHealthCheck(cid string, timeout time.Duration, releaseName string, names
 		return err
 	}
 
-
 	c1 := make(chan bool, 1)
 	podsSize := len(pods.Items)
 	podsReady := map[string]bool{}
@@ -74,13 +73,12 @@ func K8sHealthCheck(cid string, timeout time.Duration, releaseName string, names
 			}
 
 			//If number of pods active equals number of pods, then all pods are active! Leave loop.
-			if j ==  podsSize {
+			if j == podsSize {
 				c1 <- true
 			}
 		}
 
 	}()
-
 
 	select {
 	case res := <-c1:
@@ -88,7 +86,6 @@ func K8sHealthCheck(cid string, timeout time.Duration, releaseName string, names
 	case <-time.After(timeout * time.Second):
 		return errors.New("TIMEOUT")
 	}
-
 
 	utils.Info("Application is running successfuly in pod!", cid)
 	return nil

@@ -7,10 +7,10 @@ import (
 
 func BuildApiStruct(name string, namespace string, version string, build string) ApiStruct {
 	apiStruct := ApiStruct{
-		Name: name,
+		Name:      name,
 		Namespace: namespace,
-		Version: version,
-		Build: build,
+		Version:   version,
+		Build:     build,
 	}
 	replacer := strings.NewReplacer(".", "", "-", "", "/", "")
 	simplifiedVersion := replacer.Replace(apiStruct.Version)
@@ -26,23 +26,38 @@ func BuildApiStruct(name string, namespace string, version string, build string)
 }
 
 type ApiStruct struct {
-	Name      string `json:"name"`
-	ApiHostName string `json:"api_host_name"`
-	ApiFullname string `json:"api_fullname"`
-	Namespace string `json:"namespace"`
-	Version   string `json:"version"`
-	Build     string `json:"build"`
-	HttpPort  uint32 `json:"http_port"`
-	GrpcPort  uint32 `json:"grpc_port"`
-	ApiValues ApiValues `json:"api_values"`
+	Name        string    `json:"name"`
+	ApiHostName string    `json:"api_host_name"`
+	ApiFullname string    `json:"api_fullname"`
+	Namespace   string    `json:"namespace"`
+	Version     string    `json:"version"`
+	Build       string    `json:"build"`
+	HttpPort    uint32    `json:"http_port"`
+	GrpcPort    uint32    `json:"grpc_port"`
+	ApiValues   ApiValues `json:"api_values"`
 }
 
 type ApiValues struct {
 	Deployment   Deployment               `yaml:"deployment"`
-	Resources    map[string]interface{}   `yaml:"resources"`
+	Resources    Resources                `yaml:"resources"`
 	NodeSelector map[string]interface{}   `yaml:"nodeSelector"`
 	Tolerations  []map[string]interface{} `yaml:"tolerations"`
 	Affinity     map[string]interface{}   `yaml:"affinity"`
+}
+
+type Resources struct {
+	Limits   Limits   `yaml:"limits"`
+	Requests Requests `yaml:"requests"`
+}
+
+type Limits struct {
+	Cpu    string `yaml:"cpu"`
+	Memory string `yaml:"memory"`
+}
+
+type Requests struct {
+	Cpu    string `yaml:"cpu"`
+	Memory string `yaml:"memory"`
 }
 
 type Deployment struct {
@@ -64,4 +79,3 @@ type Probes struct {
 	ReadinessProbeEndpoint string `yaml:"readinessProbeEndpoint"`
 	Enabled                bool   `yaml:"enabled"`
 }
-
