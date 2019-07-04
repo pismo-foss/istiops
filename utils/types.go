@@ -5,39 +5,35 @@ import (
 	"strings"
 )
 
-func BuildApiStruct(name string, namespace string, version string, build string) ApiStruct {
-	apiStruct := ApiStruct{
+func BuildApiValues(name string, namespace string, version string, build string) ApiValues {
+	apiValues := ApiValues{
 		Name:      name,
 		Namespace: namespace,
 		Version:   version,
 		Build:     build,
 	}
 	replacer := strings.NewReplacer(".", "", "-", "", "/", "")
-	simplifiedVersion := replacer.Replace(apiStruct.Version)
+	simplifiedVersion := replacer.Replace(apiValues.Version)
 	simplifiedVersion = strings.ToLower(simplifiedVersion)
 
-	apiStruct.ApiFullname = fmt.Sprintf("%s-%s-%s-%s",
-		apiStruct.Name,
-		apiStruct.Namespace,
+	apiValues.ApiFullname = fmt.Sprintf("%s-%s-%s-%s",
+		apiValues.Name,
+		apiValues.Namespace,
 		simplifiedVersion,
-		apiStruct.Build)
+		apiValues.Build)
 
-	return apiStruct
-}
-
-type ApiStruct struct {
-	Name        string    `json:"name"`
-	ApiHostName string    `json:"api_host_name"`
-	ApiFullname string    `json:"api_fullname"`
-	Namespace   string    `json:"namespace"`
-	Version     string    `json:"version"`
-	Build       string    `json:"build"`
-	HttpPort    uint32    `json:"http_port"`
-	GrpcPort    uint32    `json:"grpc_port"`
-	ApiValues   ApiValues `json:"api_values"`
+	return apiValues
 }
 
 type ApiValues struct {
+	Name         string                   `json:"name"`
+	ApiHostName  string                   `json:"api_host_name"`
+	ApiFullname  string                   `json:"api_fullname"`
+	Namespace    string                   `json:"namespace"`
+	Version      string                   `json:"version"`
+	Build        string                   `json:"build"`
+	HttpPort     uint32                   `json:"http_port"`
+	GrpcPort     uint32                   `json:"grpc_port"`
 	Deployment   Deployment               `yaml:"deployment"`
 	Resources    Resources                `yaml:"resources"`
 	NodeSelector map[string]interface{}   `yaml:"nodeSelector"`

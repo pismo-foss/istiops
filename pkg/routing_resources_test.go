@@ -9,20 +9,20 @@ import (
 )
 
 func TestCreateHttpRouteResource(t *testing.T) {
-	apiStruct := utils.BuildApiStruct("api-pipelinetest", "default", "1.0.0", "2210")
-	apiStruct.HttpPort = 8080
-	apiStruct.ApiHostName = apiStruct.Name + "-" + apiStruct.Namespace + pipeline.PismoDomains[apiStruct.Name]
+	apiValues := utils.BuildApiValues("api-pipelinetest", "default", "1.0.0", "2210")
+	apiValues.HttpPort = 8080
+	apiValues.ApiHostName = apiValues.Name + "-" + apiValues.Namespace + pipeline.PismoDomains[apiValues.Name]
 
-	err := CreateRouteResource(apiStruct, "test-http-happy", context.Background())
+	err := CreateRouteResource(apiValues, "test-http-happy", context.Background())
 	assert.Nil(t, err)
 }
 
 func TestCreateGrpcRouteResource(t *testing.T) {
-	apiStruct := utils.BuildApiStruct("api-pipelinetest", "default", "1.0.0", "2210")
-	apiStruct.HttpPort = 8080
-	apiStruct.GrpcPort = 8777
-	apiStruct.ApiHostName = apiStruct.Name + "-" + apiStruct.Namespace + pipeline.PismoDomains[apiStruct.Name]
+	apiValues := utils.BuildApiValues("api-pipelinetest", "default", "1.0.0", "2210")
+	apiValues.HttpPort = 8080
+	apiValues.GrpcPort = 8777
+	apiValues.ApiHostName = apiValues.Name + "-" + apiValues.Namespace + pipeline.PismoDomains[apiValues.Name]
 
-	err := CreateRouteResource(apiStruct, "test-grpc-happy", context.Background())
+	err := CreateRouteResource(apiValues, "test-grpc-happy", context.Background())
 	assert.Nil(t, err)
 }

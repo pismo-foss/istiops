@@ -1,11 +1,12 @@
 package pipeline
 
 import (
+	"os"
+
 	versionedclient "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-	"os"
 )
 
 const (

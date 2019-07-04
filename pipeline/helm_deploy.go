@@ -18,47 +18,46 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// DeployApi deploys an api for a given api struct.
+// DeployapiValues deploys an apiValues for a given apiValues struct.
 // this function will create a configmap, a service, and a deployment and then health check the application.
-func DeployApi(api utils.ApiStruct, cid string, ctx context.Context) error {
-	utils.Info(fmt.Sprintf("Creating deploy in %s environment...", api.Namespace), cid)
+func DeployApi(apiValues utils.ApiValues, cid string, ctx context.Context) error {
+	utils.Info(fmt.Sprintf("Creating deploy in %s environment...", apiValues.Namespace), cid)
 
-	apiValues, err := getApiValues(api, cid, ctx)
+	apiValues, err := getApiValues(apiValues, cid, ctx)
 	if err != nil {
 		utils.Error(fmt.Sprintf(err.Error()), cid)
 		return err
 	}
-	api.ApiValues = apiValues
 
-	if err := createService(api, cid, ctx); err != nil {
+	if err := createService(apiValues, cid, ctx); err != nil {
 		return err
 	}
 
-	if err := createConfig(api, cid, ctx); err != nil {
+	if err := createConfig(apiValues, cid, ctx); err != nil {
 		return err
 	}
 
 	fmt.Println("test")
-	if err := createDeployment(api, cid, ctx); err != nil {
+	if err := createDeployment(apiValues, cid, ctx); err != nil {
 		return err
 	}
 
 	time.Sleep(2 * time.Second)
-	if err := K8sHealthCheck(cid, 180, api.ApiFullname, api.Namespace, ctx); err != nil {
+	if err := K8sHealthCheck(cid, 180, apiValues.ApiFullname, apiValues.Namespace, ctx); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// createConfig deploys an configmap with the given api struct.
+// createConfig deploys an configmap with the given apiValues struct.
 // this function will create if it doesn't exists or patch the existing resource if exists.
-func createConfig(api utils.ApiStruct, cid string, ctx context.Context) error {
+func createConfig(apiValues utils.ApiValues, cid string, ctx context.Context) error {
 
-	configmapClient := kubernetesClient.CoreV1().ConfigMaps(api.Namespace)
-	utils.Info(fmt.Sprintf("Creating configmap in %s environment...", api.Namespace), cid)
+	configmapClient := kubernetesClient.CoreV1().ConfigMaps(apiValues.Namespace)
+	utils.Info(fmt.Sprintf("Creating configmap in %s environment...", apiValues.Namespace), cid)
 
-	cm, err := getConfigmapValues(api, cid, ctx)
+	cm, err := getConfigmapValues(apiValues, cid, ctx)
 	if err != nil {
 		return err
 	}
@@ -91,14 +90,14 @@ func createConfig(api utils.ApiStruct, cid string, ctx context.Context) error {
 	return nil
 }
 
-// createService deploys an service with the given api struct.
+// createService deploys an service with the given apiValues struct.
 // this function will create if it doesn't exists or patch the existing resource if exists.
-func createService(api utils.ApiStruct, cid string, ctx context.Context) error {
+func createService(apiValues utils.ApiValues, cid string, ctx context.Context) error {
 
-	k8sClientService := kubernetesClient.CoreV1().Services(api.Namespace)
-	utils.Info(fmt.Sprintf("Creating services in %s environment...", api.Namespace), cid)
+	k8sClientService := kubernetesClient.CoreV1().Services(apiValues.Namespace)
+	utils.Info(fmt.Sprintf("Creating services in %s environment...", apiValues.Namespace), cid)
 
-	service, err := k8sClientService.Get(api.Name, metav1.GetOptions{})
+	service, err := k8sClientService.Get(apiValues.Name, metav1.GetOptions{})
 	if err != nil {
 		customErr, ok := err.(*metaErrors.StatusError)
 		if !ok {
@@ -109,17 +108,17 @@ func createService(api utils.ApiStruct, cid string, ctx context.Context) error {
 			return err
 		}
 
-		service.Name = api.Name
-		service.Namespace = api.Namespace
+		service.Name = apiValues.Name
+		service.Namespace = apiValues.Namespace
 		service.Spec.Type = v1core.ServiceTypeClusterIP
-		service.Spec.Selector = map[string]string{"app": api.Name}
+		service.Spec.Selector = map[string]string{"app": apiValues.Name}
 		service.Spec.Ports = make([]v1core.ServicePort, 0)
 
 		port := v1core.ServicePort{}
-		port.Name = "http-" + api.Name
-		port.Port = int32(api.HttpPort)
+		port.Name = "http-" + apiValues.Name
+		port.Port = int32(apiValues.HttpPort)
 		port.Protocol = "TCP"
-		port.TargetPort = intstr.IntOrString{Type: intstr.String, IntVal: int32(api.HttpPort)}
+		port.TargetPort = intstr.IntOrString{Type: intstr.String, IntVal: int32(apiValues.HttpPort)}
 
 		service.Spec.Ports = append(service.Spec.Ports, port)
 
@@ -140,21 +139,21 @@ func createService(api utils.ApiStruct, cid string, ctx context.Context) error {
 	return nil
 }
 
-// createDeployment deploys an deployment with the given api struct.
+// createDeployment deploys an deployment with the given apiValues struct.
 // this function will create the deployment if it doesn't exists. Otherwise it will throw an error.
-func createDeployment(api utils.ApiStruct, cid string, ctx context.Context) error {
-	apiValues := api.ApiValues
+func createDeployment(apiValues utils.ApiValues, cid string, ctx context.Context) error {
 
-	// if err := validateCreateDeploymentArgs(api); err != nil {
-	// 	return err
-	// }
+	if err := validateCreateDeploymentArgs(apiValues); err != nil {
+		utils.Error(fmt.Sprintf("Could not complete deployment due to '%s'...", err), cid)
+		return err
+	}
 
-	cm, err := getConfigmapValues(api, cid, ctx)
+	cm, err := getConfigmapValues(apiValues, cid, ctx)
 	if err != nil {
 		return err
 	}
 
-	deploymentsClient := kubernetesClient.AppsV1().Deployments(api.Namespace)
+	deploymentsClient := kubernetesClient.AppsV1().Deployments(apiValues.Namespace)
 	// Getting dynamic protocol & ports
 
 	containerPorts := []v1core.ContainerPort{}
@@ -169,16 +168,16 @@ func createDeployment(api utils.ApiStruct, cid string, ctx context.Context) erro
 
 	deployment := &v1apps.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: api.ApiFullname,
+			Name: apiValues.ApiFullname,
 		},
 		Spec: v1apps.DeploymentSpec{
-			Replicas: int32Ptr(int32(apiValues.Deployment.Replicas[api.Namespace])),
+			Replicas: int32Ptr(int32(apiValues.Deployment.Replicas[apiValues.Namespace])),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app":     api.Name,
-					"build":   api.Build,
-					"release": api.ApiFullname,
-					"version": api.Version,
+					"app":     apiValues.Name,
+					"build":   apiValues.Build,
+					"release": apiValues.ApiFullname,
+					"version": apiValues.Version,
 				},
 			},
 			Template: v1core.PodTemplateSpec{
@@ -187,18 +186,18 @@ func createDeployment(api utils.ApiStruct, cid string, ctx context.Context) erro
 						"iam.amazonaws.com/role": apiValues.Deployment.Role,
 					},
 					Labels: map[string]string{
-						"app":     api.Name,
-						"build":   api.Build,
-						"release": api.ApiFullname,
-						"version": api.Version,
+						"app":     apiValues.Name,
+						"build":   apiValues.Build,
+						"release": apiValues.ApiFullname,
+						"version": apiValues.Version,
 					},
 				},
 				Spec: v1core.PodSpec{
 					RestartPolicy: "Always",
 					Containers: []v1core.Container{
 						{
-							Name:            api.Name,
-							Image:           apiValues.Deployment.Image.DockerRegistry + api.Name + ":" + api.Version,
+							Name:            apiValues.Name,
+							Image:           apiValues.Deployment.Image.DockerRegistry + apiValues.Name + ":" + apiValues.Version,
 							Ports:           containerPorts,
 							ImagePullPolicy: "Always",
 							EnvFrom: []v1core.EnvFromSource{
@@ -270,7 +269,7 @@ func createDeployment(api utils.ApiStruct, cid string, ctx context.Context) erro
 	}
 
 	// Create Deployment
-	utils.Info(fmt.Sprintf("Creating new deployment %s...", api.ApiFullname), cid)
+	utils.Info(fmt.Sprintf("Creating new deployment %s...", apiValues.ApiFullname), cid)
 	result, err := deploymentsClient.Create(deployment)
 	if err != nil {
 		return err
@@ -281,7 +280,7 @@ func createDeployment(api utils.ApiStruct, cid string, ctx context.Context) erro
 }
 
 // getConfigmapValues retrieves an configmap value inside the project folder /kubernetes/{namespace}/{api-name}-config.yaml
-func getConfigmapValues(api utils.ApiStruct, cid string, ctx context.Context) (v1core.ConfigMap, error) {
+func getConfigmapValues(apiValues utils.ApiValues, cid string, ctx context.Context) (v1core.ConfigMap, error) {
 	cm := v1core.ConfigMap{}
 	pwd, err := os.Getwd()
 	if err != nil {
@@ -289,7 +288,7 @@ func getConfigmapValues(api utils.ApiStruct, cid string, ctx context.Context) (v
 		return cm, err
 	}
 
-	cmBytes, err := ioutil.ReadFile(pwd + "/" + api.Name + "/kubernetes/" + api.Namespace + "/" + api.Name + "-config.yaml")
+	cmBytes, err := ioutil.ReadFile(pwd + "/" + apiValues.Name + "/kubernetes/" + apiValues.Namespace + "/" + apiValues.Name + "-config.yaml")
 	if err != nil {
 		utils.Fatal(fmt.Sprintf(err.Error()), cid)
 		return cm, err
@@ -299,15 +298,14 @@ func getConfigmapValues(api utils.ApiStruct, cid string, ctx context.Context) (v
 		return cm, err
 	}
 
-	cm.Name = api.ApiFullname + "-config"
-	cm.Namespace = api.Namespace
+	cm.Name = apiValues.ApiFullname + "-config"
+	cm.Namespace = apiValues.Namespace
 	utils.Info(fmt.Sprintf("Configmap extracted: %s", cm.Name), cid)
 	return cm, nil
 }
 
 // getApiValues retrieves the values.yaml inside the project folder /rootProjectdir/values.yaml
-func getApiValues(api utils.ApiStruct, cid string, ctx context.Context) (utils.ApiValues, error) {
-	apiValues := utils.ApiValues{}
+func getApiValues(apiValues utils.ApiValues, cid string, ctx context.Context) (utils.ApiValues, error) {
 
 	pwd, err := os.Getwd()
 	if err != nil {
@@ -315,7 +313,7 @@ func getApiValues(api utils.ApiStruct, cid string, ctx context.Context) (utils.A
 		return apiValues, err
 	}
 
-	valuesBytes, err := ioutil.ReadFile(pwd + "/" + api.Name + "/values.yaml")
+	valuesBytes, err := ioutil.ReadFile(pwd + "/" + apiValues.Name + "/values.yaml")
 	if err != nil {
 		utils.Error(fmt.Sprintf(err.Error()), cid)
 		return apiValues, err
@@ -353,21 +351,21 @@ func getApiValues(api utils.ApiStruct, cid string, ctx context.Context) (utils.A
 	return apiValues, nil
 }
 
-// validateCreateDeploymentArgs this function validates the given apiStruct fields necessary to build a deployment.
-func validateCreateDeploymentArgs(apiStruct utils.ApiStruct) error {
-	if apiStruct.HttpPort <= 0 && apiStruct.GrpcPort <= 0 {
-		return errors.New(WARN_NO_PORT_SPECIFIED)
-	}
+// validateCreateDeploymentArgs this function validates the given apiValues fields necessary to build a deployment.
+func validateCreateDeploymentArgs(apiValues utils.ApiValues) error {
+	// if apiValues.HttpPort <= 0 && apiValues.GrpcPort <= 0 {
+	// 	return errors.New(WARN_NO_PORT_SPECIFIED)
+	// }
 
-	if apiStruct.Name == "" || apiStruct.Namespace == "" || apiStruct.Version == "" || apiStruct.Build == "" {
+	if apiValues.Name == "" || apiValues.Namespace == "" || apiValues.Version == "" || apiValues.Build == "" {
 		return errors.New(WARN_NO_NECESSARY_NAMES_SPECIFIED)
 	}
 
-	if apiStruct.ApiValues.Deployment.Image.DockerRegistry == "" {
+	if apiValues.Deployment.Image.DockerRegistry == "" {
 		return errors.New(WARN_NO_REGISTRY_FOUND)
 	}
 
-	deployment := apiStruct.ApiValues.Deployment
+	deployment := apiValues.Deployment
 	if deployment.Image.HealthCheck.Enabled && (deployment.Image.HealthCheck.HealthPort <= 0 || deployment.Image.HealthCheck.LivenessProbeEndpoint == "" || deployment.Image.HealthCheck.ReadinessProbeEndpoint == "") {
 		return errors.New(WARN_NO_HEALTHCHECK_OR_READINESS_ENDPOINT_CONFIGURED)
 	}
