@@ -35,8 +35,6 @@ func init() {
 	// Set global environment variables
 	os.Setenv("SYSTEM", "Jenkins")
 	os.Setenv("ENV", "dev")
-	println("SYSTEM:", os.Getenv("SYSTEM"))
-
 }
 
 var (

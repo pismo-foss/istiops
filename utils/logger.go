@@ -1,9 +1,10 @@
 package utils
 
 import (
+	"os"
+
 	logJSON "github.com/sirupsen/logrus"
 	"github.com/snowzach/rotatefilehook"
-	"os"
 )
 
 type Fields map[string]interface{}
@@ -17,6 +18,7 @@ var (
 
 func init() {
 	System = os.Getenv("SYSTEM")
+	Version = os.Getenv("SYSTEM_VERSION")
 	Env = os.Getenv("ENV")
 
 	log = logJSON.New()

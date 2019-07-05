@@ -1,11 +1,12 @@
 package pkg
 
 import (
+	"os"
+
 	versionedclient "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-	"os"
 )
 
 func init() {
@@ -27,8 +28,18 @@ func init() {
 	// Set global environment variables
 	os.Setenv("SYSTEM", "Jenkins")
 	os.Setenv("ENV", "dev")
-	println("SYSTEM:", os.Getenv("SYSTEM"))
+}
 
+type IstioValues struct {
+	Name      string
+	Version   string
+	Build     int32
+	Namespace string
+}
+
+type IstioResource struct {
+	Resource string
+	Items    []string
 }
 
 var (
