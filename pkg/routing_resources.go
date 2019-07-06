@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"fmt"
+
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/pismo/istiops/utils"
 	"istio.io/api/networking/v1alpha3"
@@ -19,7 +20,7 @@ const (
 )
 
 // CreateRouteResource deploys an virtualservice with a destinationrule for a given api struct.
-// this function will create a virtualservice, and  an destinationrule
+// this function will create a virtualservice and  a destinationrule
 // if they exist already, this function wil override with the custom definitions
 func CreateRouteResource(api utils.ApiValues, cid string, parentCtx context.Context) error {
 	ctx := context.WithValue(parentCtx, "cid", cid)
