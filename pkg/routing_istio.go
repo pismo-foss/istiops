@@ -67,6 +67,7 @@ func CompareMapsKeyPairsHash(mapOne map[string]string, mapTwo map[string]string)
 
 	fmt.Println(mapHashOne)
 	fmt.Println(mapHashTwo)
+	fmt.Println("=")
 
 	// now we are going to compare it self each content for both slices
 	// ... perhaps using `key` instead of iterating N slice positions?
@@ -105,7 +106,7 @@ func (v IstioValues) Headers(cid string, labels map[string]string, headers map[s
 
 			// checking if the DR subset map (subset.Labels) matches the one provided by Interface client (labels)
 			if isMapEqual := CompareMapsKeyPairsHash(subset.Labels, labels); isMapEqual {
-				fmt.Println("Is equal! %s", isMapEqual)
+				println("Is equal! %d", isMapEqual)
 			}
 
 			if reflect.DeepEqual(subset.Labels, labels) {
