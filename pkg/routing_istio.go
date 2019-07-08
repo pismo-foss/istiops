@@ -75,22 +75,15 @@ func CompareMapsKeyPairsHash(mapOne map[string]string, mapTwo map[string]string)
 	return true
 }
 
-// Percentage set percentage as routing-match strategy for istio resources
-func (v IstioValues) Percentage(cid string, labels map[string]string, percentage int32) error {
-	fmt.Println(v.Name, v.Build, labels)
-	return nil
-}
-
-// Headers set headers as routing-match strategy for istio resources
-func (v IstioValues) Headers(cid string, labels map[string]string, headers map[string]string) error {
+func getResourcesToUpdate(cid string, v IstioValues, labels map[string]string, headers map[string]string) (map[string]*IstioResource, error) {
 	vss, err := GetAllVirtualServices(cid, v.Namespace)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	drs, err := GetAllDestinationRules(cid, v.Namespace)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// iterate every cluster destinationRule
@@ -105,14 +98,10 @@ func (v IstioValues) Headers(cid string, labels map[string]string, headers map[s
 		for _, subset := range dr.Spec.Subsets {
 
 			// checking if the DR subset map (subset.Labels) matches the one provided by Interface client (labels)
-			if isMapEqual := CompareMapsKeyPairsHash(subset.Labels, labels); isMapEqual {
-				println("Is equal! %d", isMapEqual)
-			}
-
 			if reflect.DeepEqual(subset.Labels, labels) {
 				// find virtualservices which have subset.Name from DestinationRule
 				if _, status := resourcesToUpdate[destinationRuleName]; status != true {
-					resourcesToUpdate[destinationRuleName] = &IstioResource{subset.Name, []string{}}
+					resourcesToUpdate[destinationRuleName] = &IstioResource{"DestinationRule", []string{}}
 				}
 				utils.Info(fmt.Sprintf("Found rule '%s' from Destination Rule '%s' which matches provided label selector!", subset.Name, destinationRuleName), cid)
 				resourcesToUpdate[destinationRuleName].Items = append(resourcesToUpdate[destinationRuleName].Items, subset.Name)
@@ -125,7 +114,7 @@ func (v IstioValues) Headers(cid string, labels map[string]string, headers map[s
 						for _, route := range match.Route {
 							if route.Destination.Subset == subset.Name {
 								if _, status := resourcesToUpdate[virtualServiceName]; status != true {
-									resourcesToUpdate[virtualServiceName] = &IstioResource{route.Destination.Subset, []string{}}
+									resourcesToUpdate[virtualServiceName] = &IstioResource{"VirtualService", []string{}}
 								}
 								resourcesToUpdate[virtualServiceName].Items = append(resourcesToUpdate[virtualServiceName].Items, route.Destination.Subset)
 							}
@@ -136,7 +125,31 @@ func (v IstioValues) Headers(cid string, labels map[string]string, headers map[s
 		}
 	}
 
-	fmt.Println(resourcesToUpdate)
+	return resourcesToUpdate, nil
+}
 
+// Percentage set percentage as routing-match strategy for istio resources
+func (v IstioValues) Percentage(cid string, labels map[string]string, percentage int32) error {
+	fmt.Println(v.Name, v.Build, labels)
+
+	return nil
+}
+
+// Headers set headers as routing-match strategy for istio resources
+func (v IstioValues) Headers(cid string, labels map[string]string, headers map[string]string) error {
+	resourcesToUpdate, err := getResourcesToUpdate(cid, v, labels, headers)
+	if err != nil {
+		return err
+	}
+
+	for k, val := range resourcesToUpdate {
+		fmt.Println("name:", k)
+		fmt.Println("resource:", val.Resource)
+
+		for _, value := range val.Items {
+			fmt.Println("value:", value)
+		}
+
+	}
 	return nil
 }
