@@ -28,6 +28,16 @@ func GetAllVirtualServices(cid string, namespace string) (virtualServiceList *v1
 	return vss, nil
 }
 
+// GetVirtualService returns a single virtualService object given a name & namespace
+func GetVirtualService(cid string, name string, namespace string) (virtualService *v1alpha32.VirtualService, error error) {
+	utils.Info(fmt.Sprintf("Getting virtualService '%s' to update...", name), cid)
+	vs, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).Get(name, v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return vs, nil
+}
+
 // GetAllVirtualservices returns all istio resources 'virtualservices'
 func GetAllDestinationRules(cid string, namespace string) (destinationRuleList *v1alpha32.DestinationRuleList, error error) {
 	utils.Info(fmt.Sprintf("Getting all destinationrules..."), cid)
@@ -37,6 +47,16 @@ func GetAllDestinationRules(cid string, namespace string) (destinationRuleList *
 	}
 
 	return drs, nil
+}
+
+// GetDestinationRules returns a single destinationRule object given a name & namespace
+func GetDestinationRule(cid string, name string, namespace string) (destinationRule *v1alpha32.DestinationRule, error error) {
+	utils.Info(fmt.Sprintf("Getting destinationRule '%s' to update...", name), cid)
+	dr, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).Get(name, v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return dr, nil
 }
 
 // GenerateShaFromMap returns a slice of hashes (sha256) for every key:value in given map[string]string
@@ -75,7 +95,7 @@ func CompareMapsKeyPairsHash(mapOne map[string]string, mapTwo map[string]string)
 	return true
 }
 
-func getResourcesToUpdate(cid string, v IstioValues, labels map[string]string, headers map[string]string) (map[string]*IstioResource, error) {
+func GetResourcesToUpdate(cid string, v IstioValues, labels map[string]string) (map[string]*IstioResource, error) {
 	vss, err := GetAllVirtualServices(cid, v.Namespace)
 	if err != nil {
 		return nil, err
@@ -100,6 +120,8 @@ func getResourcesToUpdate(cid string, v IstioValues, labels map[string]string, h
 			// checking if the DR subset map (subset.Labels) matches the one provided by Interface client (labels)
 			if reflect.DeepEqual(subset.Labels, labels) {
 				// find virtualservices which have subset.Name from DestinationRule
+
+				// In case of a non-existent key 'destinationRuleName', create it
 				if _, status := resourcesToUpdate[destinationRuleName]; status != true {
 					resourcesToUpdate[destinationRuleName] = &IstioResource{"DestinationRule", []string{}}
 				}
@@ -113,6 +135,7 @@ func getResourcesToUpdate(cid string, v IstioValues, labels map[string]string, h
 					for _, match := range vs.Spec.Http {
 						for _, route := range match.Route {
 							if route.Destination.Subset == subset.Name {
+								// In case of a non-existent key 'virtualServiceName', create it
 								if _, status := resourcesToUpdate[virtualServiceName]; status != true {
 									resourcesToUpdate[virtualServiceName] = &IstioResource{"VirtualService", []string{}}
 								}
@@ -130,26 +153,45 @@ func getResourcesToUpdate(cid string, v IstioValues, labels map[string]string, h
 
 // Percentage set percentage as routing-match strategy for istio resources
 func (v IstioValues) Percentage(cid string, labels map[string]string, percentage int32) error {
-	fmt.Println(v.Name, v.Build, labels)
+	//fmt.Println(v.Name, v.Build, labels)
 
 	return nil
 }
 
 // Headers set headers as routing-match strategy for istio resources
 func (v IstioValues) Headers(cid string, labels map[string]string, headers map[string]string) error {
-	resourcesToUpdate, err := getResourcesToUpdate(cid, v, labels, headers)
+	resourcesToUpdate, err := GetResourcesToUpdate(cid, v, labels)
 	if err != nil {
 		return err
 	}
 
-	for k, val := range resourcesToUpdate {
-		fmt.Println("name:", k)
-		fmt.Println("resource:", val.Resource)
+	for resourceName, resource := range resourcesToUpdate {
 
-		for _, value := range val.Items {
-			fmt.Println("value:", value)
+		if fmt.Sprintf("%s", resource.Resource) == "VirtualService" {
+			vs, err := GetVirtualService(cid, resourceName, v.Namespace)
+			if err != nil {
+				utils.Fatal(fmt.Sprintf("Could not find virtualService '%s' due to error '%s'", resourceName, err), cid)
+			}
+
+			for _, value := range vs.Spec.Http {
+				fmt.Println(value)
+			}
 		}
 
+		if fmt.Sprintf("%s", resource.Resource) == "DestinationRule" {
+			dr, err := GetDestinationRule(cid, resourceName, v.Namespace)
+			if err != nil {
+				utils.Fatal(fmt.Sprintf("Could not find destinationRule '%s' due to error '%s'", resourceName, err), cid)
+			}
+
+			for _, value := range dr.Spec.Subsets {
+				fmt.Println(value)
+			}
+		}
+
+
+
+		fmt.Println("")
 	}
 	return nil
 }
