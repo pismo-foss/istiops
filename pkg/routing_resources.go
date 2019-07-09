@@ -8,7 +8,6 @@ import (
 	"github.com/pismo/istiops/utils"
 	"istio.io/api/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -69,7 +68,7 @@ func retrieveVirtualService(api utils.ApiValues, cid string, parentCtx context.C
 	name := api.Name + VIRTUALSERVICE_RULE_SUFFIX
 	utils.Info(fmt.Sprintf("Retrieving virtualservice: %s", name), cid)
 
-	vs, err := istioClient.NetworkingV1alpha3().VirtualServices(api.Namespace).Get(name, v1.GetOptions{})
+	vs, err := GetVirtualService(cid, name, api.Namespace)
 	if err != nil {
 		customErr, ok := err.(*errors.StatusError)
 		if !ok {
@@ -120,7 +119,7 @@ func retrieveDestinationRule(api utils.ApiValues, cid string, parentCtx context.
 	drName := api.Name + DESTINATION_RULE_SUFFIX
 	utils.Info(fmt.Sprintf("Retrieving destinationrule: %s", drName), cid)
 
-	dr, err := istioClient.NetworkingV1alpha3().DestinationRules(api.Namespace).Get(drName, v1.GetOptions{})
+	dr, err := GetDestinationRule(cid, drName, api.Namespace)
 	if err != nil {
 		customErr, ok := err.(*errors.StatusError)
 		if !ok {

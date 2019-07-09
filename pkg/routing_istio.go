@@ -3,6 +3,7 @@ package pkg
 import (
 	"crypto/sha256"
 	"fmt"
+	"istio.io/api/networking/v1alpha3"
 	"reflect"
 
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
@@ -47,6 +48,16 @@ func GetAllDestinationRules(cid string, namespace string) (destinationRuleList *
 	}
 
 	return drs, nil
+}
+
+// UpdateVirtualService updates a specific virtualService given an updated object
+func UpdateVirtualService(cid string, name string, namespace string, virtualService *v1alpha32.VirtualService) error {
+	utils.Info(fmt.Sprintf("Updating rules for virtualService '%s'...", name), cid)
+	_, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).Update(virtualService)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetDestinationRules returns a single destinationRule object given a name & namespace
@@ -174,18 +185,29 @@ func (v IstioValues) Headers(cid string, labels map[string]string, headers map[s
 			}
 
 			for _, value := range vs.Spec.Http {
-				fmt.Println(value)
+				for _, matchValue := range value.Match {
+					if matchValue.Uri != nil {
+						fmt.Println(matchValue.Uri)
+						matchValue.Uri = &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: "////"}}
+
+						err := UpdateVirtualService(cid, resourceName, vs.Namespace, vs)
+						if err != nil {
+							utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to error '%s'", resourceName, err), cid)
+						}
+					}
+					fmt.Println(matchValue.Uri)
+				}
 			}
 		}
 
 		if fmt.Sprintf("%s", resource.Resource) == "DestinationRule" {
 			dr, err := GetDestinationRule(cid, resourceName, v.Namespace)
-			if err != nil {
+			if 	err != nil {
 				utils.Fatal(fmt.Sprintf("Could not find destinationRule '%s' due to error '%s'", resourceName, err), cid)
 			}
 
 			for _, value := range dr.Spec.Subsets {
-				fmt.Println(value)
+				fmt.Println(value.Name)
 			}
 		}
 
