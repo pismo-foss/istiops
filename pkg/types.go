@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"os"
 
 	versionedclient "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
@@ -37,9 +38,9 @@ type IstioValues struct {
 	Namespace string
 }
 
-type IstioResource struct {
-	Resource string
-	Items    []string
+type IstioResources struct {
+	DestinationRule v1alpha3.DestinationRule
+	VirtualService  v1alpha3.VirtualService
 }
 
 var (

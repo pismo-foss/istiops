@@ -44,27 +44,25 @@ func TestCompareMapsKeyPairsHash(t *testing.T) {
 }
 
 func TestGetAllVirtualServices(t *testing.T) {
-	_, err := GetAllVirtualServices("random-cid","default")
+	_, err := GetAllVirtualServices("random-cid", "default")
 	assert.NoError(t, err)
 }
 
 func TestGetAllDestinationRules(t *testing.T) {
-	_, err := GetAllDestinationRules("random-cid","default")
+	_, err := GetAllDestinationRules("random-cid", "default")
 	assert.NoError(t, err)
 }
 
 func TestGetResourcesToUpdate(t *testing.T) {
-	v := IstioValues {
+	v := IstioValues{
 		"api-xpto",
 		"2.0.0",
 		123,
 		"default",
-
 	}
-	userLabelSelector := map[string]string {
+	userLabelSelector := map[string]string{
 		"key": "value",
 		"app": "api-xpto",
-
 	}
 	_, err := GetResourcesToUpdate("random-cid", v, userLabelSelector)
 	assert.NoError(t, err)
