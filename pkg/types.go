@@ -39,8 +39,18 @@ type IstioValues struct {
 }
 
 type IstioResources struct {
-	DestinationRule v1alpha3.DestinationRule
-	VirtualService  v1alpha3.VirtualService
+	DestinationRule IstioMatchedDestinationRule
+	VirtualService  IstioMatchedVirtualService
+}
+
+type IstioMatchedDestinationRule struct {
+	Name string
+	Item v1alpha3.DestinationRule
+}
+
+type IstioMatchedVirtualService struct {
+	Subset string
+	Item v1alpha3.VirtualService
 }
 
 var (

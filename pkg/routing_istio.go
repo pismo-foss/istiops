@@ -4,7 +4,9 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+	v1alpha32 "istio.io/api/networking/v1alpha3"
 	"reflect"
+	"strings"
 
 	"github.com/pismo/istiops/utils"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,9 +51,19 @@ func GetAllDestinationRules(cid string, namespace string) (destinationRuleList *
 }
 
 // UpdateVirtualService updates a specific virtualService given an updated object
-func UpdateVirtualService(cid string, name string, namespace string, virtualService *v1alpha3.VirtualService) error {
-	utils.Info(fmt.Sprintf("Updating rules for virtualService '%s'...", name), cid)
+func UpdateVirtualService(cid string, subsetName string, namespace string, virtualService *v1alpha3.VirtualService) error {
+	utils.Info(fmt.Sprintf("Updating rule '%s' for virtualService '%s'...", subsetName, virtualService.Name), cid)
 	_, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).Update(virtualService)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateDestinationRule updates a specific virtualService given an updated object
+func UpdateDestinationRule(cid string, subsetName string, namespace string, destinationRule *v1alpha3.DestinationRule) error {
+	utils.Info(fmt.Sprintf("Updating rule '%s' for destinationRule '%s'...", subsetName, destinationRule.Name), cid)
+	_, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).Update(destinationRule)
 	if err != nil {
 		return err
 	}
@@ -95,6 +107,7 @@ func GetResourcesToUpdate(cid string, v IstioValues, labels map[string]string) (
 	// iterate every cluster destinationRule
 
 	var resourcesToUpdate []*IstioResources
+	resourcesToUpdate = nil
 
 	for _, dr := range drs.Items {
 		destinationRuleName := fmt.Sprintf("%s", dr.Name)
@@ -117,8 +130,14 @@ func GetResourcesToUpdate(cid string, v IstioValues, labels map[string]string) (
 							if route.Destination.Subset == subset.Name {
 								// In case of a non-existent key 'virtualServiceName', create it
 								resourcesToUpdate = append(resourcesToUpdate, &IstioResources{
-									DestinationRule: dr,
-									VirtualService: vs,
+									DestinationRule: IstioMatchedDestinationRule{
+										subset.Name,
+										dr,
+									},
+									VirtualService: IstioMatchedVirtualService{
+										route.Destination.Subset,
+										vs,
+									},
 								})
 							}
 						}
@@ -128,7 +147,19 @@ func GetResourcesToUpdate(cid string, v IstioValues, labels map[string]string) (
 		}
 	}
 
+	if resourcesToUpdate == nil {
+		utils.Info(fmt.Sprintf("Couldn't find any istio resources based on given labelsSelector to update. "), cid)
+	}
+
 	return resourcesToUpdate, nil
+}
+
+func RemoveSubsetRule(subsets []*v1alpha32.Subset, subsetIndex int) ([]*v1alpha32.Subset, error){
+	copy(subsets[subsetIndex:], subsets[subsetIndex+1:])
+	subsets[len(subsets)-1] = &v1alpha32.Subset{}
+
+	return subsets[:len(subsets)-1], nil
+
 }
 
 // Percentage set percentage as routing-match strategy for istio resources
@@ -140,50 +171,51 @@ func (v IstioValues) Percentage(cid string, labels map[string]string, percentage
 
 // Headers set headers as routing-match strategy for istio resources
 func (v IstioValues) Headers(cid string, labels map[string]string, headers map[string]string) error {
+	replacer := strings.NewReplacer(".", "", "-", "", "/", "")
+	simplifiedVersion := replacer.Replace(v.Version)
+	simplifiedVersion = strings.ToLower(simplifiedVersion)
+	subsetRuleName := fmt.Sprintf("%s-%d", simplifiedVersion, v.Build)
+
 	resourcesToUpdate, err := GetResourcesToUpdate(cid, v, labels)
-	for _, value := range resourcesToUpdate {
-		fmt.Println(value)
-	}
 	if err != nil {
 		return err
 	}
 	//
-	//for resourceName, resource := range resourcesToUpdate {
-	//
-	//	if fmt.Sprintf("%s", resource.Resource) == "VirtualService" {
-	//		vs, err := GetVirtualService(cid, resourceName, v.Namespace)
-	//		if err != nil {
-	//			utils.Fatal(fmt.Sprintf("Could not find virtualService '%s' due to error '%s'", resourceName, err), cid)
-	//		}
-	//
-	//		for _, value := range vs.Spec.Http {
-	//			for _, matchValue := range value.Match {
-	//				if matchValue.Uri != nil {
-	//					fmt.Println(matchValue.Uri)
-	//					matchValue.Uri = &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: "////"}}
-	//
-	//					err := UpdateVirtualService(cid, resourceName, vs.Namespace, vs)
-	//					if err != nil {
-	//						utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to error '%s'", resourceName, err), cid)
-	//					}
-	//				}
-	//				fmt.Println(matchValue.Uri)
-	//			}
-	//		}
-	//	}
-	//
-	//	if fmt.Sprintf("%s", resource.Resource) == "DestinationRule" {
-	//		dr, err := GetDestinationRule(cid, resourceName, v.Namespace)
-	//		if err != nil {
-	//			utils.Fatal(fmt.Sprintf("Could not find destinationRule '%s' due to error '%s'", resourceName, err), cid)
-	//		}
-	//
-	//		for _, value := range dr.Spec.Subsets {
-	//			fmt.Println(value.Name)
-	//		}
-	//	}
-	//
-	//	fmt.Println("")
-	//}
+	for _, resource := range resourcesToUpdate {
+		for subsetKey, subset := range resource.DestinationRule.Item.Spec.Subsets {
+			// If rule already exists recreate it
+			if subset.Name == subsetRuleName {
+				cleanedSubsets, err := RemoveSubsetRule(resource.DestinationRule.Item.Spec.Subsets, subsetKey)
+				if err != nil {
+					utils.Fatal(fmt.Sprintf("Could not recreate subsetRule '%s'", subset.Name), cid)
+				}
+				resource.DestinationRule.Item.Spec.Subsets = cleanedSubsets
+			}
+		}
+
+		// Create DestinationRule entry for specified labels & apply it
+		resource.DestinationRule.Item.Spec.Subsets = append(
+			resource.DestinationRule.Item.Spec.Subsets,
+			&v1alpha32.Subset{
+			Name: subsetRuleName,
+			Labels: headers,
+		})
+		err := UpdateDestinationRule(cid, resource.DestinationRule.Name, v.Namespace, &resource.DestinationRule.Item)
+		if err != nil {
+			utils.Fatal(fmt.Sprintf("Could not update destinationRule '%s' due to error '%s'", resource.DestinationRule.Name, err), cid)
+		}
+
+		// Search for virtualservice's rule which matches subset name to append headers routing to it
+		for _, httpRules := range resource.VirtualService.Item.Spec.Http {
+			fmt.Println(httpRules)
+			for _, matchValue := range httpRules.Route {
+				if matchValue.Destination.Subset == resource.DestinationRule.Name {
+					matchValue.
+					//fmt.Println(matchValue)
+					fmt.Println("Updating Virtual Service after Destination Rule")
+				}
+			}
+		}
+	}
 	return nil
 }
