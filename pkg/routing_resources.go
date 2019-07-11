@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/pismo/istiops/utils"
@@ -66,9 +67,10 @@ func CreateRouteResource(api utils.ApiValues, cid string, parentCtx context.Cont
 // if it doesn't exists it will return a new one in memory with the given apistruct parameters as the initialization values.
 func retrieveVirtualService(api utils.ApiValues, cid string, parentCtx context.Context) (virtualService *v1alpha32.VirtualService, new bool, error error) {
 	name := api.Name + VIRTUALSERVICE_RULE_SUFFIX
+	getOptions := metav1.GetOptions{}
 	utils.Info(fmt.Sprintf("Retrieving virtualservice: %s", name), cid)
 
-	vs, err := GetVirtualService(cid, name, api.Namespace)
+	vs, err := GetVirtualService(cid, name, api.Namespace, getOptions)
 	if err != nil {
 		customErr, ok := err.(*errors.StatusError)
 		if !ok {
@@ -117,9 +119,10 @@ func retrieveVirtualService(api utils.ApiValues, cid string, parentCtx context.C
 // if it doesn't exists it will return a new one in memory with the given apistruct parameters as the initialization values.
 func retrieveDestinationRule(api utils.ApiValues, cid string, parentCtx context.Context) (destinationRule *v1alpha32.DestinationRule, new bool, error error) {
 	drName := api.Name + DESTINATION_RULE_SUFFIX
+	getOptions := metav1.GetOptions{}
 	utils.Info(fmt.Sprintf("Retrieving destinationrule: %s", drName), cid)
 
-	dr, err := GetDestinationRule(cid, drName, api.Namespace)
+	dr, err := GetDestinationRule(cid, drName, api.Namespace, getOptions)
 	if err != nil {
 		customErr, ok := err.(*errors.StatusError)
 		if !ok {

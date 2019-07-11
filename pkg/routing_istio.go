@@ -19,9 +19,9 @@ type IstioOperationsInterface interface {
 }
 
 // GetAllVirtualServices returns all istio resources 'virtualservices'
-func GetAllVirtualServices(cid string, namespace string) (virtualServiceList *v1alpha3.VirtualServiceList, error error) {
+func GetAllVirtualServices(cid string, namespace string, listOptions metav1.ListOptions) (virtualServiceList *v1alpha3.VirtualServiceList, error error) {
 	utils.Info(fmt.Sprintf("Getting all virtualservices..."), cid)
-	vss, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).List(metav1.ListOptions{})
+	vss, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).List(listOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -30,9 +30,9 @@ func GetAllVirtualServices(cid string, namespace string) (virtualServiceList *v1
 }
 
 // GetVirtualService returns a single virtualService object given a name & namespace
-func GetVirtualService(cid string, name string, namespace string) (virtualService *v1alpha3.VirtualService, error error) {
+func GetVirtualService(cid string, name string, namespace string, getOptions metav1.GetOptions) (virtualService *v1alpha3.VirtualService, error error) {
 	utils.Info(fmt.Sprintf("Getting virtualService '%s' to update...", name), cid)
-	vs, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).Get(name, metav1.GetOptions{})
+	vs, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).Get(name, getOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -40,14 +40,24 @@ func GetVirtualService(cid string, name string, namespace string) (virtualServic
 }
 
 // GetAllVirtualservices returns all istio resources 'virtualservices'
-func GetAllDestinationRules(cid string, namespace string) (destinationRuleList *v1alpha3.DestinationRuleList, error error) {
+func GetAllDestinationRules(cid string, namespace string, listOptions metav1.ListOptions) (destinationRuleList *v1alpha3.DestinationRuleList, error error) {
 	utils.Info(fmt.Sprintf("Getting all destinationrules..."), cid)
-	drs, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).List(metav1.ListOptions{})
+	drs, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).List(listOptions)
 	if err != nil {
 		return nil, err
 	}
 
 	return drs, nil
+}
+
+// GetDestinationRules returns a single destinationRule object given a name & namespace
+func GetDestinationRule(cid string, name string, namespace string, getOptions metav1.GetOptions) (destinationRule *v1alpha3.DestinationRule, error error) {
+	utils.Info(fmt.Sprintf("Getting destinationRule '%s' to update...", name), cid)
+	dr, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).Get(name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return dr, nil
 }
 
 // UpdateVirtualService updates a specific virtualService given an updated object
@@ -70,16 +80,6 @@ func UpdateDestinationRule(cid string, subsetName string, namespace string, dest
 	return nil
 }
 
-// GetDestinationRules returns a single destinationRule object given a name & namespace
-func GetDestinationRule(cid string, name string, namespace string) (destinationRule *v1alpha3.DestinationRule, error error) {
-	utils.Info(fmt.Sprintf("Getting destinationRule '%s' to update...", name), cid)
-	dr, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).Get(name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return dr, nil
-}
-
 // GenerateShaFromMap returns a slice of hashes (sha256) for every key:value in given map[string]string
 func GenerateShaFromMap(mapToHash map[string]string) ([]string, error) {
 	var mapHashes []string
@@ -94,12 +94,13 @@ func GenerateShaFromMap(mapToHash map[string]string) ([]string, error) {
 }
 
 func GetResourcesToUpdate(cid string, v IstioValues, labels map[string]string) (istioResources []*IstioResources, error error) {
-	vss, err := GetAllVirtualServices(cid, v.Namespace)
+	listOptions := metav1.ListOptions{}
+	vss, err := GetAllVirtualServices(cid, v.Namespace, listOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	drs, err := GetAllDestinationRules(cid, v.Namespace)
+	drs, err := GetAllDestinationRules(cid, v.Namespace, listOptions)
 	if err != nil {
 		return nil, err
 	}

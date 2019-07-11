@@ -4,6 +4,7 @@ import (
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	"istio.io/api/networking/v1alpha3"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	versionedclientFake "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
@@ -59,18 +60,16 @@ func CreateMockedVirtualService(t *testing.T, istioClient versioned.Interface) (
 }
 
 func TestGetAllVirtualServices(t *testing.T) {
-
 	istioClient := versionedclientFake.NewSimpleClientset()
 
 	mockedDr := CreateMockedDestinationRule(t, istioClient)
-	t.Log(mockedDr)
+	assert.NotNil(t, mockedDr)
 
 	mockedVs := CreateMockedVirtualService(t, istioClient)
-	t.Log(mockedVs)
+	assert.NotNil(t, mockedVs)
 
-	vss, err := GetAllVirtualServices("random-cid", "default")
-	t.Log(vss)
-
+	listOptions := metav1.ListOptions{}
+	_, err := GetAllVirtualServices("random-cid", "default", listOptions)
 	assert.NoError(t, err)
 }
 
