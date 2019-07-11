@@ -4,12 +4,12 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+	"github.com/pismo/istiops/utils"
 	v1alpha32 "istio.io/api/networking/v1alpha3"
 	"reflect"
 	"strings"
 
-	"github.com/pismo/istiops/utils"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // IstioOperationsInterface set IstiOps interface for handling routing
@@ -21,7 +21,7 @@ type IstioOperationsInterface interface {
 // GetAllVirtualServices returns all istio resources 'virtualservices'
 func GetAllVirtualServices(cid string, namespace string) (virtualServiceList *v1alpha3.VirtualServiceList, error error) {
 	utils.Info(fmt.Sprintf("Getting all virtualservices..."), cid)
-	vss, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).List(v1.ListOptions{})
+	vss, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func GetAllVirtualServices(cid string, namespace string) (virtualServiceList *v1
 // GetVirtualService returns a single virtualService object given a name & namespace
 func GetVirtualService(cid string, name string, namespace string) (virtualService *v1alpha3.VirtualService, error error) {
 	utils.Info(fmt.Sprintf("Getting virtualService '%s' to update...", name), cid)
-	vs, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).Get(name, v1.GetOptions{})
+	vs, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func GetVirtualService(cid string, name string, namespace string) (virtualServic
 // GetAllVirtualservices returns all istio resources 'virtualservices'
 func GetAllDestinationRules(cid string, namespace string) (destinationRuleList *v1alpha3.DestinationRuleList, error error) {
 	utils.Info(fmt.Sprintf("Getting all destinationrules..."), cid)
-	drs, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).List(v1.ListOptions{})
+	drs, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func UpdateDestinationRule(cid string, subsetName string, namespace string, dest
 // GetDestinationRules returns a single destinationRule object given a name & namespace
 func GetDestinationRule(cid string, name string, namespace string) (destinationRule *v1alpha3.DestinationRule, error error) {
 	utils.Info(fmt.Sprintf("Getting destinationRule '%s' to update...", name), cid)
-	dr, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).Get(name, v1.GetOptions{})
+	dr, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +154,7 @@ func GetResourcesToUpdate(cid string, v IstioValues, labels map[string]string) (
 	return resourcesToUpdate, nil
 }
 
-func RemoveSubsetRule(subsets []*v1alpha32.Subset, subsetIndex int) ([]*v1alpha32.Subset, error){
+func RemoveSubsetRule(subsets []*v1alpha32.Subset, subsetIndex int) ([]*v1alpha32.Subset, error) {
 	copy(subsets[subsetIndex:], subsets[subsetIndex+1:])
 	subsets[len(subsets)-1] = &v1alpha32.Subset{}
 
@@ -197,9 +197,9 @@ func (v IstioValues) Headers(cid string, labels map[string]string, headers map[s
 		resource.DestinationRule.Item.Spec.Subsets = append(
 			resource.DestinationRule.Item.Spec.Subsets,
 			&v1alpha32.Subset{
-			Name: subsetRuleName,
-			Labels: headers,
-		})
+				Name:   subsetRuleName,
+				Labels: headers,
+			})
 		err := UpdateDestinationRule(cid, resource.DestinationRule.Name, v.Namespace, &resource.DestinationRule.Item)
 		if err != nil {
 			utils.Fatal(fmt.Sprintf("Could not update destinationRule '%s' due to error '%s'", resource.DestinationRule.Name, err), cid)
@@ -210,7 +210,6 @@ func (v IstioValues) Headers(cid string, labels map[string]string, headers map[s
 			fmt.Println(httpRules)
 			for _, matchValue := range httpRules.Route {
 				if matchValue.Destination.Subset == resource.DestinationRule.Name {
-					matchValue.
 					//fmt.Println(matchValue)
 					fmt.Println("Updating Virtual Service after Destination Rule")
 				}

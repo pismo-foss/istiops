@@ -10,7 +10,7 @@ import (
 func IstioRouting(api utils.ApiValues, cid string, parentCtx context.Context) error {
 	var istioResult error
 	headers := map[string]string{
-		"app": "api-xpto",
+		"app":   "api-xpto",
 		"build": "123",
 	}
 

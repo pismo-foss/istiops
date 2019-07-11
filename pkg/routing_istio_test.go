@@ -1,70 +1,96 @@
 package pkg
 
 import (
-	"fmt"
-	"testing"
+	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
+	"istio.io/api/networking/v1alpha3"
 
+	versionedclientFake "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
+
+	"testing"
 )
 
-func TestGenerateShaFromMap(t *testing.T) {
-	mapToHash := map[string]string{
-		"key": "value",
-		"app": "api-xpto",
+func CreateMockedDestinationRule(t *testing.T, istioClient versioned.Interface) (mocked *v1alpha32.DestinationRule) {
+	mockedDr := &v1alpha32.DestinationRule{}
+	mockedDr.Name = "api-unit-test-destinationrule"
+	mockedDr.Namespace = "default"
+
+	mockedDr.Spec.Subsets = append(mockedDr.Spec.Subsets, &v1alpha3.Subset{
+		Name: "subset-test",
+		Labels: map[string]string{
+			"app": "api-xpto",
+		},
+	})
+
+	mockedDr, err := istioClient.NetworkingV1alpha3().DestinationRules("default").Create(mockedDr)
+	if mockedDr == nil {
+		t.Error("Could not create mocked destinationRule")
+		t.Error(err)
 	}
-
-	values, err := GenerateShaFromMap(mapToHash)
-
-	assert.NoError(t, err)
-	assert.Equal(
-		t,
-		fmt.Sprintf("%s", values[0]),
-		"563f0357118d05ef145d6bddf2966cc23e86ca8f2f013f915e565afdf09f7a23",
-	)
-	assert.Equal(
-		t,
-		fmt.Sprintf("%s", values[1]),
-		"dc705ce67cc0d8a71c4449a2933fb0ac0404e111325ee7a08c27f2a17fe4a9e2",
-	)
+	return mockedDr
 }
 
-func TestCompareMapsKeyPairsHash(t *testing.T) {
-	mapMocked := map[string]string{
-		"key": "value",
-		"app": "api-xpto",
+func CreateMockedVirtualService(t *testing.T, istioClient versioned.Interface) (mocked *v1alpha32.VirtualService) {
+	mockedVs := &v1alpha32.VirtualService{}
+	mockedVs.Name = "api-unit-test-virtualservice"
+	mockedVs.Namespace = "default"
+
+	mockedVs.Spec.Hosts = []string{"api-unit-test.domain.io"}
+	mockedVs.Spec.Gateways = []string{"unit-test-gateway"}
+
+	mockedVs.Spec.Http = append(mockedVs.Spec.Http, &v1alpha3.HTTPRoute{})
+
+	defaultMatch := &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}}
+	defaultDestination := &v1alpha3.HTTPRouteDestination{Destination: &v1alpha3.Destination{Host: "api-xpto", Subset: "subset-name", Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: 8080}}}}
+	defaultRoute := &v1alpha3.HTTPRoute{}
+	defaultRoute.Match = append(defaultRoute.Match, defaultMatch)
+	defaultRoute.Route = append(defaultRoute.Route, defaultDestination)
+
+	mockedVs.Spec.Http = append(mockedVs.Spec.Http, defaultRoute)
+
+	mockedVs, err := istioClient.NetworkingV1alpha3().VirtualServices("default").Create(mockedVs)
+	if mockedVs == nil {
+		t.Error("Could not create mocked virtualservice")
+		t.Error(err)
 	}
 
-	mapEmpty := map[string]string{}
-
-	expectedTrue := CompareMapsKeyPairsHash(mapMocked, mapMocked)
-	expectedFalse := CompareMapsKeyPairsHash(mapMocked, mapEmpty)
-
-	assert.True(t, expectedTrue)
-	assert.True(t, expectedFalse)
+	return mockedVs
 }
 
 func TestGetAllVirtualServices(t *testing.T) {
-	_, err := GetAllVirtualServices("random-cid", "default")
+
+	istioClient := versionedclientFake.NewSimpleClientset()
+
+	mockedDr := CreateMockedDestinationRule(t, istioClient)
+	t.Log(mockedDr)
+
+	mockedVs := CreateMockedVirtualService(t, istioClient)
+	t.Log(mockedVs)
+
+	vss, err := GetAllVirtualServices("random-cid", "default")
+	t.Log(vss)
+
 	assert.NoError(t, err)
 }
 
-func TestGetAllDestinationRules(t *testing.T) {
-	_, err := GetAllDestinationRules("random-cid", "default")
-	assert.NoError(t, err)
-}
-
-func TestGetResourcesToUpdate(t *testing.T) {
-	v := IstioValues{
-		"api-xpto",
-		"2.0.0",
-		123,
-		"default",
-	}
-	userLabelSelector := map[string]string{
-		"key": "value",
-		"app": "api-xpto",
-	}
-	_, err := GetResourcesToUpdate("random-cid", v, userLabelSelector)
-	assert.NoError(t, err)
-
-}
+//
+//func TestGetAllDestinationRules(t *testing.T) {
+//	_, err := GetAllDestinationRules("random-cid", "default")
+//	assert.NoError(t, err)
+//}
+//
+//func TestGetResourcesToUpdate(t *testing.T) {
+//	v := IstioValues{
+//		"api-xpto",
+//		"2.0.0",
+//		123,
+//		"default",
+//	}
+//	userLabelSelector := map[string]string{
+//		"app": "api-xpto",
+//	}
+//	_, err := GetResourcesToUpdate("random-cid", v, userLabelSelector)
+//	assert.NoError(t, err)
+//
+//}

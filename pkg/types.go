@@ -2,16 +2,15 @@ package pkg
 
 import (
 	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
-	"os"
-
 	versionedclient "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"os"
 )
 
 func init() {
-	var err error
+	//var err error
 	homedir := homedir.HomeDir()
 	config, err := clientcmd.BuildConfigFromFlags("", homedir+"/.kube/config")
 
@@ -50,10 +49,11 @@ type IstioMatchedDestinationRule struct {
 
 type IstioMatchedVirtualService struct {
 	Subset string
-	Item v1alpha3.VirtualService
+	Item   v1alpha3.VirtualService
 }
 
 var (
 	kubernetesClient *kubernetes.Clientset
-	istioClient      *versionedclient.Clientset
+	istioClient      versionedclient.Interface
+	err              error
 )
