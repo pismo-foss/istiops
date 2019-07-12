@@ -124,3 +124,28 @@ func TestGetResourcesToUpdate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, mockedMissingValues)
 }
+
+func TestRemoveSubsetRule(t *testing.T){
+	mockedSubsetToBeRemoved := v1alpha3.Subset{
+		Name: "subset-to-be-removed",
+		Labels: map[string]string {
+			"labelKey": "labelValue",
+		},
+	}
+
+	mockedSubset := v1alpha3.Subset{
+		Name: "subset-name",
+		Labels: map[string]string {
+			"labelKey": "labelValue",
+		},
+	}
+
+	var mockedSubsetList []*v1alpha3.Subset
+	mockedSubsetList = append(mockedSubsetList, &mockedSubsetToBeRemoved)
+	mockedSubsetList = append(mockedSubsetList, &mockedSubset)
+	cleanedSubsetList, err := RemoveSubsetRule(mockedSubsetList, 0)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, cleanedSubsetList)
+	assert.EqualValues(t, "subset-name", cleanedSubsetList[0].Name)
+}
