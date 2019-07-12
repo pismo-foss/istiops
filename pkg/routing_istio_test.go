@@ -3,7 +3,6 @@ package pkg
 import (
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	versionedclientFake "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
-
 	"log"
 	"os"
 
@@ -24,7 +23,7 @@ func TestMain(m *testing.M) {
 
 }
 
-func TearUp(){
+func TearUp() {
 	istioClient = versionedclientFake.NewSimpleClientset()
 
 	var err error
@@ -40,20 +39,20 @@ func TearUp(){
 	}
 }
 
-
 func CreateMockedDestinationRule() (error error) {
 	mockedDr := &v1alpha32.DestinationRule{}
 	mockedDr.Name = "api-unit-test-destinationrule"
-	mockedDr.Namespace = "default"
+	mockedDr.Namespace = "test-namespace"
 
 	mockedDr.Spec.Subsets = append(mockedDr.Spec.Subsets, &v1alpha3.Subset{
 		Name: "subset-test",
 		Labels: map[string]string{
-			"app": "api-xpto",
+			"app":     "api-xpto",
+			"version": "2.1.3",
 		},
 	})
 
-	_, err := istioClient.NetworkingV1alpha3().DestinationRules("default").Create(mockedDr)
+	_, err := istioClient.NetworkingV1alpha3().DestinationRules("test-namespace").Create(mockedDr)
 
 	return err
 }
@@ -61,7 +60,7 @@ func CreateMockedDestinationRule() (error error) {
 func CreateMockedVirtualService() (error error) {
 	mockedVs := &v1alpha32.VirtualService{}
 	mockedVs.Name = "api-unit-test-virtualservice"
-	mockedVs.Namespace = "default"
+	mockedVs.Namespace = "test-namespace"
 
 	mockedVs.Spec.Hosts = []string{"api-unit-test.domain.io"}
 	mockedVs.Spec.Gateways = []string{"unit-test-gateway"}
@@ -69,21 +68,21 @@ func CreateMockedVirtualService() (error error) {
 	mockedVs.Spec.Http = append(mockedVs.Spec.Http, &v1alpha3.HTTPRoute{})
 
 	defaultMatch := &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}}
-	defaultDestination := &v1alpha3.HTTPRouteDestination{Destination: &v1alpha3.Destination{Host: "api-xpto", Subset: "subset-name", Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: 8080}}}}
+	defaultDestination := &v1alpha3.HTTPRouteDestination{Destination: &v1alpha3.Destination{Host: "api-xpto", Subset: "subset-test", Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: 8080}}}}
 	defaultRoute := &v1alpha3.HTTPRoute{}
 	defaultRoute.Match = append(defaultRoute.Match, defaultMatch)
 	defaultRoute.Route = append(defaultRoute.Route, defaultDestination)
 
 	mockedVs.Spec.Http = append(mockedVs.Spec.Http, defaultRoute)
 
-	_, err := istioClient.NetworkingV1alpha3().VirtualServices("default").Create(mockedVs)
+	_, err := istioClient.NetworkingV1alpha3().VirtualServices("test-namespace").Create(mockedVs)
 
 	return err
 }
 
 func TestGetAllDestinationRules(t *testing.T) {
 	listOptions := metav1.ListOptions{}
-	mockedDrs, err := GetAllDestinationRules("random-cid", "default", listOptions)
+	mockedDrs, err := GetAllDestinationRules("random-cid", "test-namespace", listOptions)
 
 	assert.NoError(t, err)
 	assert.IsType(t, v1alpha32.DestinationRuleList{}, *mockedDrs)
@@ -92,31 +91,38 @@ func TestGetAllDestinationRules(t *testing.T) {
 
 func TestGetAllVirtualServices(t *testing.T) {
 	listOptions := metav1.ListOptions{}
-	mockedVss, err := GetAllVirtualServices("random-cid", "default", listOptions)
+	mockedVss, err := GetAllVirtualServices("random-cid", "test-namespace", listOptions)
 
 	assert.NoError(t, err)
 	assert.IsType(t, v1alpha32.VirtualServiceList{}, *mockedVss)
 	assert.EqualValues(t, "api-unit-test-virtualservice", mockedVss.Items[0].Name)
 }
 
+func TestGetResourcesToUpdate(t *testing.T) {
+	v := IstioValues{
+		"api-xpto",
+		"2.0.0",
+		123,
+		"test-namespace",
+	}
 
-//
-//func TestGetAllDestinationRules(t *testing.T) {
-//	_, err := GetAllDestinationRules("random-cid", "default")
-//	assert.NoError(t, err)
-//}
-//
-//func TestGetResourcesToUpdate(t *testing.T) {
-//	v := IstioValues{
-//		"api-xpto",
-//		"2.0.0",
-//		123,
-//		"default",
-//	}
-//	userLabelSelector := map[string]string{
-//		"app": "api-xpto",
-//	}
-//	_, err := GetResourcesToUpdate("random-cid", v, userLabelSelector)
-//	assert.NoError(t, err)
-//
-//}
+	userLabelSelector := map[string]string{
+		"app":     "api-xpto",
+		"version": "2.1.3",
+	}
+
+	// test case: happy path
+	mockedResourcesToUpdate, err := GetResourcesToUpdate("random-cid", v, userLabelSelector)
+	assert.NoError(t, err)
+	assert.NotNil(t, mockedResourcesToUpdate)
+
+	// test case: missing labelSelector
+	mockedMissingLabels, err := GetResourcesToUpdate("random-cid", v, map[string]string{})
+	assert.NoError(t, err)
+	assert.Nil(t, mockedMissingLabels)
+
+	// test case: missing IstioValues params
+	mockedMissingValues, err := GetResourcesToUpdate("random-cid", IstioValues{}, userLabelSelector)
+	assert.NoError(t, err)
+	assert.NotNil(t, mockedMissingValues)
+}
