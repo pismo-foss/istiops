@@ -2,15 +2,46 @@ package pkg
 
 import (
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
-	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	versionedclientFake "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
+
+	"log"
+	"os"
+
 	"github.com/stretchr/testify/assert"
 	"istio.io/api/networking/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 )
 
-func CreateMockedDestinationRule(t *testing.T, istioClient versioned.Interface) (mocked *v1alpha32.DestinationRule) {
+//func init() {
+//	istioClient = versionedclientFake.NewSimpleClientset()
+//}
+
+func TestMain(m *testing.M) {
+	TearUp()
+	result := m.Run()
+	os.Exit(result)
+
+}
+
+func TearUp(){
+	istioClient = versionedclientFake.NewSimpleClientset()
+
+	var err error
+
+	err = CreateMockedDestinationRule()
+	if err != nil {
+		log.Fatal("Could not create mocked DestinationRule")
+	}
+
+	err = CreateMockedVirtualService()
+	if err != nil {
+		log.Fatal("Could not create mocked VirtualService")
+	}
+}
+
+
+func CreateMockedDestinationRule() (error error) {
 	mockedDr := &v1alpha32.DestinationRule{}
 	mockedDr.Name = "api-unit-test-destinationrule"
 	mockedDr.Namespace = "default"
@@ -22,15 +53,12 @@ func CreateMockedDestinationRule(t *testing.T, istioClient versioned.Interface) 
 		},
 	})
 
-	mockedDr, err := istioClient.NetworkingV1alpha3().DestinationRules("default").Create(mockedDr)
-	if mockedDr == nil {
-		t.Error("Could not create mocked destinationRule")
-		t.Error(err)
-	}
-	return mockedDr
+	_, err := istioClient.NetworkingV1alpha3().DestinationRules("default").Create(mockedDr)
+
+	return err
 }
 
-func CreateMockedVirtualService(t *testing.T, istioClient versioned.Interface) (mocked *v1alpha32.VirtualService) {
+func CreateMockedVirtualService() (error error) {
 	mockedVs := &v1alpha32.VirtualService{}
 	mockedVs.Name = "api-unit-test-virtualservice"
 	mockedVs.Namespace = "default"
@@ -48,28 +76,29 @@ func CreateMockedVirtualService(t *testing.T, istioClient versioned.Interface) (
 
 	mockedVs.Spec.Http = append(mockedVs.Spec.Http, defaultRoute)
 
-	mockedVs, err := istioClient.NetworkingV1alpha3().VirtualServices("default").Create(mockedVs)
-	if mockedVs == nil {
-		t.Error("Could not create mocked virtualservice")
-		t.Error(err)
-	}
+	_, err := istioClient.NetworkingV1alpha3().VirtualServices("default").Create(mockedVs)
 
-	return mockedVs
+	return err
+}
+
+func TestGetAllDestinationRules(t *testing.T) {
+	listOptions := metav1.ListOptions{}
+	mockedDrs, err := GetAllDestinationRules("random-cid", "default", listOptions)
+
+	assert.NoError(t, err)
+	assert.IsType(t, v1alpha32.DestinationRuleList{}, *mockedDrs)
+	assert.EqualValues(t, "api-unit-test-destinationrule", mockedDrs.Items[0].Name)
 }
 
 func TestGetAllVirtualServices(t *testing.T) {
-	istioClient := versionedclientFake.NewSimpleClientset()
-
-	mockedDr := CreateMockedDestinationRule(t, istioClient)
-	assert.NotNil(t, mockedDr)
-
-	mockedVs := CreateMockedVirtualService(t, istioClient)
-	assert.NotNil(t, mockedVs)
-
 	listOptions := metav1.ListOptions{}
-	_, err := GetAllVirtualServices("random-cid", "default", listOptions)
+	mockedVss, err := GetAllVirtualServices("random-cid", "default", listOptions)
+
 	assert.NoError(t, err)
+	assert.IsType(t, v1alpha32.VirtualServiceList{}, *mockedVss)
+	assert.EqualValues(t, "api-unit-test-virtualservice", mockedVss.Items[0].Name)
 }
+
 
 //
 //func TestGetAllDestinationRules(t *testing.T) {
