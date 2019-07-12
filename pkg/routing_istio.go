@@ -160,7 +160,6 @@ func RemoveSubsetRule(subsets []*v1alpha32.Subset, subsetIndex int) ([]*v1alpha3
 	subsets[len(subsets)-1] = &v1alpha32.Subset{}
 
 	return subsets[:len(subsets)-1], nil
-
 }
 
 // Percentage set percentage as routing-match strategy for istio resources

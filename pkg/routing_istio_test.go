@@ -12,9 +12,7 @@ import (
 	"testing"
 )
 
-//func init() {
-//	istioClient = versionedclientFake.NewSimpleClientset()
-//}
+var namespace string
 
 func TestMain(m *testing.M) {
 	TearUp()
@@ -25,24 +23,24 @@ func TestMain(m *testing.M) {
 
 func TearUp() {
 	istioClient = versionedclientFake.NewSimpleClientset()
-
+	namespace := "test-namespace"
 	var err error
 
-	err = CreateMockedDestinationRule()
+	err = CreateMockedDestinationRule("api-unit-test-destinationrule", namespace)
 	if err != nil {
 		log.Fatal("Could not create mocked DestinationRule")
 	}
 
-	err = CreateMockedVirtualService()
+	err = CreateMockedVirtualService("api-unit-test-virtualservice", namespace)
 	if err != nil {
 		log.Fatal("Could not create mocked VirtualService")
 	}
 }
 
-func CreateMockedDestinationRule() (error error) {
+func CreateMockedDestinationRule(resourceName string, resourceNamespace string) (error error) {
 	mockedDr := &v1alpha32.DestinationRule{}
-	mockedDr.Name = "api-unit-test-destinationrule"
-	mockedDr.Namespace = "test-namespace"
+	mockedDr.Name = resourceName
+	mockedDr.Namespace = resourceNamespace
 
 	mockedDr.Spec.Subsets = append(mockedDr.Spec.Subsets, &v1alpha3.Subset{
 		Name: "subset-test",
@@ -52,15 +50,15 @@ func CreateMockedDestinationRule() (error error) {
 		},
 	})
 
-	_, err := istioClient.NetworkingV1alpha3().DestinationRules("test-namespace").Create(mockedDr)
+	_, err := istioClient.NetworkingV1alpha3().DestinationRules(resourceNamespace).Create(mockedDr)
 
 	return err
 }
 
-func CreateMockedVirtualService() (error error) {
+func CreateMockedVirtualService(resourceName string, resourceNamespace string) (error error) {
 	mockedVs := &v1alpha32.VirtualService{}
-	mockedVs.Name = "api-unit-test-virtualservice"
-	mockedVs.Namespace = "test-namespace"
+	mockedVs.Name = resourceName
+	mockedVs.Namespace = resourceNamespace
 
 	mockedVs.Spec.Hosts = []string{"api-unit-test.domain.io"}
 	mockedVs.Spec.Gateways = []string{"unit-test-gateway"}
@@ -75,14 +73,14 @@ func CreateMockedVirtualService() (error error) {
 
 	mockedVs.Spec.Http = append(mockedVs.Spec.Http, defaultRoute)
 
-	_, err := istioClient.NetworkingV1alpha3().VirtualServices("test-namespace").Create(mockedVs)
+	_, err := istioClient.NetworkingV1alpha3().VirtualServices(resourceNamespace).Create(mockedVs)
 
 	return err
 }
 
 func TestGetAllDestinationRules(t *testing.T) {
 	listOptions := metav1.ListOptions{}
-	mockedDrs, err := GetAllDestinationRules("random-cid", "test-namespace", listOptions)
+	mockedDrs, err := GetAllDestinationRules("random-cid", namespace, listOptions)
 
 	assert.NoError(t, err)
 	assert.IsType(t, v1alpha32.DestinationRuleList{}, *mockedDrs)
@@ -91,7 +89,7 @@ func TestGetAllDestinationRules(t *testing.T) {
 
 func TestGetAllVirtualServices(t *testing.T) {
 	listOptions := metav1.ListOptions{}
-	mockedVss, err := GetAllVirtualServices("random-cid", "test-namespace", listOptions)
+	mockedVss, err := GetAllVirtualServices("random-cid", namespace, listOptions)
 
 	assert.NoError(t, err)
 	assert.IsType(t, v1alpha32.VirtualServiceList{}, *mockedVss)
@@ -103,7 +101,7 @@ func TestGetResourcesToUpdate(t *testing.T) {
 		"api-xpto",
 		"2.0.0",
 		123,
-		"test-namespace",
+		namespace,
 	}
 
 	userLabelSelector := map[string]string{
