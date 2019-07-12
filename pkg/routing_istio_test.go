@@ -3,12 +3,10 @@ package pkg
 import (
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
-	"istio.io/api/networking/v1alpha3"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	versionedclientFake "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
-
+	"istio.io/api/networking/v1alpha3"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 )
 
