@@ -93,6 +93,8 @@ func GenerateShaFromMap(mapToHash map[string]string) ([]string, error) {
 	return mapHashes, nil
 }
 
+
+// GetResourcesToUpdate returns a slice of all DestinationRules and/or VirtualServices (based on given labelSelectors to a posterior update
 func GetResourcesToUpdate(cid string, v IstioValues, labels map[string]string) (istioResources []*IstioResources, error error) {
 	listOptions := metav1.ListOptions{}
 	vss, err := GetAllVirtualServices(cid, v.Namespace, listOptions)
