@@ -61,8 +61,8 @@ func GetDestinationRule(cid string, name string, namespace string, getOptions me
 }
 
 // UpdateVirtualService updates a specific virtualService given an updated object
-func UpdateVirtualService(cid string, subsetName string, namespace string, virtualService *v1alpha3.VirtualService) error {
-	utils.Info(fmt.Sprintf("Updating rule '%s' for virtualService '%s'...", subsetName, virtualService.Name), cid)
+func UpdateVirtualService(cid string, namespace string, virtualService *v1alpha3.VirtualService) error {
+	utils.Info(fmt.Sprintf("Updating rule for virtualService '%s'...", virtualService.Name), cid)
 	_, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).Update(virtualService)
 	if err != nil {
 		return err
@@ -71,8 +71,8 @@ func UpdateVirtualService(cid string, subsetName string, namespace string, virtu
 }
 
 // UpdateDestinationRule updates a specific virtualService given an updated object
-func UpdateDestinationRule(cid string, subsetName string, namespace string, destinationRule *v1alpha3.DestinationRule) error {
-	utils.Info(fmt.Sprintf("Updating rule '%s' for destinationRule '%s'...", subsetName, destinationRule.Name), cid)
+func UpdateDestinationRule(cid string, namespace string, destinationRule *v1alpha3.DestinationRule) error {
+	utils.Info(fmt.Sprintf("Updating rule for destinationRule '%s'...", destinationRule.Name), cid)
 	_, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).Update(destinationRule)
 	if err != nil {
 		return err
@@ -155,6 +155,7 @@ func GetResourcesToUpdate(cid string, v IstioValues, labels map[string]string) (
 	return resourcesToUpdate, nil
 }
 
+// RemoveSubsetRule remove a certain slice value from Subsets[]
 func RemoveSubsetRule(subsets []*v1alpha32.Subset, subsetIndex int) ([]*v1alpha32.Subset, error) {
 	copy(subsets[subsetIndex:], subsets[subsetIndex+1:])
 	subsets[len(subsets)-1] = &v1alpha32.Subset{}
@@ -165,7 +166,20 @@ func RemoveSubsetRule(subsets []*v1alpha32.Subset, subsetIndex int) ([]*v1alpha3
 // Percentage set percentage as routing-match strategy for istio resources
 func (v IstioValues) Percentage(cid string, labels map[string]string, percentage int32) error {
 	//fmt.Println(v.Name, v.Build, labels)
-
+	//for _, httpRules := range resource.VirtualService.Item.Spec.Http {
+	//	for _, matchValue := range httpRules.Route {
+	//		if matchValue.Destination.Subset == resource.DestinationRule.Name {
+	//			matchValue.Weight = 30
+	//			fmt.Println(matchValue)
+	//			err := UpdateVirtualService(cid, resource.VirtualService.Subset, v.Namespace, &resource.VirtualService.Item)
+	//			if err != nil {
+	//				utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to error '%s'", resource.VirtualService.Item.Name, err), cid)
+	//			}
+	//
+	//			fmt.Println("Set destinationrule subset to virtualservice")
+	//		}
+	//	}
+	//}
 	return nil
 }
 
@@ -200,18 +214,23 @@ func (v IstioValues) Headers(cid string, labels map[string]string, headers map[s
 				Name:   subsetRuleName,
 				Labels: headers,
 			})
-		err := UpdateDestinationRule(cid, resource.DestinationRule.Name, v.Namespace, &resource.DestinationRule.Item)
+		err := UpdateDestinationRule(cid, v.Namespace, &resource.DestinationRule.Item)
 		if err != nil {
 			utils.Fatal(fmt.Sprintf("Could not update destinationRule '%s' due to error '%s'", resource.DestinationRule.Name, err), cid)
 		}
 
 		// Search for virtualservice's rule which matches subset name to append headers routing to it
 		for _, httpRules := range resource.VirtualService.Item.Spec.Http {
-			fmt.Println(httpRules)
 			for _, matchValue := range httpRules.Route {
 				if matchValue.Destination.Subset == resource.DestinationRule.Name {
-					//fmt.Println(matchValue)
-					fmt.Println("Updating Virtual Service after Destination Rule")
+					matchValue.Weight = 30
+					fmt.Println(matchValue)
+					err := UpdateVirtualService(cid, v.Namespace, &resource.VirtualService.Item)
+					if err != nil {
+						utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to error '%s'", resource.VirtualService.Item.Name, err), cid)
+					}
+
+					fmt.Println("Set destinationrule subset to virtualservice")
 				}
 			}
 		}

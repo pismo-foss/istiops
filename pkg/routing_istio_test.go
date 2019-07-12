@@ -13,6 +13,8 @@ import (
 )
 
 var namespace string
+var mockedDestinationRuleName string
+var mockedVirtualServiceName string
 
 func TestMain(m *testing.M) {
 	TearUp()
@@ -23,39 +25,45 @@ func TestMain(m *testing.M) {
 
 func TearUp() {
 	istioClient = versionedclientFake.NewSimpleClientset()
-	namespace := "test-namespace"
+	namespace = "test-namespace"
+	mockedDestinationRuleName = "api-unit-test-destinationrule"
+	mockedVirtualServiceName = "api-unit-test-virtualservice"
+
 	var err error
 
-	err = CreateMockedDestinationRule("api-unit-test-destinationrule", namespace)
+	_, err = CreateMockedDestinationRule(
+		mockedDestinationRuleName,
+		namespace,
+		map[string]string{
+			"app":     "api-xpto",
+			"version": "2.1.3",
+		})
 	if err != nil {
 		log.Fatal("Could not create mocked DestinationRule")
 	}
 
-	err = CreateMockedVirtualService("api-unit-test-virtualservice", namespace)
+	_, err = CreateMockedVirtualService(mockedVirtualServiceName, namespace)
 	if err != nil {
 		log.Fatal("Could not create mocked VirtualService")
 	}
 }
 
-func CreateMockedDestinationRule(resourceName string, resourceNamespace string) (error error) {
+func CreateMockedDestinationRule(resourceName string, resourceNamespace string, subsetLabels map[string]string) (mockedDestinationRule *v1alpha32.DestinationRule, error error) {
 	mockedDr := &v1alpha32.DestinationRule{}
 	mockedDr.Name = resourceName
 	mockedDr.Namespace = resourceNamespace
 
 	mockedDr.Spec.Subsets = append(mockedDr.Spec.Subsets, &v1alpha3.Subset{
 		Name: "subset-test",
-		Labels: map[string]string{
-			"app":     "api-xpto",
-			"version": "2.1.3",
-		},
+		Labels: subsetLabels,
 	})
 
 	_, err := istioClient.NetworkingV1alpha3().DestinationRules(resourceNamespace).Create(mockedDr)
 
-	return err
+	return mockedDr, err
 }
 
-func CreateMockedVirtualService(resourceName string, resourceNamespace string) (error error) {
+func CreateMockedVirtualService(resourceName string, resourceNamespace string) (mockedVirtualService *v1alpha32.VirtualService, error error) {
 	mockedVs := &v1alpha32.VirtualService{}
 	mockedVs.Name = resourceName
 	mockedVs.Namespace = resourceNamespace
@@ -75,7 +83,7 @@ func CreateMockedVirtualService(resourceName string, resourceNamespace string) (
 
 	_, err := istioClient.NetworkingV1alpha3().VirtualServices(resourceNamespace).Create(mockedVs)
 
-	return err
+	return mockedVs, err
 }
 
 func TestGetAllDestinationRules(t *testing.T) {
@@ -87,6 +95,18 @@ func TestGetAllDestinationRules(t *testing.T) {
 	assert.EqualValues(t, "api-unit-test-destinationrule", mockedDrs.Items[0].Name)
 }
 
+func TestGetDestinationRule(t *testing.T) {
+	getOptions := metav1.GetOptions{}
+	dr, err := GetDestinationRule("random-cid", mockedDestinationRuleName, namespace, getOptions)
+	if err != nil {
+	}
+
+	assert.NoError(t, err)
+	assert.NotNil(t, mockedDestinationRuleName, dr.Name)
+	assert.IsType(t, v1alpha32.DestinationRule{}, *dr)
+	assert.EqualValues(t, mockedDestinationRuleName, dr.Name)
+}
+
 func TestGetAllVirtualServices(t *testing.T) {
 	listOptions := metav1.ListOptions{}
 	mockedVss, err := GetAllVirtualServices("random-cid", namespace, listOptions)
@@ -94,6 +114,18 @@ func TestGetAllVirtualServices(t *testing.T) {
 	assert.NoError(t, err)
 	assert.IsType(t, v1alpha32.VirtualServiceList{}, *mockedVss)
 	assert.EqualValues(t, "api-unit-test-virtualservice", mockedVss.Items[0].Name)
+}
+
+func TestGetVirtualService(t *testing.T) {
+	getOptions := metav1.GetOptions{}
+	vs, err := GetVirtualService("random-cid", mockedVirtualServiceName, namespace, getOptions)
+	if err != nil {
+	}
+
+	assert.NoError(t, err)
+	assert.NotNil(t, mockedVirtualServiceName, vs.Name)
+	assert.IsType(t, v1alpha32.VirtualService{}, *vs)
+	assert.EqualValues(t, mockedVirtualServiceName, vs.Name)
 }
 
 func TestGetResourcesToUpdate(t *testing.T) {
@@ -148,4 +180,23 @@ func TestRemoveSubsetRule(t *testing.T){
 	assert.NoError(t, err)
 	assert.NotNil(t, cleanedSubsetList)
 	assert.EqualValues(t, "subset-name", cleanedSubsetList[0].Name)
+}
+
+func TestUpdateDestinationRule(t *testing.T) {
+	newMockedDestinationRule := "custom-destinationrule"
+	dr, _ := CreateMockedDestinationRule(newMockedDestinationRule, namespace, map[string]string{"app":"new-app"})
+
+	err := UpdateDestinationRule("random-cid", namespace, dr)
+	assert.NoError(t, err)
+	assert.EqualValues(t, newMockedDestinationRule, dr.Name)
+
+}
+
+func TestUpdateVirtualService(t *testing.T) {
+	newMockedVirtualService := "custom-virtualservice"
+	vs, _ := CreateMockedVirtualService(newMockedVirtualService, namespace)
+
+	err := UpdateVirtualService("random-cid", namespace, vs)
+	assert.NoError(t, err)
+	assert.EqualValues(t, newMockedVirtualService, vs.Name)
 }
