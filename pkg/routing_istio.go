@@ -93,7 +93,6 @@ func GenerateShaFromMap(mapToHash map[string]string) ([]string, error) {
 	return mapHashes, nil
 }
 
-
 // GetResourcesToUpdate returns a slice of all DestinationRules and/or VirtualServices (based on given labelSelectors to a posterior update
 func GetResourcesToUpdate(cid string, v IstioValues, labels map[string]string) (istioResources []*IstioResources, error error) {
 	listOptions := metav1.ListOptions{}
@@ -166,7 +165,7 @@ func RemoveSubsetRule(subsets []*v1alpha32.Subset, subsetIndex int) ([]*v1alpha3
 }
 
 // RemoveVirtualServiceHttpRoute removes an entry from Subsets[] slice based on given subsetIndex
-func RemoveVirtualServiceHttpRoute(http []*v1alpha32.HTTPRoute, httpRouteIndex int) ([]*v1alpha32.HTTPRoute, error){
+func RemoveVirtualServiceHttpRoute(http []*v1alpha32.HTTPRoute, httpRouteIndex int) ([]*v1alpha32.HTTPRoute, error) {
 	copy(http[httpRouteIndex:], http[httpRouteIndex+1:])
 	http[len(http)-1] = &v1alpha32.HTTPRoute{}
 
@@ -174,15 +173,18 @@ func RemoveVirtualServiceHttpRoute(http []*v1alpha32.HTTPRoute, httpRouteIndex i
 }
 
 // CreateNewVirtualServiceHttpRoute returns an existent VirtualService with a new basic HTTP route appended to it
-func CreateNewVirtualServiceHttpRoute(cid string, virtualService *v1alpha3.VirtualService, matchHeaders map[string]string, destinationHost string, destinationPort int64) error{
+func CreateNewVirtualServiceHttpRoute(cid string, virtualService *v1alpha3.VirtualService, matchHeaders map[string]string, subsetName string, destinationHost string, destinationPort uint32) error {
 
 	utils.Info(fmt.Sprintf("Creating new http route for virtualService '%s'...", virtualService.Name), cid)
 	fmt.Println(matchHeaders)
 	fmt.Println(destinationHost)
 	fmt.Println(destinationPort)
 	for _, httpValue := range virtualService.Spec.Http {
-		for _, httpMatch := range httpValue.Match {
-			fmt.Println(httpMatch)
+		// if a subset already exists, remove it to a posterior recreate
+		for _, httpRoute := range httpValue.Route {
+			if httpRoute.Destination.Subset == subsetName {
+				RemoveVirtualServiceHttpRoute()
+			}
 		}
 	}
 

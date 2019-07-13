@@ -54,7 +54,7 @@ func CreateMockedDestinationRule(resourceName string, resourceNamespace string, 
 	mockedDr.Namespace = resourceNamespace
 
 	mockedDr.Spec.Subsets = append(mockedDr.Spec.Subsets, &v1alpha3.Subset{
-		Name: "subset-test",
+		Name:   "subset-test",
 		Labels: subsetLabels,
 	})
 
@@ -157,17 +157,17 @@ func TestGetResourcesToUpdate(t *testing.T) {
 	assert.NotNil(t, mockedMissingValues)
 }
 
-func TestRemoveSubsetRule(t *testing.T){
+func TestRemoveSubsetRule(t *testing.T) {
 	mockedSubsetToBeRemoved := v1alpha3.Subset{
 		Name: "subset-to-be-removed",
-		Labels: map[string]string {
+		Labels: map[string]string{
 			"labelKey": "labelValue",
 		},
 	}
 
 	mockedSubset := v1alpha3.Subset{
 		Name: "subset-name",
-		Labels: map[string]string {
+		Labels: map[string]string{
 			"labelKey": "labelValue",
 		},
 	}
@@ -184,7 +184,7 @@ func TestRemoveSubsetRule(t *testing.T){
 
 func TestUpdateDestinationRule(t *testing.T) {
 	newMockedDestinationRule := "custom-destinationrule"
-	dr, _ := CreateMockedDestinationRule(newMockedDestinationRule, namespace, map[string]string{"app":"new-app"})
+	dr, _ := CreateMockedDestinationRule(newMockedDestinationRule, namespace, map[string]string{"app": "new-app"})
 
 	err := UpdateDestinationRule("random-cid", namespace, dr)
 	assert.NoError(t, err)
