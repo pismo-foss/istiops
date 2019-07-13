@@ -157,12 +157,36 @@ func GetResourcesToUpdate(cid string, v IstioValues, labels map[string]string) (
 	return resourcesToUpdate, nil
 }
 
-// RemoveSubsetRule remove a certain slice value from Subsets[]
+// RemoveSubsetRule removes an entry from Subsets[] slice based on given subsetIndex
 func RemoveSubsetRule(subsets []*v1alpha32.Subset, subsetIndex int) ([]*v1alpha32.Subset, error) {
 	copy(subsets[subsetIndex:], subsets[subsetIndex+1:])
 	subsets[len(subsets)-1] = &v1alpha32.Subset{}
 
 	return subsets[:len(subsets)-1], nil
+}
+
+// RemoveVirtualServiceHttpRoute removes an entry from Subsets[] slice based on given subsetIndex
+func RemoveVirtualServiceHttpRoute(http []*v1alpha32.HTTPRoute, httpRouteIndex int) ([]*v1alpha32.HTTPRoute, error){
+	copy(http[httpRouteIndex:], http[httpRouteIndex+1:])
+	http[len(http)-1] = &v1alpha32.HTTPRoute{}
+
+	return http[:len(http)-1], nil
+}
+
+// CreateNewVirtualServiceHttpRoute returns an existent VirtualService with a new basic HTTP route appended to it
+func CreateNewVirtualServiceHttpRoute(cid string, virtualService *v1alpha3.VirtualService, matchHeaders map[string]string, destinationHost string, destinationPort int64) error{
+
+	utils.Info(fmt.Sprintf("Creating new http route for virtualService '%s'...", virtualService.Name), cid)
+	fmt.Println(matchHeaders)
+	fmt.Println(destinationHost)
+	fmt.Println(destinationPort)
+	for _, httpValue := range virtualService.Spec.Http {
+		for _, httpMatch := range httpValue.Match {
+			fmt.Println(httpMatch)
+		}
+	}
+
+	return nil
 }
 
 // Percentage set percentage as routing-match strategy for istio resources
@@ -225,6 +249,10 @@ func (v IstioValues) Headers(cid string, labels map[string]string, headers map[s
 		for _, httpRules := range resource.VirtualService.Item.Spec.Http {
 			for _, matchValue := range httpRules.Route {
 				if matchValue.Destination.Subset == resource.DestinationRule.Name {
+					errT := CreateNewVirtualServiceHttpRoute(cid, &resource.VirtualService.Item, map[string]string{}, "api-host", 8080)
+					if errT != nil {
+						utils.Fatal(fmt.Sprintf("'%s'", err), cid)
+					}
 					matchValue.Weight = 30
 					fmt.Println(matchValue)
 					err := UpdateVirtualService(cid, v.Namespace, &resource.VirtualService.Item)
