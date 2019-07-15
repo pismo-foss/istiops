@@ -184,19 +184,29 @@ func TestRemoveSubsetRule(t *testing.T) {
 
 func TestUpdateDestinationRule(t *testing.T) {
 	newMockedDestinationRule := "custom-destinationrule"
+	updatedHost := "updated-host"
+
 	dr, _ := CreateMockedDestinationRule(newMockedDestinationRule, namespace, map[string]string{"app": "new-app"})
+	dr.Spec.Host = updatedHost
 
 	err := UpdateDestinationRule("random-cid", namespace, dr)
 	assert.NoError(t, err)
 	assert.EqualValues(t, newMockedDestinationRule, dr.Name)
+	assert.EqualValues(t, updatedHost, dr.Spec.Host)
 
 }
 
 func TestUpdateVirtualService(t *testing.T) {
 	newMockedVirtualService := "custom-virtualservice"
+	updatedHosts := []string{"updated-host-1", "updated-host-2"}
+
 	vs, _ := CreateMockedVirtualService(newMockedVirtualService, namespace)
+	vs.Spec.Hosts = updatedHosts
 
 	err := UpdateVirtualService("random-cid", namespace, vs)
 	assert.NoError(t, err)
 	assert.EqualValues(t, newMockedVirtualService, vs.Name)
+	assert.IsType(t, []string{}, vs.Spec.Hosts)
+	assert.EqualValues(t, updatedHosts, vs.Spec.Hosts)
+
 }

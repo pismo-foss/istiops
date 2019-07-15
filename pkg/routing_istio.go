@@ -179,14 +179,14 @@ func CreateNewVirtualServiceHttpRoute(cid string, virtualService *v1alpha3.Virtu
 	fmt.Println(matchHeaders)
 	fmt.Println(destinationHost)
 	fmt.Println(destinationPort)
-	for _, httpValue := range virtualService.Spec.Http {
-		// if a subset already exists, remove it to a posterior recreate
-		for _, httpRoute := range httpValue.Route {
-			if httpRoute.Destination.Subset == subsetName {
-				RemoveVirtualServiceHttpRoute()
-			}
-		}
-	}
+	//for _, httpValue := range virtualService.Spec.Http {
+	//	// if a subset already exists, remove it to a posterior recreate
+	//	for _, httpRoute := range httpValue.Route {
+	//		if httpRoute.Destination.Subset == subsetName {
+	//			RemoveVirtualServiceHttpRoute()
+	//		}
+	//	}
+	//}
 
 	return nil
 }
@@ -251,7 +251,7 @@ func (v IstioValues) Headers(cid string, labels map[string]string, headers map[s
 		for _, httpRules := range resource.VirtualService.Item.Spec.Http {
 			for _, matchValue := range httpRules.Route {
 				if matchValue.Destination.Subset == resource.DestinationRule.Name {
-					errT := CreateNewVirtualServiceHttpRoute(cid, &resource.VirtualService.Item, map[string]string{}, "api-host", 8080)
+					errT := CreateNewVirtualServiceHttpRoute(cid, &resource.VirtualService.Item, map[string]string{}, "subsetName", "api-host", 8080)
 					if errT != nil {
 						utils.Fatal(fmt.Sprintf("'%s'", err), cid)
 					}
