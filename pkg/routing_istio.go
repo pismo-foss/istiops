@@ -173,22 +173,19 @@ func RemoveVirtualServiceHttpRoute(http []*v1alpha32.HTTPRoute, httpRouteIndex i
 }
 
 // CreateNewVirtualServiceHttpRoute returns an existent VirtualService with a new basic HTTP route appended to it
-func CreateNewVirtualServiceHttpRoute(cid string, virtualService *v1alpha3.VirtualService, matchHeaders map[string]string, subsetName string, destinationHost string, destinationPort uint32) error {
+func CreateNewVirtualServiceHttpRoute(cid string, hostname string, subset string, portNumber uint32) (httpRoute *v1alpha32.HTTPRoute, error error) {
 
-	utils.Info(fmt.Sprintf("Creating new http route for virtualService '%s'...", virtualService.Name), cid)
-	fmt.Println(matchHeaders)
-	fmt.Println(destinationHost)
-	fmt.Println(destinationPort)
-	//for _, httpValue := range virtualService.Spec.Http {
-	//	// if a subset already exists, remove it to a posterior recreate
-	//	for _, httpRoute := range httpValue.Route {
-	//		if httpRoute.Destination.Subset == subsetName {
-	//			RemoveVirtualServiceHttpRoute()
-	//		}
-	//	}
-	//}
+	utils.Info(fmt.Sprintf("Creating new http route..."), cid)
+	newMatch := &v1alpha32.HTTPMatchRequest{
+		Headers: map[string]*v1alpha32.StringMatch{},
+	}
+	defaultDestination := &v1alpha32.HTTPRouteDestination{Destination: &v1alpha32.Destination{Host: hostname, Subset: subset, Port: &v1alpha32.PortSelector{Port: &v1alpha32.PortSelector_Number{Number: portNumber}}}}
 
-	return nil
+	newRoute := &v1alpha32.HTTPRoute{}
+	newRoute.Match = append(newRoute.Match, newMatch)
+	newRoute.Route = append(newRoute.Route, defaultDestination)
+
+	return newRoute, nil
 }
 
 // Percentage set percentage as routing-match strategy for istio resources
@@ -237,24 +234,28 @@ func (v IstioValues) Headers(cid string, labels map[string]string, headers map[s
 			utils.Fatal(fmt.Sprintf("Could not update destinationRule '%s' due to error '%s'", resource.DestinationRule.Name, err), cid)
 		}
 
-		// Search for virtualservice's rule which matches subset name to append headers routing to it
-		//for _, httpRules := range resource.VirtualService.Item.Spec.Http {
-		//	for _, matchValue := range httpRules.Route {
-		//		if matchValue.Destination.Subset == resource.DestinationRule.Name {
-		//			errT := CreateNewVirtualServiceHttpRoute(cid, &resource.VirtualService.Item, map[string]string{}, "subsetName", "api-host", 8080)
-		//			if errT != nil {
-		//				utils.Fatal(fmt.Sprintf("'%s'", err), cid)
-		//			}
-		//
-		//			err := UpdateVirtualService(cid, v.Namespace, &resource.VirtualService.Item)
-		//			if err != nil {
-		//				utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to error '%s'", resource.VirtualService.Item.Name, err), cid)
-		//			}
-		//
-		//			fmt.Println("Set destinationrule subset to virtualservice")
-		//		}
-		//	}
-		//}
+		//Search for virtualservice's rule which matches subset name to append headers routing to it
+		subsetRouteExists := false
+
+		for _, httpRules := range resource.VirtualService.Item.Spec.Http {
+			for _, matchValue := range httpRules.Route {
+				// in case of a non-existent destination-subset, mark to be create it
+				if matchValue.Destination.Subset == resource.DestinationRule.Name {
+					subsetRouteExists = true
+				}
+			}
+
+		}
+
+		// if a subset does not exists in the current VirtualService, create it from scratch
+		if ! subsetRouteExists {
+			// create it
+			newRoute, err := CreateNewVirtualServiceHttpRoute(cid, "hostname", "subset", 8080)
+			if err != nil {
+				utils.Fatal(fmt.Sprintf("Could not create local httpRoute object for virtualservice '%s' due to error '%s'", resource.VirtualService.Item.Name, err), cid)
+			}
+			resource.VirtualService.Item.Spec.Http = append(resource.VirtualService.Item.Spec.Http, newRoute)
+		}
 	}
 	return nil
 }
