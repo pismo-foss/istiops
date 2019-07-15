@@ -222,50 +222,39 @@ func (v IstioValues) Headers(cid string, labels map[string]string, headers map[s
 	if err != nil {
 		return err
 	}
-	//
+
 	for _, resource := range resourcesToUpdate {
 		for subsetKey, subset := range resource.DestinationRule.Item.Spec.Subsets {
-			// If rule already exists recreate it
+			// If an existent subsetName already exists, just update it with the given user labels
 			if subset.Name == subsetRuleName {
-				cleanedSubsets, err := RemoveSubsetRule(resource.DestinationRule.Item.Spec.Subsets, subsetKey)
-				if err != nil {
-					utils.Fatal(fmt.Sprintf("Could not recreate subsetRule '%s'", subset.Name), cid)
-				}
-				resource.DestinationRule.Item.Spec.Subsets = cleanedSubsets
+				utils.Info(fmt.Sprintf("Setting user labels to subset '%s", subset.Name), cid)
+				resource.DestinationRule.Item.Spec.Subsets[subsetKey].Labels = labels
 			}
 		}
 
-		// Create DestinationRule entry for specified labels & apply it
-		resource.DestinationRule.Item.Spec.Subsets = append(
-			resource.DestinationRule.Item.Spec.Subsets,
-			&v1alpha32.Subset{
-				Name:   subsetRuleName,
-				Labels: headers,
-			})
 		err := UpdateDestinationRule(cid, v.Namespace, &resource.DestinationRule.Item)
 		if err != nil {
 			utils.Fatal(fmt.Sprintf("Could not update destinationRule '%s' due to error '%s'", resource.DestinationRule.Name, err), cid)
 		}
 
 		// Search for virtualservice's rule which matches subset name to append headers routing to it
-		for _, httpRules := range resource.VirtualService.Item.Spec.Http {
-			for _, matchValue := range httpRules.Route {
-				if matchValue.Destination.Subset == resource.DestinationRule.Name {
-					errT := CreateNewVirtualServiceHttpRoute(cid, &resource.VirtualService.Item, map[string]string{}, "subsetName", "api-host", 8080)
-					if errT != nil {
-						utils.Fatal(fmt.Sprintf("'%s'", err), cid)
-					}
-					matchValue.Weight = 30
-					fmt.Println(matchValue)
-					err := UpdateVirtualService(cid, v.Namespace, &resource.VirtualService.Item)
-					if err != nil {
-						utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to error '%s'", resource.VirtualService.Item.Name, err), cid)
-					}
-
-					fmt.Println("Set destinationrule subset to virtualservice")
-				}
-			}
-		}
+		//for _, httpRules := range resource.VirtualService.Item.Spec.Http {
+		//	for _, matchValue := range httpRules.Route {
+		//		if matchValue.Destination.Subset == resource.DestinationRule.Name {
+		//			errT := CreateNewVirtualServiceHttpRoute(cid, &resource.VirtualService.Item, map[string]string{}, "subsetName", "api-host", 8080)
+		//			if errT != nil {
+		//				utils.Fatal(fmt.Sprintf("'%s'", err), cid)
+		//			}
+		//
+		//			err := UpdateVirtualService(cid, v.Namespace, &resource.VirtualService.Item)
+		//			if err != nil {
+		//				utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to error '%s'", resource.VirtualService.Item.Name, err), cid)
+		//			}
+		//
+		//			fmt.Println("Set destinationrule subset to virtualservice")
+		//		}
+		//	}
+		//}
 	}
 	return nil
 }
