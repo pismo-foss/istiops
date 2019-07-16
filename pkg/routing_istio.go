@@ -3,9 +3,9 @@ package pkg
 import (
 	"crypto/sha256"
 	"fmt"
-	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/pismo/istiops/utils"
-	v1alpha32 "istio.io/api/networking/v1alpha3"
+	"istio.io/api/networking/v1alpha3"
 	"reflect"
 	"strings"
 
@@ -19,7 +19,7 @@ type IstioOperationsInterface interface {
 }
 
 // GetAllVirtualServices returns all istio resources 'virtualservices'
-func GetAllVirtualServices(cid string, namespace string, listOptions metav1.ListOptions) (virtualServiceList *v1alpha3.VirtualServiceList, error error) {
+func GetAllVirtualServices(cid string, namespace string, listOptions metav1.ListOptions) (virtualServiceList *v1alpha32.VirtualServiceList, error error) {
 	utils.Info(fmt.Sprintf("Getting all virtualservices..."), cid)
 	vss, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).List(listOptions)
 	if err != nil {
@@ -30,7 +30,7 @@ func GetAllVirtualServices(cid string, namespace string, listOptions metav1.List
 }
 
 // GetVirtualService returns a single virtualService object given a name & namespace
-func GetVirtualService(cid string, name string, namespace string, getOptions metav1.GetOptions) (virtualService *v1alpha3.VirtualService, error error) {
+func GetVirtualService(cid string, name string, namespace string, getOptions metav1.GetOptions) (virtualService *v1alpha32.VirtualService, error error) {
 	utils.Info(fmt.Sprintf("Getting virtualService '%s' to update...", name), cid)
 	vs, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).Get(name, getOptions)
 	if err != nil {
@@ -40,7 +40,7 @@ func GetVirtualService(cid string, name string, namespace string, getOptions met
 }
 
 // GetAllVirtualservices returns all istio resources 'virtualservices'
-func GetAllDestinationRules(cid string, namespace string, listOptions metav1.ListOptions) (destinationRuleList *v1alpha3.DestinationRuleList, error error) {
+func GetAllDestinationRules(cid string, namespace string, listOptions metav1.ListOptions) (destinationRuleList *v1alpha32.DestinationRuleList, error error) {
 	utils.Info(fmt.Sprintf("Getting all destinationrules..."), cid)
 	drs, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).List(listOptions)
 	if err != nil {
@@ -51,7 +51,7 @@ func GetAllDestinationRules(cid string, namespace string, listOptions metav1.Lis
 }
 
 // GetDestinationRules returns a single destinationRule object given a name & namespace
-func GetDestinationRule(cid string, name string, namespace string, getOptions metav1.GetOptions) (destinationRule *v1alpha3.DestinationRule, error error) {
+func GetDestinationRule(cid string, name string, namespace string, getOptions metav1.GetOptions) (destinationRule *v1alpha32.DestinationRule, error error) {
 	utils.Info(fmt.Sprintf("Getting destinationRule '%s' to update...", name), cid)
 	dr, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -61,7 +61,7 @@ func GetDestinationRule(cid string, name string, namespace string, getOptions me
 }
 
 // UpdateVirtualService updates a specific virtualService given an updated object
-func UpdateVirtualService(cid string, namespace string, virtualService *v1alpha3.VirtualService) error {
+func UpdateVirtualService(cid string, namespace string, virtualService *v1alpha32.VirtualService) error {
 	utils.Info(fmt.Sprintf("Updating rule for virtualService '%s'...", virtualService.Name), cid)
 	_, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).Update(virtualService)
 	if err != nil {
@@ -71,7 +71,7 @@ func UpdateVirtualService(cid string, namespace string, virtualService *v1alpha3
 }
 
 // UpdateDestinationRule updates a specific virtualService given an updated object
-func UpdateDestinationRule(cid string, namespace string, destinationRule *v1alpha3.DestinationRule) error {
+func UpdateDestinationRule(cid string, namespace string, destinationRule *v1alpha32.DestinationRule) error {
 	utils.Info(fmt.Sprintf("Updating rule for destinationRule '%s'...", destinationRule.Name), cid)
 	_, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).Update(destinationRule)
 	if err != nil {
@@ -156,32 +156,36 @@ func GetResourcesToUpdate(cid string, v IstioValues, labels map[string]string) (
 	return resourcesToUpdate, nil
 }
 
-// RemoveSubsetRule removes an entry from Subsets[] slice based on given subsetIndex
-func RemoveSubsetRule(subsets []*v1alpha32.Subset, subsetIndex int) ([]*v1alpha32.Subset, error) {
-	copy(subsets[subsetIndex:], subsets[subsetIndex+1:])
-	subsets[len(subsets)-1] = &v1alpha32.Subset{}
-
-	return subsets[:len(subsets)-1], nil
-}
-
-// RemoveVirtualServiceHttpRoute removes an entry from Subsets[] slice based on given subsetIndex
-func RemoveVirtualServiceHttpRoute(http []*v1alpha32.HTTPRoute, httpRouteIndex int) ([]*v1alpha32.HTTPRoute, error) {
-	copy(http[httpRouteIndex:], http[httpRouteIndex+1:])
-	http[len(http)-1] = &v1alpha32.HTTPRoute{}
-
-	return http[:len(http)-1], nil
-}
-
 // CreateNewVirtualServiceHttpRoute returns an existent VirtualService with a new basic HTTP route appended to it
-func CreateNewVirtualServiceHttpRoute(cid string, hostname string, subset string, portNumber uint32) (httpRoute *v1alpha32.HTTPRoute, error error) {
+func CreateNewVirtualServiceHttpRoute(cid string, labels map[string]string, hostname string, subset string, portNumber uint32) (httpRoute *v1alpha3.HTTPRoute, error error) {
+	utils.Info(fmt.Sprintf("Creating new http route for subset '%s'...", subset), cid)
 
-	utils.Info(fmt.Sprintf("Creating new http route..."), cid)
-	newMatch := &v1alpha32.HTTPMatchRequest{
-		Headers: map[string]*v1alpha32.StringMatch{},
+	newMatch := &v1alpha3.HTTPMatchRequest{
+		Headers: map[string]*v1alpha3.StringMatch{},
 	}
-	defaultDestination := &v1alpha32.HTTPRouteDestination{Destination: &v1alpha32.Destination{Host: hostname, Subset: subset, Port: &v1alpha32.PortSelector{Port: &v1alpha32.PortSelector_Number{Number: portNumber}}}}
 
-	newRoute := &v1alpha32.HTTPRoute{}
+	// append user labels to exact match
+	for labelKey, labelValue := range labels {
+		newMatch.Headers[labelKey] = &v1alpha3.StringMatch{
+			MatchType: &v1alpha3.StringMatch_Exact{
+				Exact: labelValue,
+			},
+		}
+	}
+
+	defaultDestination := &v1alpha3.HTTPRouteDestination{
+		Destination: &v1alpha3.Destination{
+			Host:   hostname,
+			Subset: subset,
+			Port: &v1alpha3.PortSelector{
+				Port: &v1alpha3.PortSelector_Number{
+					Number: portNumber,
+				},
+			},
+		},
+	}
+
+	newRoute := &v1alpha3.HTTPRoute{}
 	newRoute.Match = append(newRoute.Match, newMatch)
 	newRoute.Route = append(newRoute.Route, defaultDestination)
 
@@ -248,9 +252,9 @@ func (v IstioValues) Headers(cid string, labels map[string]string, headers map[s
 		}
 
 		// if a subset does not exists in the current VirtualService, create it from scratch
-		if ! subsetRouteExists {
+		if !subsetRouteExists {
 			// create it
-			newRoute, err := CreateNewVirtualServiceHttpRoute(cid, "hostname", "subset", 8080)
+			newRoute, err := CreateNewVirtualServiceHttpRoute(cid, labels, "hostname", "subset", 8080)
 			if err != nil {
 				utils.Fatal(fmt.Sprintf("Could not create local httpRoute object for virtualservice '%s' due to error '%s'", resource.VirtualService.Item.Name, err), cid)
 			}
