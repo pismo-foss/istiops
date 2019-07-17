@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	versionedclient "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -35,21 +34,6 @@ type IstioValues struct {
 	Version   string
 	Build     int32
 	Namespace string
-}
-
-type IstioResources struct {
-	DestinationRule IstioMatchedDestinationRule
-	VirtualService  IstioMatchedVirtualService
-}
-
-type IstioMatchedDestinationRule struct {
-	Name string
-	Item v1alpha3.DestinationRule
-}
-
-type IstioMatchedVirtualService struct {
-	Subset string
-	Item   v1alpha3.VirtualService
 }
 
 var (

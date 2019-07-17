@@ -6,14 +6,17 @@ import (
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/pismo/istiops/utils"
 	"istio.io/api/networking/v1alpha3"
-	"reflect"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var subsetRouteExists bool
+
 // IstioOperationsInterface set IstiOps interface for handling routing
 type IstioOperationsInterface interface {
+	SetLabelsVirtualService(cid string, name string, labels map[string]string) error
+	SetLabelsDestinationRule(cid string, name string, labels map[string]string) error
 	Headers(cid string, labels map[string]string, headers map[string]string) error
 	Percentage(cid string, labels map[string]string, percentage int32) error
 }
@@ -93,67 +96,39 @@ func GenerateShaFromMap(mapToHash map[string]string) ([]string, error) {
 	return mapHashes, nil
 }
 
+func StringfyLabelSelector(cid string, labelSelector map[string]string) (string, error) {
+	var labelsPair []string
+
+	for key, value := range labelSelector {
+		labelsPair = append(labelsPair, fmt.Sprintf("%s=%s", key, value))
+	}
+
+	return strings.Join(labelsPair[:], ","), nil
+}
+
 // GetResourcesToUpdate returns a slice of all DestinationRules and/or VirtualServices (based on given labelSelectors to a posterior update
-func GetResourcesToUpdate(cid string, v IstioValues, labels map[string]string) (istioResources []*IstioResources, error error) {
-	listOptions := metav1.ListOptions{}
-	vss, err := GetAllVirtualServices(cid, v.Namespace, listOptions)
+func GetResourcesToUpdate(cid string, v IstioValues, labelSelector map[string]string) (matchedVirtualServices *v1alpha32.VirtualServiceList, matchedDestinationRules *v1alpha32.DestinationRuleList, error error) {
+	stringfiedLabelSelector, _ := StringfyLabelSelector(cid, labelSelector)
+
+	listOptions := metav1.ListOptions{
+		LabelSelector: stringfiedLabelSelector,
+	}
+
+	matchedDrs, err := GetAllDestinationRules(cid, v.Namespace, listOptions)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	drs, err := GetAllDestinationRules(cid, v.Namespace, listOptions)
+	matchedVss, err := GetAllVirtualServices(cid, v.Namespace, listOptions)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	// iterate every cluster destinationRule
-
-	var resourcesToUpdate []*IstioResources
-	resourcesToUpdate = nil
-
-	for _, dr := range drs.Items {
-		destinationRuleName := fmt.Sprintf("%s", dr.Name)
-
-		// checking if destination_rule key is already created for resourcesToUpdate
-		utils.Debug(fmt.Sprintf("Checking subset rules for Destination Rule '%s'...", destinationRuleName), cid)
-		for _, subset := range dr.Spec.Subsets {
-
-			// checking if the DR subset map (subset.Labels) matches the one provided by Interface client (labels)
-			if reflect.DeepEqual(subset.Labels, labels) {
-				// find virtualservices which have subset.Name from DestinationRule
-				utils.Info(fmt.Sprintf("Found rule '%s' from Destination Rule '%s' which matches provided label selector!", subset.Name, destinationRuleName), cid)
-
-				for _, vs := range vss.Items {
-					virtualServiceName := fmt.Sprintf("%s", vs.Name)
-
-					utils.Debug(fmt.Sprintf("Checking subset rules for virtualservice '%s'...", virtualServiceName), cid)
-					for _, match := range vs.Spec.Http {
-						for _, route := range match.Route {
-							if route.Destination.Subset == subset.Name {
-								// In case of a non-existent key 'virtualServiceName', create it
-								resourcesToUpdate = append(resourcesToUpdate, &IstioResources{
-									DestinationRule: IstioMatchedDestinationRule{
-										subset.Name,
-										dr,
-									},
-									VirtualService: IstioMatchedVirtualService{
-										route.Destination.Subset,
-										vs,
-									},
-								})
-							}
-						}
-					}
-				}
-			}
-		}
+	if len(matchedDrs.Items) == 0 || len(matchedVss.Items) == 0 {
+		utils.Fatal(fmt.Sprintf("Couldn't find any istio resources based on given labelSelector '%s' to update. ", stringfiedLabelSelector), cid)
 	}
 
-	if resourcesToUpdate == nil {
-		utils.Info(fmt.Sprintf("Couldn't find any istio resources based on given labelsSelector to update. "), cid)
-	}
-
-	return resourcesToUpdate, nil
+	return matchedVss, matchedDrs, nil
 }
 
 // CreateNewVirtualServiceHttpRoute returns an existent VirtualService with a new basic HTTP route appended to it
@@ -194,72 +169,79 @@ func CreateNewVirtualServiceHttpRoute(cid string, labels map[string]string, host
 
 // Percentage set percentage as routing-match strategy for istio resources
 func (v IstioValues) Percentage(cid string, labels map[string]string, percentage int32) error {
-	//fmt.Println(v.Name, v.Build, labels)
-	//for _, httpRules := range resource.VirtualService.Item.Spec.Http {
-	//	for _, matchValue := range httpRules.Route {
-	//		if matchValue.Destination.Subset == resource.DestinationRule.Name {
-	//			matchValue.Weight = 30
-	//			fmt.Println(matchValue)
-	//			err := UpdateVirtualService(cid, resource.VirtualService.Subset, v.Namespace, &resource.VirtualService.Item)
-	//			if err != nil {
-	//				utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to error '%s'", resource.VirtualService.Item.Name, err), cid)
-	//			}
-	//
-	//			fmt.Println("Set destinationrule subset to virtualservice")
-	//		}
-	//	}
-	//}
+
 	return nil
 }
 
 // Headers set headers as routing-match strategy for istio resources
 func (v IstioValues) Headers(cid string, labels map[string]string, headers map[string]string) error {
+	var subsetRouteExists bool
 	replacer := strings.NewReplacer(".", "", "-", "", "/", "")
 	simplifiedVersion := replacer.Replace(v.Version)
 	simplifiedVersion = strings.ToLower(simplifiedVersion)
 	subsetRuleName := fmt.Sprintf("%s-%d", simplifiedVersion, v.Build)
 
-	resourcesToUpdate, err := GetResourcesToUpdate(cid, v, labels)
+	vss, drs, err := GetResourcesToUpdate(cid, v, labels)
 	if err != nil {
 		return err
 	}
 
-	for _, resource := range resourcesToUpdate {
-		for subsetKey, subset := range resource.DestinationRule.Item.Spec.Subsets {
-			// If an existent subsetName already exists, just update it with the given user labels
+	for _, ds := range drs.Items {
+		for subsetKey, subset := range ds.Spec.Subsets {
+			// If an existent subsetName already exists, just update it with the given user labels otherwise create
 			if subset.Name == subsetRuleName {
 				utils.Info(fmt.Sprintf("Setting user labels to subset '%s", subset.Name), cid)
-				resource.DestinationRule.Item.Spec.Subsets[subsetKey].Labels = labels
+				ds.Spec.Subsets[subsetKey].Labels = labels
 			}
 		}
 
-		err := UpdateDestinationRule(cid, v.Namespace, &resource.DestinationRule.Item)
+		err := UpdateDestinationRule(cid, v.Namespace, &ds)
 		if err != nil {
-			utils.Fatal(fmt.Sprintf("Could not update destinationRule '%s' due to error '%s'", resource.DestinationRule.Name, err), cid)
+			utils.Fatal(fmt.Sprintf("Could not update destinationRule '%s' due to error '%s'", ds.Name, err), cid)
 		}
+	}
 
-		//Search for virtualservice's rule which matches subset name to append headers routing to it
-		subsetRouteExists := false
+	//Search for virtualservice's rule which matches subset name to append headers routing to it
 
-		for _, httpRules := range resource.VirtualService.Item.Spec.Http {
+	for _, vs := range vss.Items {
+		subsetRouteExists = false
+		for _, httpRules := range vs.Spec.Http {
 			for _, matchValue := range httpRules.Route {
 				// in case of a non-existent destination-subset, mark to be create it
-				if matchValue.Destination.Subset == resource.DestinationRule.Name {
+				if matchValue.Destination.Subset == subsetRuleName {
+					utils.Info(fmt.Sprintf("Subset '%s' already created for vs '%s", subsetRuleName, vs.Name ), cid)
 					subsetRouteExists = true
+					fmt.Println("here", subsetRouteExists)
 				}
 			}
-
 		}
 
 		// if a subset does not exists in the current VirtualService, create it from scratch
-		if !subsetRouteExists {
+		if ! subsetRouteExists {
 			// create it
+			fmt.Println(vs.Name)
 			newRoute, err := CreateNewVirtualServiceHttpRoute(cid, labels, "hostname", "subset", 8080)
 			if err != nil {
-				utils.Fatal(fmt.Sprintf("Could not create local httpRoute object for virtualservice '%s' due to error '%s'", resource.VirtualService.Item.Name, err), cid)
+				utils.Fatal(fmt.Sprintf("Could not create local httpRoute object for virtualservice '%s' due to error '%s'", vs.Name, err), cid)
 			}
-			resource.VirtualService.Item.Spec.Http = append(resource.VirtualService.Item.Spec.Http, newRoute)
+			fmt.Println(vs.Spec.Http)
+			vs.Spec.Http = append(vs.Spec.Http, newRoute)
+			err = UpdateVirtualService(cid, v.Namespace, &vs)
+			if err != nil {
+				utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to error '%s'", vs.Name, err), cid)
+			}
 		}
 	}
+
+	return nil
+}
+
+func (v IstioValues) SetLabelsDestinationRule(cid string, name string, labels map[string]string) error {
+
+	return nil
+}
+
+func (v IstioValues) SetLabelsVirtualService(cid string, name string, labels map[string]string) error {
+
 	return nil
 }

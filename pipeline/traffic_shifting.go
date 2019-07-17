@@ -15,8 +15,7 @@ func IstioRouting(api utils.ApiValues, cid string, parentCtx context.Context) er
 	}
 
 	labelSelector := map[string]string{
-		"fullname": "sec-bankaccounts-ext-pr-97-7",
-		// "app": api.ApiFullname,
+		"environment": "production",
 	}
 
 	var istiops pkg.IstioOperationsInterface = pkg.IstioValues{"api-gateway", "2.0.0", 323, "default"}
