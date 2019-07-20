@@ -126,6 +126,7 @@ func GetResourcesToUpdate(cid string, v IstioValues, labelSelector map[string]st
 
 	if len(matchedDrs.Items) == 0 || len(matchedVss.Items) == 0 {
 		utils.Fatal(fmt.Sprintf("Couldn't find any istio resources based on given labelSelector '%s' to update. ", stringfiedLabelSelector), cid)
+		return nil, nil, err
 	}
 
 	return matchedVss, matchedDrs, nil
@@ -134,7 +135,6 @@ func GetResourcesToUpdate(cid string, v IstioValues, labelSelector map[string]st
 // CreateNewVirtualServiceHttpRoute returns an existent VirtualService with a new basic HTTP route appended to it
 func CreateNewVirtualServiceHttpRoute(cid string, labels map[string]string, hostname string, subset string, portNumber uint32) (httpRoute *v1alpha3.HTTPRoute, error error) {
 	utils.Info(fmt.Sprintf("Creating new http route for subset '%s'...", subset), cid)
-
 	newMatch := &v1alpha3.HTTPMatchRequest{
 		Headers: map[string]*v1alpha3.StringMatch{},
 	}
@@ -238,10 +238,54 @@ func (v IstioValues) Headers(cid string, labels map[string]string, headers map[s
 
 func (v IstioValues) SetLabelsDestinationRule(cid string, name string, labels map[string]string) error {
 
+	dr, err := GetDestinationRule(cid, name, v.Namespace, metav1.GetOptions{})
+	if err != nil {
+		utils.Fatal(fmt.Sprintf("Could not find destination rule '%s", name), cid)
+		return err
+	}
+
+	if dr.Labels == nil {
+		dr.Labels = map[string]string{}
+	}
+
+	for labelKey, labelValue := range labels {
+		dr.Labels[labelKey] = labelValue
+	}
+
+	utils.Info(fmt.Sprintf("Setting labels '%s' to destination rule '%s'...", labels, dr.Name), cid)
+
+	err = UpdateDestinationRule(cid, v.Namespace, dr)
+	if err != nil {
+		utils.Fatal(fmt.Sprintf("Could not update destination rule '%s", dr.Name), cid)
+		return err
+	}
+
 	return nil
 }
 
 func (v IstioValues) SetLabelsVirtualService(cid string, name string, labels map[string]string) error {
+
+	vs, err := GetVirtualService(cid, name, v.Namespace, metav1.GetOptions{})
+	if err != nil {
+		utils.Fatal(fmt.Sprintf("Could not find virtualService '%s' due to error '%s'", name, err), cid)
+		return err
+	}
+
+	if vs.Labels == nil {
+		vs.Labels = map[string]string{}
+	}
+
+	for labelKey, labelValue := range labels {
+		vs.Labels[labelKey] = labelValue
+	}
+
+	utils.Info(fmt.Sprintf("Setting labels '%s' to virtualService '%s'...", labels, vs.Name), cid)
+
+	err = UpdateVirtualService(cid, v.Namespace, vs)
+	if err != nil {
+		utils.Fatal(fmt.Sprintf("Could not update virtualService '%s', due to error '%s'", vs.Name, err), cid)
+		return err
+	}
 
 	return nil
 }

@@ -2,7 +2,6 @@ package pipeline
 
 import (
 	"context"
-
 	"github.com/pismo/istiops/pkg"
 	"github.com/pismo/istiops/utils"
 )
@@ -15,10 +14,23 @@ func IstioRouting(api utils.ApiValues, cid string, parentCtx context.Context) er
 	}
 
 	labelSelector := map[string]string{
-		"environment": "production",
+		"environment": "pipeline-go",
 	}
 
 	var istiops pkg.IstioOperationsInterface = pkg.IstioValues{"api-gateway", "2.0.0", 323, "default"}
+
+	istioResult = istiops.SetLabelsDestinationRule(cid, "sec-bankaccounts-destination-rules", labelSelector)
+	if istioResult != nil {
+		return istioResult
+	}
+
+	virtualServices := []string{"sec-bankaccounts-virtualservice", "sec-bankaccounts-internal-virtualservice"}
+	for _, virtualService := range virtualServices {
+		istioResult = istiops.SetLabelsVirtualService(cid, virtualService, labelSelector)
+		if istioResult != nil {
+			return istioResult
+		}
+	}
 
 	istioResult = istiops.Headers(cid, labelSelector, headers)
 	if istioResult != nil {

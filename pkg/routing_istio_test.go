@@ -142,19 +142,22 @@ func TestGetResourcesToUpdate(t *testing.T) {
 	}
 
 	// test case: happy path
-	mockedResourcesToUpdate, err := GetResourcesToUpdate("random-cid", v, userLabelSelector)
+	mockedDrs, mockedVrs, err := GetResourcesToUpdate("random-cid", v, userLabelSelector)
 	assert.NoError(t, err)
-	assert.NotNil(t, mockedResourcesToUpdate)
+	assert.NotNil(t, mockedDrs)
+	assert.NotNil(t, mockedVrs)
 
 	// test case: missing labelSelector
-	mockedMissingLabels, err := GetResourcesToUpdate("random-cid", v, map[string]string{})
+	mockedDrsMissingLabels, mockedVssMissingLabels, err := GetResourcesToUpdate("random-cid", v, map[string]string{})
 	assert.NoError(t, err)
-	assert.Nil(t, mockedMissingLabels)
+	assert.Nil(t, mockedDrsMissingLabels)
+	assert.Nil(t, mockedVssMissingLabels)
 
 	// test case: missing IstioValues params
-	mockedMissingValues, err := GetResourcesToUpdate("random-cid", IstioValues{}, userLabelSelector)
+	mockedDrsMissingValues, mockedVssMissingValues, err := GetResourcesToUpdate("random-cid", IstioValues{}, userLabelSelector)
 	assert.NoError(t, err)
-	assert.NotNil(t, mockedMissingValues)
+	assert.NotNil(t, mockedDrsMissingValues)
+	assert.NotNil(t, mockedVssMissingValues)
 }
 
 func TestUpdateDestinationRule(t *testing.T) {
@@ -183,5 +186,16 @@ func TestUpdateVirtualService(t *testing.T) {
 	assert.EqualValues(t, newMockedVirtualService, vs.Name)
 	assert.IsType(t, []string{}, vs.Spec.Hosts)
 	assert.EqualValues(t, updatedHosts, vs.Spec.Hosts)
+
+}
+
+func TestIstioValues_SetLabelsDestinationRule(t *testing.T) {
+	newlabels := map[string]string{
+		"environment": "unit-tests",
+	}
+
+}
+
+func TestSetLabelsVirtualService(t *testing.T) {
 
 }
