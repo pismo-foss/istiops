@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"crypto/sha256"
 	"fmt"
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/pismo/istiops/utils"
@@ -11,12 +10,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// SanitizeVersionString returns a non-special character string given a semantic version. Ex. 3.0.0 -> 300
+func SanitizeVersionString(version string) (sanitizedVersion string, error error) {
+	replacer := strings.NewReplacer(".", "", "-", "", "/", "")
+	sanitizedVersion = replacer.Replace(version)
+	sanitizedVersion = strings.ToLower(sanitizedVersion)
+
+	return sanitizedVersion, nil
+}
+
 // IstioOperationsInterface set IstiOps interface for handling routing
 type IstioOperationsInterface interface {
 	SetLabelsVirtualService(cid string, name string, labels map[string]string) error
 	SetLabelsDestinationRule(cid string, name string, labels map[string]string) error
 	SetHeaders(cid string, labels map[string]string, headers map[string]string) (subset string, error error)
-	SetPercentage(cid string, subset string, percentage int32) error
+	SetPercentage(cid string, virtualServiceName string, subset string, percentage int32) error
 }
 
 // GetAllVirtualServices returns all istio resources 'virtualservices'
@@ -79,19 +87,6 @@ func UpdateDestinationRule(cid string, namespace string, destinationRule *v1alph
 		return err
 	}
 	return nil
-}
-
-// GenerateShaFromMap returns a slice of hashes (sha256) for every key:value in given map[string]string
-func GenerateShaFromMap(mapToHash map[string]string) ([]string, error) {
-	var mapHashes []string
-
-	for k, v := range mapToHash {
-		keyValue := fmt.Sprintf("%s=%s", k, v)
-		sha256 := sha256.Sum256([]byte(keyValue))
-		mapHashes = append(mapHashes, fmt.Sprintf("%x", sha256))
-	}
-
-	return mapHashes, nil
 }
 
 func StringfyLabelSelector(cid string, labelSelector map[string]string) (string, error) {
@@ -166,23 +161,34 @@ func CreateNewVirtualServiceHttpRoute(cid string, labels map[string]string, host
 }
 
 // Percentage set percentage as routing-match strategy for istio resources
-func (v IstioValues) SetPercentage(cid string, subset string, percentage int32) error {
+func (v IstioValues) SetPercentage(cid string, virtualServiceName string, subset string, percentage int32) error {
+	vs, err := GetVirtualService(cid, virtualServiceName, v.Namespace, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, httpRules := range vs.Spec.Http {
+		for _, httpRoute := range httpRules.Route {
+			if httpRoute.Destination.Subset == subset {
+				utils.Info(fmt.Sprintf("Setting %d of traffic routing to subset '%s'", percentage, subset), cid)
+				httpRoute.Weight = percentage
+			}
+		}
+	}
+
+	err = UpdateVirtualService(cid, v.Namespace, vs)
+	if err != nil {
+		return err
+	}
+
 	return nil
-}
-
-func sanitizeVersionString(version string) (sanitizedVersion string, error error) {
-	replacer := strings.NewReplacer(".", "", "-", "", "/", "")
-	simplifiedVersion := replacer.Replace(version)
-	simplifiedVersion = strings.ToLower(simplifiedVersion)
-
-	return sanitizedVersion, nil
 }
 
 // Headers set headers as routing-match strategy for istio resources
 func (v IstioValues) SetHeaders(cid string, labels map[string]string, headers map[string]string) (subset string, error error) {
 	var subsetRouteExists bool
 
-	sanitizedVersion, err := sanitizeVersionString(v.Version)
+	sanitizedVersion, err := SanitizeVersionString(v.Version)
 	if err != nil {
 		return "", err
 	}
@@ -219,7 +225,6 @@ func (v IstioValues) SetHeaders(cid string, labels map[string]string, headers ma
 				if matchValue.Destination.Subset == subsetRuleName {
 					utils.Warn(fmt.Sprintf("Subset '%s' already created for vs '%s", subsetRuleName, vs.Name ), cid)
 					subsetRouteExists = true
-					fmt.Println("here", subsetRouteExists)
 				}
 			}
 		}
@@ -227,12 +232,10 @@ func (v IstioValues) SetHeaders(cid string, labels map[string]string, headers ma
 		// if a subset does not exists in the current VirtualService, create it from scratch
 		if ! subsetRouteExists {
 			// create it
-			fmt.Println(vs.Name)
-			newRoute, err := CreateNewVirtualServiceHttpRoute(cid, labels, "hostname", "subset", 8080)
+			newRoute, err := CreateNewVirtualServiceHttpRoute(cid, labels, "hostname", subsetRuleName, 8080)
 			if err != nil {
 				utils.Fatal(fmt.Sprintf("Could not create local httpRoute object for virtualservice '%s' due to error '%s'", vs.Name, err), cid)
 			}
-			fmt.Println(vs.Spec.Http)
 			vs.Spec.Http = append(vs.Spec.Http, newRoute)
 			err = UpdateVirtualService(cid, v.Namespace, &vs)
 			if err != nil {

@@ -17,7 +17,7 @@ func IstioRouting(api utils.ApiValues, cid string, parentCtx context.Context) er
 		"environment": "pipeline-go",
 	}
 
-	var istiops pkg.IstioOperationsInterface = pkg.IstioValues{"api-gateway", "2.0.0", 323, "default"}
+	var istiops pkg.IstioOperationsInterface = pkg.IstioValues{"sec-bankaccounts", "2.0.0", 323, "default"}
 
 	istioResult = istiops.SetLabelsDestinationRule(cid, "sec-bankaccounts-destination-rules", labelSelector)
 	if istioResult != nil {
@@ -37,7 +37,7 @@ func IstioRouting(api utils.ApiValues, cid string, parentCtx context.Context) er
 		return istioResult
 	}
 
-	istioResult = istiops.SetPercentage(cid, subsetName, 20)
+	istioResult = istiops.SetPercentage(cid, "sec-bankaccounts-virtualservice", subsetName, 85)
 	if istioResult != nil {
 		return istioResult
 	}
