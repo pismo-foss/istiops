@@ -11,14 +11,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var subsetRouteExists bool
-
 // IstioOperationsInterface set IstiOps interface for handling routing
 type IstioOperationsInterface interface {
 	SetLabelsVirtualService(cid string, name string, labels map[string]string) error
 	SetLabelsDestinationRule(cid string, name string, labels map[string]string) error
-	Headers(cid string, labels map[string]string, headers map[string]string) error
-	Percentage(cid string, labels map[string]string, percentage int32) error
+	SetHeaders(cid string, labels map[string]string, headers map[string]string) (subset string, error error)
+	SetPercentage(cid string, subset string, percentage int32) error
 }
 
 // GetAllVirtualServices returns all istio resources 'virtualservices'
@@ -168,22 +166,32 @@ func CreateNewVirtualServiceHttpRoute(cid string, labels map[string]string, host
 }
 
 // Percentage set percentage as routing-match strategy for istio resources
-func (v IstioValues) Percentage(cid string, labels map[string]string, percentage int32) error {
-
+func (v IstioValues) SetPercentage(cid string, subset string, percentage int32) error {
 	return nil
 }
 
-// Headers set headers as routing-match strategy for istio resources
-func (v IstioValues) Headers(cid string, labels map[string]string, headers map[string]string) error {
-	var subsetRouteExists bool
+func sanitizeVersionString(version string) (sanitizedVersion string, error error) {
 	replacer := strings.NewReplacer(".", "", "-", "", "/", "")
-	simplifiedVersion := replacer.Replace(v.Version)
+	simplifiedVersion := replacer.Replace(version)
 	simplifiedVersion = strings.ToLower(simplifiedVersion)
-	subsetRuleName := fmt.Sprintf("%s-%d", simplifiedVersion, v.Build)
+
+	return sanitizedVersion, nil
+}
+
+// Headers set headers as routing-match strategy for istio resources
+func (v IstioValues) SetHeaders(cid string, labels map[string]string, headers map[string]string) (subset string, error error) {
+	var subsetRouteExists bool
+
+	sanitizedVersion, err := sanitizeVersionString(v.Version)
+	if err != nil {
+		return "", err
+	}
+
+	subsetRuleName := fmt.Sprintf("%s-%d", sanitizedVersion, v.Build)
 
 	vss, drs, err := GetResourcesToUpdate(cid, v, labels)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	for _, ds := range drs.Items {
@@ -209,7 +217,7 @@ func (v IstioValues) Headers(cid string, labels map[string]string, headers map[s
 			for _, matchValue := range httpRules.Route {
 				// in case of a non-existent destination-subset, mark to be create it
 				if matchValue.Destination.Subset == subsetRuleName {
-					utils.Info(fmt.Sprintf("Subset '%s' already created for vs '%s", subsetRuleName, vs.Name ), cid)
+					utils.Warn(fmt.Sprintf("Subset '%s' already created for vs '%s", subsetRuleName, vs.Name ), cid)
 					subsetRouteExists = true
 					fmt.Println("here", subsetRouteExists)
 				}
@@ -229,15 +237,15 @@ func (v IstioValues) Headers(cid string, labels map[string]string, headers map[s
 			err = UpdateVirtualService(cid, v.Namespace, &vs)
 			if err != nil {
 				utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to error '%s'", vs.Name, err), cid)
+				return "", err
 			}
 		}
 	}
 
-	return nil
+	return subsetRuleName, nil
 }
 
 func (v IstioValues) SetLabelsDestinationRule(cid string, name string, labels map[string]string) error {
-
 	dr, err := GetDestinationRule(cid, name, v.Namespace, metav1.GetOptions{})
 	if err != nil {
 		utils.Fatal(fmt.Sprintf("Could not find destination rule '%s", name), cid)

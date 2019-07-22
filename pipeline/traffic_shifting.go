@@ -32,12 +32,12 @@ func IstioRouting(api utils.ApiValues, cid string, parentCtx context.Context) er
 		}
 	}
 
-	istioResult = istiops.Headers(cid, labelSelector, headers)
-	if istioResult != nil {
+	subsetName, istioResult := istiops.SetHeaders(cid, labelSelector, headers)
+	if (istioResult != nil) || (subsetName == "") {
 		return istioResult
 	}
 
-	istioResult = istiops.Percentage(cid, labelSelector, 20)
+	istioResult = istiops.SetPercentage(cid, subsetName, 20)
 	if istioResult != nil {
 		return istioResult
 	}

@@ -190,9 +190,6 @@ func TestUpdateVirtualService(t *testing.T) {
 }
 
 func TestIstioValues_SetLabelsDestinationRule(t *testing.T) {
-	newlabels := map[string]string{
-		"environment": "unit-tests",
-	}
 
 }
 
