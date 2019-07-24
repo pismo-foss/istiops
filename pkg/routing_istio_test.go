@@ -52,6 +52,10 @@ func CreateMockedDestinationRule(resourceName string, resourceNamespace string, 
 	mockedDr := &v1alpha32.DestinationRule{}
 	mockedDr.Name = resourceName
 	mockedDr.Namespace = resourceNamespace
+	mockedDr.Labels = map[string]string{
+		"app":     "api-xpto",
+		"version": "2.1.3",
+	}
 
 	mockedDr.Spec.Subsets = append(mockedDr.Spec.Subsets, &v1alpha3.Subset{
 		Name:   "subset-test",
@@ -67,6 +71,11 @@ func CreateMockedVirtualService(resourceName string, resourceNamespace string) (
 	mockedVs := &v1alpha32.VirtualService{}
 	mockedVs.Name = resourceName
 	mockedVs.Namespace = resourceNamespace
+	mockedVs.Labels = map[string]string{
+		"app":     "api-xpto",
+		"version": "2.1.3",
+	}
+
 
 	mockedVs.Spec.Hosts = []string{"api-unit-test.domain.io"}
 	mockedVs.Spec.Gateways = []string{"unit-test-gateway"}
@@ -131,7 +140,7 @@ func TestGetVirtualService(t *testing.T) {
 func TestGetResourcesToUpdate(t *testing.T) {
 	v := IstioValues{
 		"api-xpto",
-		"2.0.0",
+		"2.1.3",
 		123,
 		namespace,
 	}
@@ -150,14 +159,14 @@ func TestGetResourcesToUpdate(t *testing.T) {
 	// test case: missing labelSelector
 	mockedDrsMissingLabels, mockedVssMissingLabels, err := GetResourcesToUpdate("random-cid", v, map[string]string{})
 	assert.NoError(t, err)
-	assert.Nil(t, mockedDrsMissingLabels)
-	assert.Nil(t, mockedVssMissingLabels)
+	assert.Equal(t, 1, len(mockedDrsMissingLabels.Items))
+	assert.Equal(t, 1, len(mockedVssMissingLabels.Items))
 
 	// test case: missing IstioValues params
 	mockedDrsMissingValues, mockedVssMissingValues, err := GetResourcesToUpdate("random-cid", IstioValues{}, userLabelSelector)
 	assert.NoError(t, err)
-	assert.NotNil(t, mockedDrsMissingValues)
-	assert.NotNil(t, mockedVssMissingValues)
+	assert.Equal(t, 1, len(mockedDrsMissingValues.Items))
+	assert.Equal(t, 1, len(mockedVssMissingValues.Items))
 }
 
 func TestUpdateDestinationRule(t *testing.T) {
