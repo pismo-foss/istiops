@@ -12,7 +12,12 @@ import (
 
 // SanitizeVersionString returns a non-special character string given a semantic version. Ex. 3.0.0 -> 300
 func SanitizeVersionString(version string) (sanitizedVersion string, error error) {
-	replacer := strings.NewReplacer(".", "", "-", "", "/", "")
+	replacer := strings.NewReplacer(
+		".", "",
+		"-", "",
+		"/", "",
+		"_", "",
+	)
 	sanitizedVersion = replacer.Replace(version)
 	sanitizedVersion = strings.ToLower(sanitizedVersion)
 
@@ -25,6 +30,7 @@ type IstioOperationsInterface interface {
 	SetLabelsDestinationRule(cid string, name string, labels map[string]string) error
 	SetHeaders(cid string, labels map[string]string, headers map[string]string) (subset string, error error)
 	SetPercentage(cid string, virtualServiceName string, subset string, percentage int32) error
+	ClearDestinationRules(cid string, labels map[string]string) error
 }
 
 // GetAllVirtualServices returns all istio resources 'virtualservices'
@@ -223,14 +229,14 @@ func (v IstioValues) SetHeaders(cid string, labels map[string]string, headers ma
 			for _, matchValue := range httpRules.Route {
 				// in case of a non-existent destination-subset, mark to be create it
 				if matchValue.Destination.Subset == subsetRuleName {
-					utils.Warn(fmt.Sprintf("Subset '%s' already created for vs '%s", subsetRuleName, vs.Name ), cid)
+					utils.Warn(fmt.Sprintf("Subset '%s' already created for vs '%s", subsetRuleName, vs.Name), cid)
 					subsetRouteExists = true
 				}
 			}
 		}
 
 		// if a subset does not exists in the current VirtualService, create it from scratch
-		if ! subsetRouteExists {
+		if !subsetRouteExists {
 			// create it
 			newRoute, err := CreateNewVirtualServiceHttpRoute(cid, labels, "hostname", subsetRuleName, 8080)
 			if err != nil {
@@ -248,6 +254,7 @@ func (v IstioValues) SetHeaders(cid string, labels map[string]string, headers ma
 	return subsetRuleName, nil
 }
 
+// SetLabelsDestinationRule set
 func (v IstioValues) SetLabelsDestinationRule(cid string, name string, labels map[string]string) error {
 	dr, err := GetDestinationRule(cid, name, v.Namespace, metav1.GetOptions{})
 	if err != nil {

@@ -3,6 +3,7 @@ package pkg
 import (
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	versionedclientFake "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -17,6 +18,8 @@ var mockedDestinationRuleName string
 var mockedVirtualServiceName string
 
 func TestMain(m *testing.M) {
+	// discard stdout logs if not being run with '-v' flag
+	log.SetOutput(ioutil.Discard)
 	TearUp()
 	result := m.Run()
 	os.Exit(result)
@@ -76,7 +79,6 @@ func CreateMockedVirtualService(resourceName string, resourceNamespace string) (
 		"version": "2.1.3",
 	}
 
-
 	mockedVs.Spec.Hosts = []string{"api-unit-test.domain.io"}
 	mockedVs.Spec.Gateways = []string{"unit-test-gateway"}
 
@@ -93,6 +95,17 @@ func CreateMockedVirtualService(resourceName string, resourceNamespace string) (
 	_, err := istioClient.NetworkingV1alpha3().VirtualServices(resourceNamespace).Create(mockedVs)
 
 	return mockedVs, err
+}
+
+func TestSanitizeVersionString(t *testing.T) {
+	versions := []string{"2.0.0", "2/0/0", "2-0_0"}
+
+	for _, version := range versions {
+		sanitizedVersion, err := SanitizeVersionString(version)
+		assert.NoError(t, err)
+		assert.Equal(t, "200", sanitizedVersion)
+	}
+
 }
 
 func TestGetAllDestinationRules(t *testing.T) {
