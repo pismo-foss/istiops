@@ -30,7 +30,6 @@ type IstioOperationsInterface interface {
 	SetLabelsDestinationRule(cid string, name string, labels map[string]string) error
 	SetHeaders(cid string, labels map[string]string, headers map[string]string) (subset string, error error)
 	SetPercentage(cid string, virtualServiceName string, subset string, percentage int32) error
-	ClearDestinationRules(cid string, labels map[string]string) error
 }
 
 // GetAllVirtualServices returns all istio resources 'virtualservices'
