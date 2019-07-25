@@ -197,11 +197,3 @@ func TestUpdateVirtualService(t *testing.T) {
 	assert.EqualValues(t, updatedHosts, vs.Spec.Hosts)
 
 }
-
-func TestIstioValues_SetLabelsDestinationRule(t *testing.T) {
-
-}
-
-func TestSetLabelsVirtualService(t *testing.T) {
-
-}
