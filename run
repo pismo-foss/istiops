@@ -1,0 +1,3 @@
+#!/bin/bash
+
+ENV=dev SYSTEM=Jenkins SYSTEM_VERSION=0.1.0 go run main.go

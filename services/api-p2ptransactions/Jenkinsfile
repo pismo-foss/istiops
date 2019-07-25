@@ -1,7 +1,0 @@
-deployTargets = [:]
-deployTargets['ext'] = 'k8s'
-deployTargets['itau'] = 'k8s'
-
-env.APP_NAME = 'api-p2ptransactions'
-
-pismoPipeline(deployTargets)

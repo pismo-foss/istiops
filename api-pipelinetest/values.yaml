@@ -1,16 +1,13 @@
 deployment:
-  role: api-p2ptransactions-role
+  role: api-pipelinetest-role
   replicas:
-    qa: 1
-    ext: 2
-    prod: 3
-    itau: 3
+    default: 3
   image:
     healthCheck:
       enabled: true
     ports:
       http: 8080
-    dockerRegistry: 270036487593.dkr.ecr.us-east-1.amazonaws.com
+    dockerRegistry: 270036487593.dkr.ecr.sa-east-1.amazonaws.com/
     pullPolicy: Always
 
 resources: {}

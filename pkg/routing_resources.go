@@ -1,13 +1,14 @@
-package services
+package pkg
 
 import (
 	"context"
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/pismo/istiops/utils"
 	"istio.io/api/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -15,10 +16,13 @@ const (
 	VIRTUALSERVICE_RULE_SUFFIX = "-virtualservice"
 	INTRASERVICE_GATEWAY       = "mesh"
 	INTERNAL_GATEWAY           = "istio-gateway-internal"
-	EXTERNL_GATEWAY            = "istio-gateway"
+	EXTERNAL_GATEWAY           = "istio-gateway"
 )
 
-func CreateRouteResource(api ApiStruct, cid string, parentCtx context.Context) error {
+// CreateRouteResource deploys an virtualservice with a destinationrule for a given api struct.
+// this function will create a virtualservice and  a destinationrule
+// if they exist already, this function wil override with the custom definitions
+func CreateRouteResource(api utils.ApiValues, cid string, parentCtx context.Context) error {
 	ctx := context.WithValue(parentCtx, "cid", cid)
 
 	//Handling destinationRule
@@ -59,11 +63,14 @@ func CreateRouteResource(api ApiStruct, cid string, parentCtx context.Context) e
 	return nil
 }
 
-func retrieveVirtualService(api ApiStruct, cid string, parentCtx context.Context) (virtualService *v1alpha32.VirtualService, new bool, error error) {
+// retrieveVirtualService this function retrieves an virtualservice that already exists.
+// if it doesn't exists it will return a new one in memory with the given apistruct parameters as the initialization values.
+func retrieveVirtualService(api utils.ApiValues, cid string, parentCtx context.Context) (virtualService *v1alpha32.VirtualService, new bool, error error) {
 	name := api.Name + VIRTUALSERVICE_RULE_SUFFIX
+	getOptions := metav1.GetOptions{}
 	utils.Info(fmt.Sprintf("Retrieving virtualservice: %s", name), cid)
 
-	vs, err := istioClient.NetworkingV1alpha3().VirtualServices(api.Namespace).Get(name, v1.GetOptions{})
+	vs, err := GetVirtualService(cid, name, api.Namespace, getOptions)
 	if err != nil {
 		customErr, ok := err.(*errors.StatusError)
 		if !ok {
@@ -79,7 +86,7 @@ func retrieveVirtualService(api ApiStruct, cid string, parentCtx context.Context
 		vs.Name = api.Name + VIRTUALSERVICE_RULE_SUFFIX
 		vs.Namespace = api.Namespace
 
-		vs.Spec.Hosts = []string{api.Name, api.Name + "-" + api.Namespace + PismoDomains[api.Namespace]}
+		vs.Spec.Hosts = []string{api.Name, api.ApiHostName}
 		vs.Spec.Gateways = []string{INTRASERVICE_GATEWAY, INTERNAL_GATEWAY}
 
 		if api.GrpcPort > 0 {
@@ -108,11 +115,14 @@ func retrieveVirtualService(api ApiStruct, cid string, parentCtx context.Context
 	return vs, false, nil
 }
 
-func retrieveDestinationRule(api ApiStruct, cid string, parentCtx context.Context) (destinationRule *v1alpha32.DestinationRule, new bool, error error) {
+// retrieveDestinationRule this function retrieves an destinationrule that already exists.
+// if it doesn't exists it will return a new one in memory with the given apistruct parameters as the initialization values.
+func retrieveDestinationRule(api utils.ApiValues, cid string, parentCtx context.Context) (destinationRule *v1alpha32.DestinationRule, new bool, error error) {
 	drName := api.Name + DESTINATION_RULE_SUFFIX
+	getOptions := metav1.GetOptions{}
 	utils.Info(fmt.Sprintf("Retrieving destinationrule: %s", drName), cid)
 
-	dr, err := istioClient.NetworkingV1alpha3().DestinationRules(api.Namespace).Get(drName, v1.GetOptions{})
+	dr, err := GetDestinationRule(cid, drName, api.Namespace, getOptions)
 	if err != nil {
 		customErr, ok := err.(*errors.StatusError)
 		if !ok {

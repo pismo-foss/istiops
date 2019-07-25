@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
-	"github.com/pismo/istiops/services"
+
+	"github.com/pismo/istiops/pipeline"
+	"github.com/pismo/istiops/utils"
 	_ "github.com/pkg/errors"
 	_ "github.com/sirupsen/logrus"
 	_ "github.com/snowzach/rotatefilehook"
@@ -13,31 +15,12 @@ import (
 	_ "k8s.io/client-go/dynamic"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	_ "k8s.io/client-go/tools/clientcmd"
-	"strings"
 )
 
 func main() {
-	apiStruct := services.ApiStruct{
-		Name:      "api-statements",
-		Namespace: "default",
-		Version:   "bluegreeneb",
-		Build:     "2210"}
-
-	// some k8s resources does not allow special and uppercase characters
-	replacer := strings.NewReplacer(
-		".", "",
-		"-", "",
-		"/", "")
-	simplifiedVersion := replacer.Replace(apiStruct.Version)
-	simplifiedVersion = strings.ToLower(simplifiedVersion)
-
-	//apiStruct.ApiFullname = fmt.Sprintf("%s-%s-%s-%s",
-	//	apiStruct.Name,
-	//	apiStruct.Namespace,
-	//	simplifiedVersion,
-	//	apiStruct.Build)
-
-	// services.CreateRouteResource(apiStruct, "cid-random", context.Background())
-	services.DeployHelm(apiStruct, "cid-random", context.Background())
-	// services.K8sHealthCheck("cid-random", 5, apiStruct, context.Background())
+	apiValues := utils.BuildApiValues("api-pipelinetest", "default", "1.0.0", "2210")
+	// pkg.CreateRouteResource(apiValues, "cid-random", context.Background())
+	// pipeline.DeployApi(apiValues, "cid-random", context.Background())
+	pipeline.IstioRouting(apiValues, "cid-random", context.Background())
+	// pipeline.K8sHealthCheck("cid-random", 5, apiValues, context.Background())
 }
