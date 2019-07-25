@@ -30,6 +30,8 @@ type IstioOperationsInterface interface {
 	SetLabelsDestinationRule(cid string, name string, labels map[string]string) error
 	SetHeaders(cid string, labels map[string]string, headers map[string]string) (subset string, error error)
 	SetPercentage(cid string, virtualServiceName string, subset string, percentage int32) error
+	ClearDestinationRules(cid string, labels map[string]string) error
+	ClearVirtualServiceRules(cid string, labels map[string]string) error
 }
 
 // GetAllVirtualServices returns all istio resources 'virtualservices'
@@ -304,5 +306,31 @@ func (v IstioValues) SetLabelsVirtualService(cid string, name string, labels map
 		return err
 	}
 
+	return nil
+}
+
+func (v IstioValues) ClearDestinationRules(cid string, labels map[string]string) error {
+	stringfiedLabels, err := StringfyLabelSelector(cid, labels)
+	if err != nil {
+		utils.Fatal(fmt.Sprintf("Could not get stringfied Labels from '%s", labels), cid)
+		return err
+	}
+
+	drs, err := GetAllDestinationRules(cid, v.Namespace, metav1.ListOptions{
+		LabelSelector: stringfiedLabels,
+	})
+	if err != nil {
+		utils.Fatal(fmt.Sprintf("Could not find destination rules that matchs given labels '%s", labels), cid)
+		return err
+	}
+
+	for dr := range drs.Items {
+		fmt.Println(dr)
+	}
+
+	return nil
+}
+
+func (v IstioValues) ClearVirtualServiceRules(cid string, labels map[string]string) error {
 	return nil
 }
