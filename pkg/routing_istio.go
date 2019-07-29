@@ -28,10 +28,9 @@ func SanitizeVersionString(version string) (sanitizedVersion string, error error
 type IstioOperationsInterface interface {
 	SetLabelsVirtualService(cid string, name string, labels map[string]string) error
 	SetLabelsDestinationRule(cid string, name string, labels map[string]string) error
-	SetHeaders(cid string, labels map[string]string, headers map[string]string) (subset string, error error)
+	SetHeaders(cid string, labels map[string]string, host string, headers map[string]string, port uint32) (subset string, error error)
 	SetPercentage(cid string, virtualServiceName string, subset string, percentage int32) error
-	ClearDestinationRules(cid string, labels map[string]string) error
-	ClearVirtualServiceRules(cid string, labels map[string]string) error
+	ClearRules(cid string, matchType string, labels map[string]string) error
 }
 
 // GetAllVirtualServices returns all istio resources 'virtualservices'
@@ -192,7 +191,7 @@ func (v IstioValues) SetPercentage(cid string, virtualServiceName string, subset
 }
 
 // Headers set headers as routing-match strategy for istio resources
-func (v IstioValues) SetHeaders(cid string, labels map[string]string, headers map[string]string) (subset string, error error) {
+func (v IstioValues) SetHeaders(cid string, labels map[string]string, host string, headers map[string]string, port uint32) (subset string, error error) {
 	var subsetRouteExists bool
 
 	sanitizedVersion, err := SanitizeVersionString(v.Version)
@@ -309,14 +308,14 @@ func (v IstioValues) SetLabelsVirtualService(cid string, name string, labels map
 	return nil
 }
 
-func (v IstioValues) ClearDestinationRules(cid string, labels map[string]string) error {
+func ClearRules(cid string, labels map[string]string) error {
 	stringfiedLabels, err := StringfyLabelSelector(cid, labels)
 	if err != nil {
 		utils.Fatal(fmt.Sprintf("Could not get stringfied Labels from '%s", labels), cid)
 		return err
 	}
 
-	drs, err := GetAllDestinationRules(cid, v.Namespace, metav1.ListOptions{
+	vss, err := GetAllVirtualServices(cid, "string", metav1.ListOptions{
 		LabelSelector: stringfiedLabels,
 	})
 	if err != nil {
@@ -324,13 +323,47 @@ func (v IstioValues) ClearDestinationRules(cid string, labels map[string]string)
 		return err
 	}
 
-	for dr := range drs.Items {
-		fmt.Println(dr)
+	for _, vs := range vss.Items {
+		fmt.Println(vs.Spec.GetHttp())
 	}
-
 	return nil
 }
 
-func (v IstioValues) ClearVirtualServiceRules(cid string, labels map[string]string) error {
+func removeRule(http []*v1alpha3.HTTPRoute, index int) []*v1alpha3.HTTPRoute {
+	// when ordering is not important
+	http[len(http)-1], http[index] = http[index], http[len(http)-1]
+	return http[:len(http)-1]
+}
+
+// ClearRules will remove any destination & virtualService rules except the main one (provided by client). Ex: URI or Prefix
+func (v IstioValues) ClearRules(cid string, matchType string, labels map[string]string) error {
+	vss, _, err := GetResourcesToUpdate(cid, v, labels)
+	if err != nil {
+		return err
+	}
+
+	// Clean vs rules
+	for _, vs := range vss.Items {
+		fmt.Println(vs.Name)
+		for httpRuleKey, httpRuleValue := range vs.Spec.Http {
+			for _, matchRuleValue := range httpRuleValue.Match {
+				if matchRuleValue.Uri == nil {
+					// remove rule with no Uri from HTTPRoute list to a posterior update
+					//toBeRemoved := removeRule(vs.Spec.Http, httpRuleKey)
+					//vs.Spec.Http = toBeRemoved
+				} else {
+					// remove this instruction after debugging
+					fmt.Println(vs.Name)
+					fmt.Println(matchRuleValue.Uri)
+				}
+			}
+		}
+
+		fmt.Println(vs)
+	}
+
+
+	// Clean dr rules
+
 	return nil
 }
