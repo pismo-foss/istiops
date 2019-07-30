@@ -29,7 +29,6 @@ import:
   - package: github.com/aspenmesh/istio-client-go
     version: 3e73c27b9ace51f94ca75c118cd0b6ea529237b4
   - package: github.com/spf13/cobra
-  - package: github.com/spf13/viper
 testImport:
   - package: github.com/stretchr/testify
     subpackages:

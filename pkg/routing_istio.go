@@ -30,7 +30,7 @@ type IstioOperationsInterface interface {
 	SetLabelsDestinationRule(cid string, name string, labels map[string]string) error
 	SetHeaders(cid string, labels map[string]string, host string, headers map[string]string, port uint32) (subset string, error error)
 	SetPercentage(cid string, virtualServiceName string, subset string, percentage int32) error
-	ClearRules(cid string, matchType string, labels map[string]string) error
+	ClearRules(cid string, labels map[string]string) error
 }
 
 // GetAllVirtualServices returns all istio resources 'virtualservices'
@@ -329,14 +329,8 @@ func ClearRules(cid string, labels map[string]string) error {
 	return nil
 }
 
-func removeRule(http []*v1alpha3.HTTPRoute, index int) []*v1alpha3.HTTPRoute {
-	// when ordering is not important
-	http[len(http)-1], http[index] = http[index], http[len(http)-1]
-	return http[:len(http)-1]
-}
-
 // ClearRules will remove any destination & virtualService rules except the main one (provided by client). Ex: URI or Prefix
-func (v IstioValues) ClearRules(cid string, matchType string, labels map[string]string) error {
+func (v IstioValues) ClearRules(cid string, labels map[string]string) error {
 	vss, _, err := GetResourcesToUpdate(cid, v, labels)
 	if err != nil {
 		return err
@@ -344,26 +338,25 @@ func (v IstioValues) ClearRules(cid string, matchType string, labels map[string]
 
 	// Clean vs rules
 	for _, vs := range vss.Items {
+		var cleanedRoutes []*v1alpha3.HTTPRoute
 		fmt.Println(vs.Name)
 		for httpRuleKey, httpRuleValue := range vs.Spec.Http {
 			for _, matchRuleValue := range httpRuleValue.Match {
-				if matchRuleValue.Uri == nil {
+				if matchRuleValue.Uri != nil {
 					// remove rule with no Uri from HTTPRoute list to a posterior update
-					//toBeRemoved := removeRule(vs.Spec.Http, httpRuleKey)
-					//vs.Spec.Http = toBeRemoved
-				} else {
-					// remove this instruction after debugging
-					fmt.Println(vs.Name)
-					fmt.Println(matchRuleValue.Uri)
+					cleanedRoutes = append(cleanedRoutes, vs.Spec.Http[httpRuleKey])
 				}
 			}
 		}
 
-		fmt.Println(vs)
+		vs.Spec.Http = cleanedRoutes
+		err := UpdateVirtualService(cid, v.Namespace, &vs)
+		if err != nil {
+			utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to error '%s'", vs.Name, err), cid)
+		}
 	}
 
-
-	// Clean dr rules
+	// Clean dr rules ?
 
 	return nil
 }

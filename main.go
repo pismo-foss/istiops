@@ -1,9 +1,7 @@
 package main
 
 import (
-	"context"
-
-	"github.com/pismo/istiops/pipeline"
+	"github.com/pismo/istiops/cmd"
 	"github.com/pismo/istiops/utils"
 	_ "github.com/pkg/errors"
 	_ "github.com/sirupsen/logrus"
@@ -18,9 +16,16 @@ import (
 )
 
 func main() {
-	apiValues := utils.BuildApiValues("api-pipelinetest", "default", "1.0.0", "2210")
-	// pkg.CreateRouteResource(apiValues, "cid-random", context.Background())
-	// pipeline.DeployApi(apiValues, "cid-random", context.Background())
-	pipeline.IstioRouting(apiValues, "cid-random", context.Background())
-	// pipeline.K8sHealthCheck("cid-random", 5, apiValues, context.Background())
+	err := cmd.RootCmd.Execute()
+	if err != nil {
+		utils.Fatal("error", "cid")
+	}
 }
+
+//func main() {
+//	apiValues := utils.BuildApiValues("api-pipelinetest", "default", "1.0.0", "2210")
+//	// pkg.CreateRouteResource(apiValues, "cid-random", context.Background())
+//	// pipeline.DeployApi(apiValues, "cid-random", context.Background())
+//	pipeline.IstioRouting(apiValues, "cid-random", context.Background())
+//	// pipeline.K8sHealthCheck("cid-random", 5, apiValues, context.Background())
+//}
