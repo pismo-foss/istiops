@@ -4,7 +4,7 @@
 
 `$ go test ./... -v`
 
-## Commands on traffic shifiting
+## Commands on traffic shifting
 
 ### Each operation creates or removes items from both the VirtualService and DestinationRule
 
