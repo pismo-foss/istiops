@@ -10,7 +10,7 @@
 
 1. Clear all traffic rules, except for main one, from service api-gateway
 
-`istiops traffic clear --label-seleector app=api-gateway,build=1`
+`istiops traffic clear --label-selector app=api-gateway,build=1`
 
 2. Send requests with HTTP header x-cid:seu_madruga to pods with labels: app=api-accounts,build:PR-10
 
