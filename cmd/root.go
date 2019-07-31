@@ -2,22 +2,39 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/pismo/istiops/pkg"
 	"github.com/spf13/cobra"
+	"os"
 )
 
-func init(){
+var (
+	istiops pkg.IstioOperationsInterface = pkg.IstioValues{"default"}
+	VERSION string
+	CID     string
+)
+
+func init() {
 	var namespace string
 
 	RootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "default", "Kubernetes' cluster namespace")
 	RootCmd.AddCommand(trafficCmd)
-
 }
 
 var RootCmd = &cobra.Command{
-	Use: "istiops",
+	Use:   "istiops",
 	Short: "Main",
 	Long:  `Using Kubernetes' CRDs 'traffic' will manage it's rules`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Traffic shifting...")
 	},
+}
+
+func Execute(cid string, version string) {
+	VERSION = version
+	CID = cid
+
+	if err := RootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
 }

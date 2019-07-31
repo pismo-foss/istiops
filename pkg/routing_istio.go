@@ -194,12 +194,7 @@ func (v IstioValues) SetPercentage(cid string, virtualServiceName string, subset
 func (v IstioValues) SetHeaders(cid string, labels map[string]string, host string, headers map[string]string, port uint32) (subset string, error error) {
 	var subsetRouteExists bool
 
-	sanitizedVersion, err := SanitizeVersionString(v.Version)
-	if err != nil {
-		return "", err
-	}
-
-	subsetRuleName := fmt.Sprintf("%s-%d", sanitizedVersion, v.Build)
+	subsetRuleName := "test"
 
 	vss, drs, err := GetResourcesToUpdate(cid, v, labels)
 	if err != nil {

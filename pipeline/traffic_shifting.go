@@ -17,7 +17,7 @@ func IstioRouting(api utils.ApiValues, cid string, parentCtx context.Context) er
 		"environment": "pipeline-go",
 	}
 
-	var istiops pkg.IstioOperationsInterface = pkg.IstioValues{"sec-bankaccounts", "2.0.0", 323, "default"}
+	var istiops pkg.IstioOperationsInterface = pkg.IstioValues{"default"}
 
 	istioResult = istiops.SetLabelsDestinationRule(cid, "sec-bankaccounts-destination-rules", labelSelector)
 	if istioResult != nil {
@@ -42,10 +42,10 @@ func IstioRouting(api utils.ApiValues, cid string, parentCtx context.Context) er
 		return istioResult
 	}
 
-	//istioResult = istiops.ClearRules(cid, labelSelector)
-	//if istioResult != nil {
-	//	return istioResult
-	//}
+	istioResult = istiops.ClearRules(cid, labelSelector)
+	if istioResult != nil {
+		return istioResult
+	}
 
 	return nil
 }

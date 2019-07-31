@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"github.com/nu7hatch/gouuid"
 	"github.com/pismo/istiops/cmd"
 	"github.com/pismo/istiops/utils"
 	_ "github.com/pkg/errors"
@@ -15,11 +17,19 @@ import (
 	_ "k8s.io/client-go/tools/clientcmd"
 )
 
+var (
+	// VERSION is set during build
+	VERSION = "0.0.1"
+)
+
 func main() {
-	err := cmd.RootCmd.Execute()
+	uuid, err := uuid.NewV4()
 	if err != nil {
-		utils.Fatal("error", "cid")
+		utils.Fatal("Could not generate CID", "")
 	}
+	cid := fmt.Sprintf("%v", uuid)
+
+	cmd.Execute(cid, VERSION)
 }
 
 //func main() {
