@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/pismo/istiops/utils"
 
 	"github.com/spf13/cobra"
@@ -18,16 +17,11 @@ func init() {
 var trafficCmd = &cobra.Command{
 	Use:   "traffic",
 	Short: "Manage istio's traffic rules",
-	Long:  `Use it`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(fmt.Sprintf("%s", args))
-	},
 }
 
 var cleanRulesCmd = &cobra.Command{
 	Use:   "clear",
 	Short: "Clear all rules except the main one (URI set)",
-	Long:  `Use it`,
 	Run: func(cmd *cobra.Command, args []string) {
 		labelSelector, err := cmd.Flags().GetString("label-selector")
 		if labelSelector == "" {

@@ -23,10 +23,7 @@ func init() {
 var RootCmd = &cobra.Command{
 	Use:   "istiops",
 	Short: "Main",
-	Long:  `Using Kubernetes' CRDs 'traffic' will manage it's rules`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Traffic shifting...")
-	},
+	Long:  `Istiops is a CLI library for Go that manages istio's traffic shifting easily.`,
 }
 
 func Execute(cid string, version string) {
