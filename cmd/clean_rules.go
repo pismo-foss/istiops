@@ -7,10 +7,8 @@ import (
 )
 
 func init() {
-	trafficCmd.AddCommand(cleanRulesCmd)
-
 	cleanRulesCmd.Flags().StringP("label-selector", "l", "", "LabelSelector. Ex: app=api-foo,build=3")
-	cleanRulesCmd.MarkFlagRequired("label-selector")
+	RootCmd.MarkFlagRequired("label-selector")
 }
 
 var cleanRulesCmd = &cobra.Command{

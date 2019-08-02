@@ -95,19 +95,9 @@ func UpdateDestinationRule(cid string, namespace string, destinationRule *v1alph
 	return nil
 }
 
-func StringfyLabelSelector(cid string, labelSelector map[string]string) (string, error) {
-	var labelsPair []string
-
-	for key, value := range labelSelector {
-		labelsPair = append(labelsPair, fmt.Sprintf("%s=%s", key, value))
-	}
-
-	return strings.Join(labelsPair[:], ","), nil
-}
-
 // GetResourcesToUpdate returns a slice of all DestinationRules and/or VirtualServices (based on given labelSelectors to a posterior update
 func GetResourcesToUpdate(cid string, v IstioValues, labelSelector map[string]string) (matchedVirtualServices *v1alpha32.VirtualServiceList, matchedDestinationRules *v1alpha32.DestinationRuleList, error error) {
-	stringfiedLabelSelector, _ := StringfyLabelSelector(cid, labelSelector)
+	stringfiedLabelSelector, _ := utils.StringfyLabelSelector(cid, labelSelector)
 
 	listOptions := metav1.ListOptions{
 		LabelSelector: stringfiedLabelSelector,
@@ -304,7 +294,7 @@ func (v IstioValues) SetLabelsVirtualService(cid string, name string, labels map
 }
 
 func ClearRules(cid string, labels map[string]string) error {
-	stringfiedLabels, err := StringfyLabelSelector(cid, labels)
+	stringfiedLabels, err := utils.StringfyLabelSelector(cid, labels)
 	if err != nil {
 		utils.Fatal(fmt.Sprintf("Could not get stringfied Labels from '%s", labels), cid)
 		return err
