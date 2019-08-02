@@ -7,16 +7,10 @@ import (
 )
 
 func init() {
-
 	trafficCmd.AddCommand(cleanRulesCmd)
 
 	cleanRulesCmd.Flags().StringP("label-selector", "l", "", "LabelSelector. Ex: app=api-foo,build=3")
-	RootCmd.MarkFlagRequired("label-selector")
-}
-
-var trafficCmd = &cobra.Command{
-	Use:   "traffic",
-	Short: "Manage istio's traffic rules",
+	cleanRulesCmd.MarkFlagRequired("label-selector")
 }
 
 var cleanRulesCmd = &cobra.Command{

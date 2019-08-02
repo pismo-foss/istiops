@@ -17,7 +17,6 @@ func init() {
 	var namespace string
 
 	RootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "default", "Kubernetes' cluster namespace")
-	RootCmd.AddCommand(trafficCmd)
 }
 
 var RootCmd = &cobra.Command{
