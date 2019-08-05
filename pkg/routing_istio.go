@@ -28,8 +28,9 @@ func SanitizeVersionString(version string) (sanitizedVersion string, error error
 type IstioOperationsInterface interface {
 	SetLabelsVirtualService(cid string, name string, labels map[string]string) error
 	SetLabelsDestinationRule(cid string, name string, labels map[string]string) error
-	SetHeaders(cid string, labels map[string]string, headers map[string]string) (subset string, error error)
+	SetHeaders(cid string, labels map[string]string, host string, headers map[string]string, port uint32) (subset string, error error)
 	SetPercentage(cid string, virtualServiceName string, subset string, percentage int32) error
+	ClearRules(cid string, labels map[string]string) error
 }
 
 // GetAllVirtualServices returns all istio resources 'virtualservices'
@@ -94,19 +95,9 @@ func UpdateDestinationRule(cid string, namespace string, destinationRule *v1alph
 	return nil
 }
 
-func StringfyLabelSelector(cid string, labelSelector map[string]string) (string, error) {
-	var labelsPair []string
-
-	for key, value := range labelSelector {
-		labelsPair = append(labelsPair, fmt.Sprintf("%s=%s", key, value))
-	}
-
-	return strings.Join(labelsPair[:], ","), nil
-}
-
 // GetResourcesToUpdate returns a slice of all DestinationRules and/or VirtualServices (based on given labelSelectors to a posterior update
 func GetResourcesToUpdate(cid string, v IstioValues, labelSelector map[string]string) (matchedVirtualServices *v1alpha32.VirtualServiceList, matchedDestinationRules *v1alpha32.DestinationRuleList, error error) {
-	stringfiedLabelSelector, _ := StringfyLabelSelector(cid, labelSelector)
+	stringfiedLabelSelector, _ := utils.StringfyLabelSelector(cid, labelSelector)
 
 	listOptions := metav1.ListOptions{
 		LabelSelector: stringfiedLabelSelector,
@@ -190,15 +181,10 @@ func (v IstioValues) SetPercentage(cid string, virtualServiceName string, subset
 }
 
 // Headers set headers as routing-match strategy for istio resources
-func (v IstioValues) SetHeaders(cid string, labels map[string]string, headers map[string]string) (subset string, error error) {
+func (v IstioValues) SetHeaders(cid string, labels map[string]string, host string, headers map[string]string, port uint32) (subset string, error error) {
 	var subsetRouteExists bool
 
-	sanitizedVersion, err := SanitizeVersionString(v.Version)
-	if err != nil {
-		return "", err
-	}
-
-	subsetRuleName := fmt.Sprintf("%s-%d", sanitizedVersion, v.Build)
+	subsetRuleName := "test"
 
 	vss, drs, err := GetResourcesToUpdate(cid, v, labels)
 	if err != nil {
@@ -303,6 +289,59 @@ func (v IstioValues) SetLabelsVirtualService(cid string, name string, labels map
 		utils.Fatal(fmt.Sprintf("Could not update virtualService '%s', due to error '%s'", vs.Name, err), cid)
 		return err
 	}
+
+	return nil
+}
+
+func ClearRules(cid string, labels map[string]string) error {
+	stringfiedLabels, err := utils.StringfyLabelSelector(cid, labels)
+	if err != nil {
+		utils.Fatal(fmt.Sprintf("Could not get stringfied Labels from '%s", labels), cid)
+		return err
+	}
+
+	vss, err := GetAllVirtualServices(cid, "string", metav1.ListOptions{
+		LabelSelector: stringfiedLabels,
+	})
+	if err != nil {
+		utils.Fatal(fmt.Sprintf("Could not find destination rules that matchs given labels '%s", labels), cid)
+		return err
+	}
+
+	for _, vs := range vss.Items {
+		fmt.Println(vs.Spec.GetHttp())
+	}
+	return nil
+}
+
+// ClearRules will remove any destination & virtualService rules except the main one (provided by client). Ex: URI or Prefix
+func (v IstioValues) ClearRules(cid string, labels map[string]string) error {
+	vss, _, err := GetResourcesToUpdate(cid, v, labels)
+	if err != nil {
+		return err
+	}
+
+	// Clean vs rules
+	for _, vs := range vss.Items {
+		var cleanedRoutes []*v1alpha3.HTTPRoute
+		fmt.Println(vs.Name)
+		for httpRuleKey, httpRuleValue := range vs.Spec.Http {
+			for _, matchRuleValue := range httpRuleValue.Match {
+				if matchRuleValue.Uri != nil {
+					// remove rule with no Uri from HTTPRoute list to a posterior update
+					cleanedRoutes = append(cleanedRoutes, vs.Spec.Http[httpRuleKey])
+				}
+			}
+		}
+
+		vs.Spec.Http = cleanedRoutes
+		err := UpdateVirtualService(cid, v.Namespace, &vs)
+		if err != nil {
+			utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to error '%s'", vs.Name, err), cid)
+		}
+	}
+
+	// Clean dr rules ?
 
 	return nil
 }

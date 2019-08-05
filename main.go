@@ -1,9 +1,9 @@
 package main
 
 import (
-	"context"
-
-	"github.com/pismo/istiops/pipeline"
+	"fmt"
+	"github.com/nu7hatch/gouuid"
+	"github.com/pismo/istiops/cmd"
 	"github.com/pismo/istiops/utils"
 	_ "github.com/pkg/errors"
 	_ "github.com/sirupsen/logrus"
@@ -17,10 +17,25 @@ import (
 	_ "k8s.io/client-go/tools/clientcmd"
 )
 
+var (
+	// VERSION is set during build
+	VERSION = "0.0.1"
+)
+
 func main() {
-	apiValues := utils.BuildApiValues("api-pipelinetest", "default", "1.0.0", "2210")
-	// pkg.CreateRouteResource(apiValues, "cid-random", context.Background())
-	// pipeline.DeployApi(apiValues, "cid-random", context.Background())
-	pipeline.IstioRouting(apiValues, "cid-random", context.Background())
-	// pipeline.K8sHealthCheck("cid-random", 5, apiValues, context.Background())
+	uuid, err := uuid.NewV4()
+	if err != nil {
+		utils.Fatal("Could not generate CID", "")
+	}
+	cid := fmt.Sprintf("%v", uuid)
+
+	cmd.Execute(cid, VERSION)
 }
+
+//func main() {
+//	apiValues := utils.BuildApiValues("api-pipelinetest", "default", "1.0.0", "2210")
+//	// pkg.CreateRouteResource(apiValues, "cid-random", context.Background())
+//	// pipeline.DeployApi(apiValues, "cid-random", context.Background())
+//	pipeline.IstioRouting(apiValues, "cid-random", context.Background())
+//	// pipeline.K8sHealthCheck("cid-random", 5, apiValues, context.Background())
+//}

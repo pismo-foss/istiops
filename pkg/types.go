@@ -30,9 +30,6 @@ func init() {
 }
 
 type IstioValues struct {
-	Name      string
-	Version   string
-	Build     int32
 	Namespace string
 }
 

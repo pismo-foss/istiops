@@ -1,7 +1,7 @@
 Testify - Thou Shalt Write Tests
 ================================
 
-[![Build Status](https://travis-ci.org/stretchr/testify.svg)](https://travis-ci.org/stretchr/testify) [![Go Report Card](https://goreportcard.com/badge/github.com/stretchr/testify)](https://goreportcard.com/report/github.com/stretchr/testify) [![GoDoc](https://godoc.org/github.com/stretchr/testify?status.svg)](https://godoc.org/github.com/stretchr/testify)
+[![Build Status](https://travis-ci.org/stretchr/testify.svg)](https://travis-ci.org/stretchr/testify)
 
 Go code (golang) set of packages that provide many tools for testifying that your code will behave as you intend.
 
@@ -9,6 +9,7 @@ Features include:
 
   * [Easy assertions](#assert-package)
   * [Mocking](#mock-package)
+  * [HTTP response trapping](#http-package)
   * [Testing suite interfaces and functions](#suite-package)
 
 Get started:
@@ -105,6 +106,14 @@ The `require` package provides same global functions as the `assert` package, bu
 
 See [t.FailNow](http://golang.org/pkg/testing/#T.FailNow) for details.
 
+
+[`http`](http://godoc.org/github.com/stretchr/testify/http "API documentation") package
+---------------------------------------------------------------------------------------
+
+The `http` package contains test objects useful for testing code that relies on the `net/http` package.  Check out the [(deprecated) API documentation for the `http` package](http://godoc.org/github.com/stretchr/testify/http).
+
+We recommend you use [httptest](http://golang.org/pkg/net/http/httptest) instead.
+
 [`mock`](http://godoc.org/github.com/stretchr/testify/mock "API documentation") package
 ----------------------------------------------------------------------------------------
 
@@ -163,29 +172,6 @@ func TestSomething(t *testing.T) {
 
   // assert that the expectations were met
   testObj.AssertExpectations(t)
-
-
-}
-
-// TestSomethingElse is a second example of how to use our test object to
-// make assertions about some target code we are testing.
-// This time using a placeholder. Placeholders might be used when the
-// data being passed in is normally dynamically generated and cannot be
-// predicted beforehand (eg. containing hashes that are time sensitive)
-func TestSomethingElse(t *testing.T) {
-
-  // create an instance of our test object
-  testObj := new(MyMockedObject)
-
-  // setup expectations with a placeholder in the argument list
-  testObj.On("DoSomething", mock.Anything).Return(true, nil)
-
-  // call the code we are testing
-  targetFuncThatDoesSomethingWithObj(testObj)
-
-  // assert that the expectations were met
-  testObj.AssertExpectations(t)
-
 
 }
 ```
@@ -282,15 +268,14 @@ Installation
 
 To install Testify, use `go get`:
 
-    go get github.com/stretchr/testify
+    * Latest version: go get github.com/stretchr/testify
+    * Specific version: go get gopkg.in/stretchr/testify.v1
 
 This will then make the following packages available to you:
 
     github.com/stretchr/testify/assert
-    github.com/stretchr/testify/require
     github.com/stretchr/testify/mock
-    github.com/stretchr/testify/suite
-    github.com/stretchr/testify/http (deprecated)
+    github.com/stretchr/testify/http
 
 Import the `testify/assert` package into your code using this template:
 
@@ -318,10 +303,10 @@ To update Testify to the latest version, use `go get -u github.com/stretchr/test
 
 ------
 
-Supported go versions
-==================
+Version History
+===============
 
-We support the three major Go versions, which are 1.9, 1.10, and 1.11 at the moment.
+   * 1.0 - New package versioning strategy adopted.
 
 ------
 
@@ -334,7 +319,14 @@ When submitting an issue, we ask that you please include a complete test functio
 
 ------
 
-License
+Licence
 =======
+Copyright (c) 2012 - 2013 Mat Ryer and Tyler Bunnell
 
-This project is licensed under the terms of the MIT license.
+Please consider promoting this project if you find it useful.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
