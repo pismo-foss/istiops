@@ -1,41 +1,32 @@
 package main
 
 import (
-	"fmt"
-	"github.com/nu7hatch/gouuid"
-	"github.com/pismo/istiops/cmd"
-	"github.com/pismo/istiops/utils"
+	versionedclient "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
+	"github.com/pismo/istiops/pkg/client"
 	_ "github.com/pkg/errors"
-	_ "github.com/sirupsen/logrus"
-	_ "github.com/snowzach/rotatefilehook"
-	_ "gopkg.in/yaml.v2"
-	_ "istio.io/api/networking/v1alpha3"
-	_ "k8s.io/apimachinery/pkg/apis/meta/v1"
-	_ "k8s.io/apimachinery/pkg/runtime/schema"
-	_ "k8s.io/client-go/dynamic"
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	_ "k8s.io/client-go/tools/clientcmd"
-)
-
-var (
-	// VERSION is set during build
-	VERSION = "0.0.1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
 
 func main() {
-	uuid, err := uuid.NewV4()
+	//var err error
+	homedir := homedir.HomeDir()
+	config, err := clientcmd.BuildConfigFromFlags("", homedir+"/.kube/config")
+
+	// create the clientset
+	kubernetesClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		utils.Fatal("Could not generate CID", "")
+		panic(err.Error())
 	}
-	cid := fmt.Sprintf("%v", uuid)
 
-	cmd.Execute(cid, VERSION)
+	istioClient, err := versionedclient.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	client := client.IstioClient{
+		kubernetesClient,
+		istioClient,
+	}
 }
-
-//func main() {
-//	apiValues := utils.BuildApiValues("api-pipelinetest", "default", "1.0.0", "2210")
-//	// pkg.CreateRouteResource(apiValues, "cid-random", context.Background())
-//	// pipeline.DeployApi(apiValues, "cid-random", context.Background())
-//	pipeline.IstioRouting(apiValues, "cid-random", context.Background())
-//	// pipeline.K8sHealthCheck("cid-random", 5, apiValues, context.Background())
-//}
