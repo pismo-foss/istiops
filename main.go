@@ -1,32 +1,37 @@
 package main
 
 import (
-	versionedclient "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
+	"fmt"
 	"github.com/pismo/istiops/pkg/client"
+	"github.com/pismo/istiops/pkg/operator"
+	"github.com/pismo/istiops/utils"
 	_ "github.com/pkg/errors"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
 
 func main() {
-	//var err error
 	homedir := homedir.HomeDir()
-	config, err := clientcmd.BuildConfigFromFlags("", homedir+"/.kube/config")
-
-	// create the clientset
-	kubernetesClient, err := kubernetes.NewForConfig(config)
+	clientSet, err := client.Set(homedir + "/.kube/config")
 	if err != nil {
-		panic(err.Error())
+		utils.Fatal("Could not get clients", "cid")
 	}
 
-	istioClient, err := versionedclient.NewForConfig(config)
+	resources := &operator.IstioResources{
+		DestinationRuleName: "api-xpto-destinationrules",
+		VirtualServiceName:  "api-xpto-virtualservices",
+	}
+
+	ips := operator.IstioOperator{
+		TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
+		Namespace:  "default",
+		Client:     clientSet,
+	}
+
+	ips.Delete(resources)
+	labels := operator.LabelSelector{Labels: map[string]string{"environment": "pipeline-go"}}
+	err = ips.Clear(labels)
 	if err != nil {
-		panic(err.Error())
+		fmt.Printf("")
 	}
 
-	client := client.IstioClient{
-		kubernetesClient,
-		istioClient,
-	}
 }

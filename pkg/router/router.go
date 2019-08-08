@@ -1,7 +1,19 @@
 package router
 
-type Router interface {
+import "istio.io/api/networking/v1alpha3"
+
+type RouteInterface interface {
 	Validate(route Route) error
 	Update(route Route) error
 	Delete(route Route) error
+}
+
+type Route struct {
+	VirtualServiceName string
+	Destination        *v1alpha3.RouteDestination
+}
+
+type Subset struct {
+	VirtualServiceName string
+	Subset             *v1alpha3.Subset
 }
