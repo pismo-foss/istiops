@@ -161,14 +161,3 @@ func UpdateVirtualService(ips *IstioOperator, virtualService *v1alpha32.VirtualS
 	}
 	return nil
 }
-
-// UpdateDestinationRule updates a specific virtualService given an updated object
-func UpdateDestinationRule(ips *IstioOperator, destinationRule *v1alpha32.DestinationRule) error {
-	utils.Info(fmt.Sprintf("Updating rule for destinationRule '%s'...", destinationRule.Name), ips.TrackingId)
-	_, err := ips.Client.Istio.NetworkingV1alpha3().DestinationRules(ips.Namespace).Update(destinationRule)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
