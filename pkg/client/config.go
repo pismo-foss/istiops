@@ -11,7 +11,7 @@ type ClientSet struct {
 	Istio      *versioned.Clientset
 }
 
-func Set(kubeConfigPath string) (*ClientSet, error) {
+func Add(kubeConfigPath string) (*ClientSet, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
 
 	// create the clientset

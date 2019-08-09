@@ -11,7 +11,7 @@ import (
 
 func main() {
 	homedir := homedir.HomeDir()
-	clientSet, err := client.Set(homedir + "/.kube/config")
+	clientSet, err := client.Add(homedir + "/.kube/config")
 	if err != nil {
 		utils.Fatal("Could not get clients", "cid")
 	}
