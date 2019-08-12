@@ -16,7 +16,7 @@ type Subset struct {
 	Subset *v1alpha3.Subset
 }
 
-type WeightShift struct {
+type TrafficShift struct {
 	Headers map[string]string
 	Weight  uint32
 }

@@ -15,13 +15,14 @@ type IstioOperator struct {
 	Name       string
 	Namespace  string
 	Client     *client.ClientSet
+	Istiops    Istiops
 }
 
 type IstioRoute struct {
 	Port     uint32
 	Hostname string
 	Selector Selector
-	Weight   *router.WeightShift
+	Weight   *router.TrafficShift
 	Match    *v1alpha3.HTTPMatchRequest
 }
 
@@ -76,10 +77,21 @@ func (ips *IstioOperator) Update(ir *IstioRoute) error {
 		return err
 	}
 
-	// Find subset which matches given headers
-	for _, dr := range istioResources.DestinationRulesList.Items {
-		for _, subsetValue := range dr.Spec.Subsets {
-			fmt.Println(subsetValue.Labels)
+	//
+	for _, vs := range istioResources.VirtualServiceList.Items {
+		fmt.Println(len(vs.Spec.Http))
+		for _, httpValue := range vs.Spec.Http {
+			for _, matchValue := range httpValue.Match {
+				//fmt.Println(matchValue.Headers)
+				// Find the correct match-rule among all headers based on given input (ir.Weight.Headers)
+				for headerKey, headerValue := range ir.Weight.Headers {
+					if _, ok := matchValue.Headers[headerKey]; ok {
+						if matchValue.Headers[headerKey].GetExact() == headerValue {
+							fmt.Println("Tinder match!")
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -129,7 +141,6 @@ func GetResourcesToUpdate(ips *IstioOperator, labelSelector Selector) (matchedRe
 	}
 
 	matchedDrs, err := GetAllDestinationRules(ips, listOptions)
-	fmt.Println(err)
 	if err != nil {
 		utils.Fatal(fmt.Sprintf("%s", err), ips.TrackingId)
 		return nil, err
