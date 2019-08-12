@@ -78,18 +78,43 @@ func (ips *IstioOperator) Update(ir *IstioRoute) error {
 	}
 
 	//
+	var matchedHeaders int
+	var matchedUriSubset string
 	for _, vs := range istioResources.VirtualServiceList.Items {
-		fmt.Println(len(vs.Spec.Http))
+		fmt.Println("=======")
+		matchedUriSubset = ""
 		for _, httpValue := range vs.Spec.Http {
-			for _, matchValue := range httpValue.Match {
-				//fmt.Println(matchValue.Headers)
+			for matchKey, matchValue := range httpValue.Match {
+				// Find a URI match to serve as final routing
+				fmt.Println(matchValue)
+				if matchValue.Uri != nil {
+					matchedUriSubset = httpValue.Route[matchKey].Destination.Subset
+				}
+
 				// Find the correct match-rule among all headers based on given input (ir.Weight.Headers)
+				matchedHeaders = 0
 				for headerKey, headerValue := range ir.Weight.Headers {
 					if _, ok := matchValue.Headers[headerKey]; ok {
 						if matchValue.Headers[headerKey].GetExact() == headerValue {
-							fmt.Println("Tinder match!")
+							matchedHeaders += 1
 						}
 					}
+				}
+
+				fmt.Println(vs.Name)
+				fmt.Println(">", matchedUriSubset)
+				if matchedUriSubset == "" {
+					utils.Fatal(
+						fmt.Sprintf("Could not find any URI rule for final routing in '%s'. Ensure the existence of it.",
+							vs.Name), ips.TrackingId)
+					return err
+				}
+
+				// In case of a Rule matches all headers' input, set weight between URI & Headers
+				if matchedHeaders == len(ir.Weight.Headers) {
+					fmt.Printf("setting weight from '%v' to '%v' in subset '%s'",
+						httpValue.Route[matchKey].Weight, ir.Weight.Percent, httpValue.Route[matchKey].Destination.Subset,
+					)
 				}
 			}
 		}
@@ -109,7 +134,6 @@ func (ips *IstioOperator) Clear(labels Selector) error {
 	// Clean vs rules
 	for _, vs := range resources.VirtualServiceList.Items {
 		var cleanedRoutes []*v1alpha3.HTTPRoute
-		fmt.Println(vs.Name)
 		for httpRuleKey, httpRuleValue := range vs.Spec.Http {
 			for _, matchRuleValue := range httpRuleValue.Match {
 				if matchRuleValue.Uri != nil {
@@ -133,7 +157,7 @@ func (ips *IstioOperator) Clear(labels Selector) error {
 }
 
 // GetResourcesToUpdate returns a slice of all DestinationRules and/or VirtualServices (based on given labelSelectors to a posterior update
-func GetResourcesToUpdate(ips *IstioOperator, labelSelector Selector) (matchedResourcesList *IstioRouteList, error error) {
+func GetResourcesToUpdate(ips *IstioOperator, labelSelector Selector) (*IstioRouteList, error) {
 	StringifyLabelSelector, _ := utils.StringifyLabelSelector(ips.TrackingId, labelSelector.Labels)
 
 	listOptions := metav1.ListOptions{
@@ -157,7 +181,7 @@ func GetResourcesToUpdate(ips *IstioOperator, labelSelector Selector) (matchedRe
 		return nil, err
 	}
 
-	matchedResourcesList = &IstioRouteList{
+	matchedResourcesList := &IstioRouteList{
 		matchedVss,
 		matchedDrs,
 	}

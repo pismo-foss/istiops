@@ -33,9 +33,10 @@ func main() {
 		},
 		Weight: &router.TrafficShift{
 			Headers: map[string]string{
-				"x-version": "PR-127",
+				"x-version": "PR-141",
+				"x-cid":     "blau",
 			},
-			Weight: 100,
+			Percent: 100,
 		},
 	}
 
