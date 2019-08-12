@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"github.com/pismo/istiops/pkg/client"
 	"github.com/pismo/istiops/pkg/operator"
+	"github.com/pismo/istiops/pkg/router"
 	"github.com/pismo/istiops/utils"
 	_ "github.com/pkg/errors"
 	"k8s.io/client-go/util/homedir"
@@ -16,22 +16,43 @@ func main() {
 		utils.Fatal("Could not get clients", "cid")
 	}
 
-	resources := &operator.IstioResources{
-		DestinationRuleName: "api-xpto-destinationrules",
-		VirtualServiceName:  "api-xpto-virtualservices",
+	resources := &operator.IstioRoute{
+		Port:     5000,
+		Hostname: "api-xpto.domain.io",
+		Selector: operator.Selector{
+			Labels: map[string]string{
+				"environment": "pipeline-go",
+			},
+		},
+		Weight: &router.WeightShift{
+			Headers: map[string]string{"x-version": "2.1.0"},
+			Weight:  100,
+		},
 	}
 
 	ips := operator.IstioOperator{
 		TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
+		Name:       "api-xpto",
 		Namespace:  "default",
 		Client:     clientSet,
 	}
 
-	ips.Delete(resources)
-	labels := operator.LabelSelector{Labels: map[string]string{"environment": "pipeline-go"}}
-	err = ips.Clear(labels)
-	if err != nil {
-		fmt.Printf("")
-	}
+	// Create Resource
+	//ips.Create(resources)
+
+	// Update a route
+	ips.Update(resources)
+
+	// Delete resources example
+	//ips.Delete(resources)
+
+	// Clear rules example
+	//labels := operator.Selector{
+	//	Labels: map[string]string{"environment": "pipeline-go"},
+	//}
+	//err = ips.Clear(labels)
+	//if err != nil {
+	//	fmt.Printf("")
+	//}
 
 }

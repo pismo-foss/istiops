@@ -24,7 +24,8 @@ func MapifyLabels(cid string, headers string) (map[string]string, error) {
 	return mapLabels, nil
 }
 
-func StringfyLabelSelector(cid string, labelSelector map[string]string) (string, error) {
+// StringifyLabelSelector returns a k8s selector string based on given map. Ex: "key=value,key2=value2"
+func StringifyLabelSelector(cid string, labelSelector map[string]string) (string, error) {
 	var err error
 
 	var labelsPair []string

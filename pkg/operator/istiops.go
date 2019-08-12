@@ -4,6 +4,7 @@ import (
 	"fmt"
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/pismo/istiops/pkg/client"
+	"github.com/pismo/istiops/pkg/router"
 	"github.com/pismo/istiops/utils"
 	"istio.io/api/networking/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,37 +12,45 @@ import (
 
 type IstioOperator struct {
 	TrackingId string
+	Name       string
 	Namespace  string
 	Client     *client.ClientSet
 }
 
-type IstioResources struct {
-	DestinationRuleName string
-	VirtualServiceName  string
+type IstioRoute struct {
+	Port     uint32
+	Hostname string
+	Selector Selector
+	Weight   *router.WeightShift
+	Match    *v1alpha3.HTTPMatchRequest
 }
 
-type IstioResourcesList struct {
+type IstioRouteList struct {
 	VirtualServiceList   *v1alpha32.VirtualServiceList
 	DestinationRulesList *v1alpha32.DestinationRuleList
 }
 
 type Istiops interface {
-	Create(ir *IstioResources)
-	Delete(ir *IstioResources)
-	Validate(cid string)
-	Clear(LabelSelector) error
+	Create(ir *IstioRoute)
+	Delete(ir *IstioRoute)
+	Update(ir *IstioRoute) error
+	Clear(Selector) error
 }
 
-type LabelSelector struct {
+type Selector struct {
 	Labels map[string]string
 }
 
-func (ips *IstioOperator) Create(ir *IstioResources) {
+type Headers struct {
+	Labels map[string]string
+}
+
+func (ips *IstioOperator) Create(ir *IstioRoute) {
 	fmt.Println("creating")
 
 	istioNetworking := ips.Client.Istio.NetworkingV1alpha3()
 	dr := &v1alpha32.DestinationRule{}
-	dr.Name = ir.DestinationRuleName
+	dr.Name = ips.Name
 
 	_, err := istioNetworking.DestinationRules(ips.Namespace).Create(dr)
 
@@ -52,19 +61,34 @@ func (ips *IstioOperator) Create(ir *IstioResources) {
 	fmt.Println("Creating something")
 }
 
-func (ips *IstioOperator) Delete(ir *IstioResources) {
+func (ips *IstioOperator) Delete(ir *IstioRoute) {
 	fmt.Println("Initializing something")
 	fmt.Println("", ips.TrackingId)
 }
 
-func (ips *IstioOperator) Validate(cid string) {
-	fmt.Println("Initializing something")
-	fmt.Println("", cid)
+func (ips *IstioOperator) Update(ir *IstioRoute) error {
+	fmt.Println("updating weight...", ips.Name)
+
+	// Getting destination rules
+	istioResources, err := GetResourcesToUpdate(ips, ir.Selector)
+	if err != nil {
+		fmt.Print("Error")
+		return err
+	}
+
+	// Find subset which matches given headers
+	for _, dr := range istioResources.DestinationRulesList.Items {
+		for _, subsetValue := range dr.Spec.Subsets {
+			fmt.Println(subsetValue.Labels)
+		}
+	}
+
+	return nil
 }
 
 // ClearRules will remove any destination & virtualService rules except the main one (provided by client).
 // Ex: URI or Prefix
-func (ips *IstioOperator) Clear(labels LabelSelector) error {
+func (ips *IstioOperator) Clear(labels Selector) error {
 	resources, err := GetResourcesToUpdate(ips, labels)
 	if err != nil {
 		return err
@@ -97,11 +121,11 @@ func (ips *IstioOperator) Clear(labels LabelSelector) error {
 }
 
 // GetResourcesToUpdate returns a slice of all DestinationRules and/or VirtualServices (based on given labelSelectors to a posterior update
-func GetResourcesToUpdate(ips *IstioOperator, labelSelector LabelSelector) (matchedResourcesList *IstioResourcesList, error error) {
-	stringfiedLabelSelector, _ := utils.StringfyLabelSelector(ips.TrackingId, labelSelector.Labels)
+func GetResourcesToUpdate(ips *IstioOperator, labelSelector Selector) (matchedResourcesList *IstioRouteList, error error) {
+	StringifyLabelSelector, _ := utils.StringifyLabelSelector(ips.TrackingId, labelSelector.Labels)
 
 	listOptions := metav1.ListOptions{
-		LabelSelector: stringfiedLabelSelector,
+		LabelSelector: StringifyLabelSelector,
 	}
 
 	matchedDrs, err := GetAllDestinationRules(ips, listOptions)
@@ -118,11 +142,11 @@ func GetResourcesToUpdate(ips *IstioOperator, labelSelector LabelSelector) (matc
 	}
 
 	if len(matchedDrs.Items) == 0 || len(matchedVss.Items) == 0 {
-		utils.Fatal(fmt.Sprintf("Couldn't find any istio resources based on given labelSelector '%s' to update. ", stringfiedLabelSelector), ips.TrackingId)
+		utils.Fatal(fmt.Sprintf("Couldn't find any istio resources based on given labelSelector '%s' to update. ", StringifyLabelSelector), ips.TrackingId)
 		return nil, err
 	}
 
-	matchedResourcesList = &IstioResourcesList{
+	matchedResourcesList = &IstioRouteList{
 		matchedVss,
 		matchedDrs,
 	}
@@ -132,23 +156,25 @@ func GetResourcesToUpdate(ips *IstioOperator, labelSelector LabelSelector) (matc
 
 // GetAllVirtualServices returns all istio resources 'virtualservices'
 func GetAllVirtualServices(ips *IstioOperator, listOptions metav1.ListOptions) (virtualServiceList *v1alpha32.VirtualServiceList, error error) {
-	utils.Info(fmt.Sprintf("Getting all virtualservices..."), ips.TrackingId)
+	utils.Info(fmt.Sprintf("Finding virtualServices which matches selector '%s'...", listOptions.LabelSelector), ips.TrackingId)
 	vss, err := ips.Client.Istio.NetworkingV1alpha3().VirtualServices(ips.Namespace).List(listOptions)
 	if err != nil {
 		return nil, err
 	}
 
+	utils.Info(fmt.Sprintf("Found a total of '%d' virtualServices", len(vss.Items)), ips.TrackingId)
 	return vss, nil
 }
 
 // GetAllVirtualservices returns all istio resources 'virtualservices'
 func GetAllDestinationRules(ips *IstioOperator, listOptions metav1.ListOptions) (destinationRuleList *v1alpha32.DestinationRuleList, error error) {
-	utils.Info(fmt.Sprintf("Getting all destinationrules..."), ips.TrackingId)
+	utils.Info(fmt.Sprintf("Finding destinationRules which matches selector '%s'...", listOptions.LabelSelector), ips.TrackingId)
 	drs, err := ips.Client.Istio.NetworkingV1alpha3().DestinationRules(ips.Namespace).List(listOptions)
 	if err != nil {
 		return nil, err
 	}
 
+	utils.Info(fmt.Sprintf("Found a total of '%d' destinationRules", len(drs.Items)), ips.TrackingId)
 	return drs, nil
 }
 

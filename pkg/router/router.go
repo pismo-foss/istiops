@@ -9,11 +9,14 @@ type RouteInterface interface {
 }
 
 type Route struct {
-	VirtualServiceName string
-	Destination        *v1alpha3.RouteDestination
+	Destination *v1alpha3.RouteDestination
 }
 
 type Subset struct {
-	VirtualServiceName string
-	Subset             *v1alpha3.Subset
+	Subset *v1alpha3.Subset
+}
+
+type WeightShift struct {
+	Headers map[string]string
+	Weight  uint32
 }
