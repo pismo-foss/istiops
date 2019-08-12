@@ -36,7 +36,7 @@ func main() {
 				"x-version": "PR-141",
 				"x-cid":     "blau",
 			},
-			Percent: 100,
+			Percent: 35,
 		},
 	}
 

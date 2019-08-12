@@ -18,5 +18,5 @@ type Subset struct {
 
 type TrafficShift struct {
 	Headers map[string]string
-	Percent uint32
+	Percent int32
 }

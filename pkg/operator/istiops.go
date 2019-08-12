@@ -77,16 +77,13 @@ func (ips *IstioOperator) Update(ir *IstioRoute) error {
 		return err
 	}
 
-	//
 	var matchedHeaders int
 	var matchedUriSubset string
 	for _, vs := range istioResources.VirtualServiceList.Items {
-		fmt.Println("=======")
 		matchedUriSubset = ""
 		for _, httpValue := range vs.Spec.Http {
 			for matchKey, matchValue := range httpValue.Match {
 				// Find a URI match to serve as final routing
-				fmt.Println(matchValue)
 				if matchValue.Uri != nil {
 					matchedUriSubset = httpValue.Route[matchKey].Destination.Subset
 				}
@@ -101,23 +98,25 @@ func (ips *IstioOperator) Update(ir *IstioRoute) error {
 					}
 				}
 
-				fmt.Println(vs.Name)
-				fmt.Println(">", matchedUriSubset)
-				if matchedUriSubset == "" {
-					utils.Fatal(
-						fmt.Sprintf("Could not find any URI rule for final routing in '%s'. Ensure the existence of it.",
-							vs.Name), ips.TrackingId)
-					return err
-				}
-
 				// In case of a Rule matches all headers' input, set weight between URI & Headers
 				if matchedHeaders == len(ir.Weight.Headers) {
-					fmt.Printf("setting weight from '%v' to '%v' in subset '%s'",
-						httpValue.Route[matchKey].Weight, ir.Weight.Percent, httpValue.Route[matchKey].Destination.Subset,
-					)
+					utils.Info(fmt.Sprintf("Configuring weight to '%v' from '%s' in subset '%s'",
+						ir.Weight.Percent, vs.Name, httpValue.Route[matchKey].Destination.Subset,
+					), ips.TrackingId)
+					httpValue.Route[matchKey].Weight = ir.Weight.Percent
 				}
 			}
 		}
+
+		if matchedUriSubset == "" {
+			utils.Fatal(fmt.Sprintf("Could not find any URI match in '%s' for final routing.", vs.Name), ips.TrackingId)
+		}
+
+		err := UpdateVirtualService(ips, &vs)
+		if err != nil {
+			utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to an error '%s'", vs.Name, err), ips.TrackingId)
+		}
+
 	}
 
 	return nil
@@ -220,5 +219,7 @@ func UpdateVirtualService(ips *IstioOperator, virtualService *v1alpha32.VirtualS
 	if err != nil {
 		return err
 	}
+
+	utils.Info("VirtualService successfully updated", ips.TrackingId)
 	return nil
 }
