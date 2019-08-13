@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/pismo/istiops/pkg/client"
 	"github.com/pismo/istiops/pkg/operator"
-	"github.com/pismo/istiops/pkg/router"
 	"github.com/pismo/istiops/utils"
 	_ "github.com/pkg/errors"
 	"k8s.io/client-go/util/homedir"
@@ -31,13 +30,11 @@ func main() {
 		Selector: operator.Selector{
 			Labels: map[string]string{"environment": "pipeline-go"},
 		},
-		Weight: &router.TrafficShift{
-			Headers: map[string]string{
-				"x-version": "PR-141",
-				"x-cid":     "blau",
-			},
-			Percent: 35,
+		Headers: map[string]string{
+			"x-version": "PR-141",
+			"x-cid":     "blau",
 		},
+		Weight: 0,
 	}
 
 	// Update a route
