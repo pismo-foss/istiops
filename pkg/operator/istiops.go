@@ -13,6 +13,7 @@ type IstioOperator struct {
 	TrackingId string
 	Name       string
 	Namespace  string
+	Build      int8
 	Client     *client.ClientSet
 }
 
@@ -76,18 +77,38 @@ func (ips *IstioOperator) Update(ir *IstioRoute) error {
 		utils.Fatal(fmt.Sprintf("Could not get istio resources to be updated due to an error '%s'", err), ips.TrackingId)
 	}
 
-	subsetName := ips.Name + "-" + ips.Namespace
-	subsetExists := false
-	for _, ds := range istioResources.DestinationRulesList.Items {
-		for _, subset := range ds.Spec.Subsets {
-			if subset.Name == subsetName {
-				subsetExists = true
+	for _, dr := range istioResources.DestinationRulesList.Items {
+		for _, subset := range dr.Spec.Subsets {
+			matchedHeaders := 0
+			for headerKey, headerValue := range ir.Headers {
+				if _, ok := subset.Labels[headerKey]; ok {
+					if subset.Labels[headerKey] == headerValue {
+						matchedHeaders += 1
+					}
+				}
 			}
-		}
 
-		// Break it?
-		if subsetExists {
-			fmt.Println( "Already exists")
+			if matchedHeaders == len(ir.Headers) {
+				utils.Fatal(fmt.Sprintf("Found existent subset for the current labels '%s'. Creating a new one for '%s'.", ir.Headers, dr.Name), ips.TrackingId)
+			}
+
+			// if no destinationRule matches provided headers, create it
+			//if matchedHeaders != len(ir.Headers) {
+			//	utils.Info(fmt.Sprintf("Could not find subset rules which matches provided headers '%s'. Creating a new one for '%s'.", ir.Headers, dr.Name), ips.TrackingId)
+			//	newSubset := &v1alpha3.Subset{
+			//		Name:   fmt.Sprintf("%s-%v-%s", ips.Name, ips.Build, ips.Namespace),
+			//		Labels: ir.Selector.Labels,
+			//	}
+			//	_, err := appendSubset(ips.TrackingId, &dr, newSubset)
+			//	if err != nil {
+			//		utils.Fatal("", ips.TrackingId)
+			//	}
+			//
+			//	err = UpdateDestinationRule(ips, updatedDr)
+			//	if err != nil {
+			//		utils.Fatal(fmt.Sprintf("%s", err), ips.TrackingId)
+			//	}
+			//}
 		}
 	}
 
@@ -98,6 +119,29 @@ func (ips *IstioOperator) Update(ir *IstioRoute) error {
 		}
 	}
 
+	return nil
+}
+
+func appendSubset(trackingId string, dr *v1alpha32.DestinationRule, newSubset *v1alpha3.Subset) (*v1alpha32.DestinationRule, error) {
+	for _, subsetValue := range dr.Spec.Subsets {
+		if subsetValue.Name == newSubset.Name {
+			// remove item from slice
+			utils.Fatal(fmt.Sprintf("Found already existent subset '%s', refusing to update", subsetValue.Name), trackingId)
+		}
+	}
+
+	dr.Spec.Subsets = append(dr.Spec.Subsets, newSubset)
+
+	return dr, nil
+}
+
+// UpdateDestinationRule updates a specific virtualService given an updated object
+func UpdateDestinationRule(ips *IstioOperator, destinationRule *v1alpha32.DestinationRule) error {
+	utils.Info(fmt.Sprintf("Updating rule for destinationRule '%s'...", destinationRule.Name), ips.TrackingId)
+	_, err := ips.Client.Istio.NetworkingV1alpha3().DestinationRules(ips.Namespace).Update(destinationRule)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
