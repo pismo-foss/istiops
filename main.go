@@ -21,7 +21,7 @@ func main() {
 		TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
 		Name:       "api-xpto",
 		Namespace:  "default",
-		Build:      25,
+		Build:      26,
 		Client:     clientSet,
 	}
 
