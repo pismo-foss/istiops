@@ -2,40 +2,46 @@ package main
 
 import (
 	"fmt"
-	"github.com/nu7hatch/gouuid"
-	"github.com/pismo/istiops/cmd"
+	"github.com/pismo/istiops/pkg/client"
+	"github.com/pismo/istiops/pkg/operator"
 	"github.com/pismo/istiops/utils"
 	_ "github.com/pkg/errors"
-	_ "github.com/sirupsen/logrus"
-	_ "github.com/snowzach/rotatefilehook"
-	_ "gopkg.in/yaml.v2"
-	_ "istio.io/api/networking/v1alpha3"
-	_ "k8s.io/apimachinery/pkg/apis/meta/v1"
-	_ "k8s.io/apimachinery/pkg/runtime/schema"
-	_ "k8s.io/client-go/dynamic"
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	_ "k8s.io/client-go/tools/clientcmd"
-)
-
-var (
-	// VERSION is set during build
-	VERSION = "0.0.1"
+	"k8s.io/client-go/util/homedir"
 )
 
 func main() {
-	uuid, err := uuid.NewV4()
+	homedir := homedir.HomeDir()
+	clientSet, err := client.Add(homedir + "/.kube/config")
 	if err != nil {
-		utils.Fatal("Could not generate CID", "")
+		utils.Fatal("Could not get clients", "cid")
 	}
-	cid := fmt.Sprintf("%v", uuid)
 
-	cmd.Execute(cid, VERSION)
+	var ips operator.Istiops
+	ips = &operator.IstioOperator{
+		TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
+		Name:       "api-xpto",
+		Namespace:  "default",
+		Build:      26,
+		Client:     clientSet,
+	}
+
+	routeResource := &operator.IstioRoute{
+		Port:     5000,
+		Hostname: "api-xpto.domain.io",
+		Selector: operator.Selector{
+			Labels: map[string]string{"environment": "pipeline-go"},
+		},
+		Headers: map[string]string{
+			"x-version": "PR-141",
+			"x-cid":     "blau",
+		},
+		Weight: 0,
+	}
+
+	// Update a route
+	err = ips.Update(routeResource)
+	if err != nil {
+		fmt.Printf("")
+	}
+
 }
-
-//func main() {
-//	apiValues := utils.BuildApiValues("api-pipelinetest", "default", "1.0.0", "2210")
-//	// pkg.CreateRouteResource(apiValues, "cid-random", context.Background())
-//	// pipeline.DeployApi(apiValues, "cid-random", context.Background())
-//	pipeline.IstioRouting(apiValues, "cid-random", context.Background())
-//	// pipeline.K8sHealthCheck("cid-random", 5, apiValues, context.Background())
-//}
