@@ -1,20 +1,16 @@
 package router
 
 import (
-	"fmt"
-
-	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
-	"github.com/heptio/contour/apis/generated/clientset/versioned"
+	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
+	"istio.io/api/networking/v1alpha3"
 )
 
 type DestinationRule struct {
-	Item  *v1alpha32.DestinationRule
 	Istio *versioned.Clientset
 }
 
-func (v *DestinationRule) Validate(route *Route) error {
-	fmt.Println(v.Item.Name)
-	return nil
+func (v *DestinationRule) Validate(route *Route) (v1alpha3.DestinationRule, error) {
+	return v1alpha3.DestinationRule{}, nil
 
 }
 

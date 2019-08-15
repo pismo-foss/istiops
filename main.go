@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/pismo/istiops/pkg/router"
 
-	"github.com/heptio/contour/apis/generated/clientset/versioned"
+	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	"github.com/pismo/istiops/pkg/operator"
 	_ "github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd"
@@ -19,33 +20,31 @@ func main() {
 		panic(err.Error())
 	}
 
-	dr = &DestinationRuleMock{
-		Istio: nil,
-	}
-
-	vs = &VirtualService{
+	dr := &router.DestinationRule{
 		Istio: istioClient,
 	}
 
-	var op Operator
-	op = &Istiops{
+	vs := &router.VirtualService{
+		Istio: istioClient,
+	}
+
+	var op operator.Operator
+	op = &operator.Istiops{
 		TrackingId:      "54ec4fd3-879b-404f-9812-c6b97f663b8d",
 		Name:            "api-xpto",
 		Namespace:       "default",
 		Build:           26,
-		DestinationRule: dr,
-		VirtualService:  vs,
+		DestinationRuleRouter: dr,
+		VirtualServiceRouter:  vs,
 	}
 
-	route := &operator.Route{
+	route := &router.Route{
 		Port:     5000,
-		Hostname: "api-xpto.domain.io",
-		Selector: operator.Selector{
-			Labels: map[string]string{"environment": "pipeline-go"},
-		},
+		Hostname: "api.domain.io",
+		Selector: map[string]string{"environment": "pipeline-go"},
 		Headers: map[string]string{
 			"x-version": "PR-141",
-			"x-cid":     "blau",
+			"x-cid":     "12312-123121-1212-1231-12131",
 		},
 		Weight: 0,
 	}
