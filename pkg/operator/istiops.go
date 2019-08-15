@@ -2,71 +2,59 @@ package operator
 
 import (
 	"fmt"
+
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
-	"github.com/pismo/istiops/pkg/client"
 	"github.com/pismo/istiops/utils"
 	"istio.io/api/networking/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type IstioOperator struct {
-	TrackingId string
-	Name       string
-	Namespace  string
-	Build      int8
-	Client     *client.ClientSet
+type Istiops struct {
+	TrackingId            string
+	Name                  string
+	Namespace             string
+	Build                 int8
+	VirtualServiceRouter  VirtualService
+	DestinationRuleRouter DestinationRule
 }
 
-type IstioRoute struct {
+type Route struct {
 	Port     uint32
 	Hostname string
-	Selector Selector
+	Selector map[string]string
 	Headers  map[string]string
 	Weight   int32
 }
 
-type IstioRouteList struct {
-	VirtualServiceList   *v1alpha32.VirtualServiceList
-	DestinationRulesList *v1alpha32.DestinationRuleList
+//shold be inside router for vs and dr
+//type IstioRouteList struct {
+//	VirtualServiceList   *v1alpha32.VirtualServiceList
+//	DestinationRulesList *v1alpha32.DestinationRuleList
+//}
+
+func (ips *Istiops) Create(r *Route) error {
+
+	VsRouter = ips.VirtualService
+	vs, err := VsRouter.Validate(Route)
+	//check error
+
+	DrRouter = ips.DestinationRule
+	dr, err = DrRouter.Validate(Route)
+	//check error
+
+	err = DrRouter.Update(dr)
+	//check error
+
+	err = VsRouter.Update(vs)
+	//check error
 }
 
-type Istiops interface {
-	Create(ir *IstioRoute)
-	Delete(ir *IstioRoute)
-	Update(ir *IstioRoute) error
-	Clear(Selector) error
-}
-
-type Selector struct {
-	Labels map[string]string
-}
-
-type Headers struct {
-	Labels map[string]string
-}
-
-func (ips *IstioOperator) Create(ir *IstioRoute) {
-	fmt.Println("creating")
-
-	istioNetworking := ips.Client.Istio.NetworkingV1alpha3()
-	dr := &v1alpha32.DestinationRule{}
-	dr.Name = ips.Name
-
-	_, err := istioNetworking.DestinationRules(ips.Namespace).Create(dr)
-
-	if err != nil {
-		utils.Fatal(fmt.Sprintf("Could no create resource due to an error '%s'", err), ips.TrackingId)
-	}
-
-	fmt.Println("Creating something")
-}
-
-func (ips *IstioOperator) Delete(ir *IstioRoute) {
+func (ips *Istiops) Delete(ir *IstioRoute) {
 	fmt.Println("Initializing something")
 	fmt.Println("", ips.TrackingId)
 }
 
-func (ips *IstioOperator) Update(ir *IstioRoute) error {
+func (ips *Istiops) Update(ir *IstioRoute) error {
 	if len(ir.Selector.Labels) == 0 {
 		utils.Fatal(fmt.Sprintf("Labels must not be empty otherwise istiops won't be able to find any resources."), ips.TrackingId)
 	}
@@ -122,7 +110,7 @@ func createSubset(trackingId string, dr v1alpha32.DestinationRule, newSubset *v1
 }
 
 // UpdateDestinationRule updates a specific virtualService given an updated object
-func UpdateDestinationRule(ips *IstioOperator, destinationRule *v1alpha32.DestinationRule) error {
+func UpdateDestinationRule(ips *Istiops, destinationRule *v1alpha32.DestinationRule) error {
 	utils.Info(fmt.Sprintf("Updating rule for destinationRule '%s'...", destinationRule.Name), ips.TrackingId)
 	_, err := ips.Client.Istio.NetworkingV1alpha3().DestinationRules(ips.Namespace).Update(destinationRule)
 	if err != nil {
@@ -133,7 +121,7 @@ func UpdateDestinationRule(ips *IstioOperator, destinationRule *v1alpha32.Destin
 
 // ClearRules will remove any destination & virtualService rules except the main one (provided by client).
 // Ex: URI or Prefix
-func (ips *IstioOperator) Clear(labels Selector) error {
+func (ips *Istiops) Clear(labels Selector) error {
 	resources, err := GetResourcesToUpdate(ips, labels)
 	if err != nil {
 		return err
@@ -164,7 +152,7 @@ func (ips *IstioOperator) Clear(labels Selector) error {
 }
 
 // GetResourcesToUpdate returns a slice of all DestinationRules and/or VirtualServices (based on given labelSelectors to a posterior update
-func GetResourcesToUpdate(ips *IstioOperator, labelSelector Selector) (*IstioRouteList, error) {
+func GetResourcesToUpdate(ips *Istiops, labelSelector Selector) (*IstioRouteList, error) {
 	StringifyLabelSelector, _ := utils.StringifyLabelSelector(ips.TrackingId, labelSelector.Labels)
 
 	listOptions := metav1.ListOptions{
@@ -197,7 +185,7 @@ func GetResourcesToUpdate(ips *IstioOperator, labelSelector Selector) (*IstioRou
 }
 
 // GetAllVirtualServices returns all istio resources 'virtualservices'
-func GetAllVirtualServices(ips *IstioOperator, listOptions metav1.ListOptions) (virtualServiceList *v1alpha32.VirtualServiceList, error error) {
+func GetAllVirtualServices(ips *Istiops, listOptions metav1.ListOptions) (virtualServiceList *v1alpha32.VirtualServiceList, error error) {
 	utils.Info(fmt.Sprintf("Finding virtualServices which matches selector '%s'...", listOptions.LabelSelector), ips.TrackingId)
 	vss, err := ips.Client.Istio.NetworkingV1alpha3().VirtualServices(ips.Namespace).List(listOptions)
 	if err != nil {
@@ -209,7 +197,7 @@ func GetAllVirtualServices(ips *IstioOperator, listOptions metav1.ListOptions) (
 }
 
 // GetAllVirtualservices returns all istio resources 'virtualservices'
-func GetAllDestinationRules(ips *IstioOperator, listOptions metav1.ListOptions) (destinationRuleList *v1alpha32.DestinationRuleList, error error) {
+func GetAllDestinationRules(ips *Istiops, listOptions metav1.ListOptions) (destinationRuleList *v1alpha32.DestinationRuleList, error error) {
 	utils.Info(fmt.Sprintf("Finding destinationRules which matches selector '%s'...", listOptions.LabelSelector), ips.TrackingId)
 	drs, err := ips.Client.Istio.NetworkingV1alpha3().DestinationRules(ips.Namespace).List(listOptions)
 	if err != nil {
@@ -221,7 +209,7 @@ func GetAllDestinationRules(ips *IstioOperator, listOptions metav1.ListOptions) 
 }
 
 // UpdateVirtualService updates a specific virtualService given an updated object
-func UpdateVirtualService(ips *IstioOperator, virtualService *v1alpha32.VirtualService) error {
+func UpdateVirtualService(ips *Istiops, virtualService *v1alpha32.VirtualService) error {
 	utils.Info(fmt.Sprintf("Updating rule for virtualService '%s'...", virtualService.Name), ips.TrackingId)
 	_, err := ips.Client.Istio.NetworkingV1alpha3().VirtualServices(ips.Namespace).Update(virtualService)
 	if err != nil {
@@ -232,7 +220,7 @@ func UpdateVirtualService(ips *IstioOperator, virtualService *v1alpha32.VirtualS
 	return nil
 }
 
-func Percentage(ips *IstioOperator, istioResources *IstioRouteList, ir *IstioRoute) (err error) {
+func Percentage(ips *Istiops, istioResources *IstioRouteList, ir *IstioRoute) (err error) {
 
 	var matchedHeaders int
 	var matchedUriSubset []string

@@ -2,30 +2,42 @@ package main
 
 import (
 	"fmt"
-	"github.com/pismo/istiops/pkg/client"
+
+	"github.com/heptio/contour/apis/generated/clientset/versioned"
 	"github.com/pismo/istiops/pkg/operator"
-	"github.com/pismo/istiops/utils"
 	_ "github.com/pkg/errors"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
 
 func main() {
-	homedir := homedir.HomeDir()
-	clientSet, err := client.Add(homedir + "/.kube/config")
+
+	kubeConfigPath := homedir.HomeDir() + "/.kube/config"
+	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
+	istioClient, err := versioned.NewForConfig(config)
 	if err != nil {
-		utils.Fatal("Could not get clients", "cid")
+		panic(err.Error())
 	}
 
-	var ips operator.Istiops
-	ips = &operator.IstioOperator{
-		TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-		Name:       "api-xpto",
-		Namespace:  "default",
-		Build:      26,
-		Client:     clientSet,
+	dr = &DestinationRuleMock{
+		Istio: nil,
 	}
 
-	routeResource := &operator.IstioRoute{
+	vs = &VirtualService{
+		Istio: istioClient,
+	}
+
+	var op Operator
+	op = &Istiops{
+		TrackingId:      "54ec4fd3-879b-404f-9812-c6b97f663b8d",
+		Name:            "api-xpto",
+		Namespace:       "default",
+		Build:           26,
+		DestinationRule: dr,
+		VirtualService:  vs,
+	}
+
+	route := &operator.Route{
 		Port:     5000,
 		Hostname: "api-xpto.domain.io",
 		Selector: operator.Selector{
@@ -39,7 +51,7 @@ func main() {
 	}
 
 	// Update a route
-	err = ips.Update(routeResource)
+	err = op.Update(route)
 	if err != nil {
 		fmt.Printf("")
 	}
