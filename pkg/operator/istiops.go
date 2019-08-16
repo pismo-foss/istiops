@@ -20,10 +20,10 @@ type Istiops struct {
 }
 
 //should be inside router for vs and dr
-//type IstioRouteList struct {
-//	VirtualServiceList   *v1alpha32.VirtualServiceList
-//	DestinationRulesList *v1alpha32.DestinationRuleList
-//}
+type IstioRouteList struct {
+	VirtualServiceList   *v1alpha32.VirtualServiceList
+	DestinationRulesList *v1alpha32.DestinationRuleList
+}
 
 func (ips *Istiops) Create(r *router.Route) error {
 
@@ -63,6 +63,7 @@ func (ips *Istiops) Update(r *router.Route) error {
 
 	// Getting destination rules
 	istioResources, err := GetResourcesToUpdate(ips, r.Selector)
+
 	if err != nil {
 		utils.Fatal(fmt.Sprintf("Could not get istio resources to be updated due to an error '%s'", err), ips.TrackingId)
 	}
@@ -155,7 +156,7 @@ func (ips *Istiops) Clear(labels map[string]string) error {
 
 // GetResourcesToUpdate returns a slice of all DestinationRules and/or VirtualServices (based on given labelSelectors to a posterior update
 func GetResourcesToUpdate(ips *Istiops, labelSelector map[string]string) (*IstioRouteList, error) {
-	StringifyLabelSelector, _ := utils.StringifyLabelSelector(ips.TrackingId, labelSelector.Labels)
+	StringifyLabelSelector, _ := utils.StringifyLabelSelector(ips.TrackingId, labelSelector)
 
 	listOptions := metav1.ListOptions{
 		LabelSelector: StringifyLabelSelector,
@@ -189,7 +190,7 @@ func GetResourcesToUpdate(ips *Istiops, labelSelector map[string]string) (*Istio
 // GetAllVirtualServices returns all istio resources 'virtualservices'
 func GetAllVirtualServices(ips *Istiops, listOptions metav1.ListOptions) (virtualServiceList *v1alpha32.VirtualServiceList, error error) {
 	utils.Info(fmt.Sprintf("Finding virtualServices which matches selector '%s'...", listOptions.LabelSelector), ips.TrackingId)
-	vss, err := ips.Client.Istio.NetworkingV1alpha3().VirtualServices(ips.Namespace).List(listOptions)
+	vss, err := ips.Istio.NetworkingV1alpha3().VirtualServices(ips.Namespace).List(listOptions)
 	if err != nil {
 		return nil, err
 	}

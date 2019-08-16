@@ -30,10 +30,10 @@ func main() {
 
 	var op operator.Operator
 	op = &operator.Istiops{
-		TrackingId:      "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-		Name:            "api-xpto",
-		Namespace:       "default",
-		Build:           26,
+		TrackingId:            "54ec4fd3-879b-404f-9812-c6b97f663b8d",
+		Name:                  "api-xpto",
+		Namespace:             "default",
+		Build:                 26,
 		DestinationRuleRouter: dr,
 		VirtualServiceRouter:  vs,
 	}
