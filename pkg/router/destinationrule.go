@@ -5,21 +5,21 @@ import (
 	"istio.io/api/networking/v1alpha3"
 )
 
-type DestinationRule struct {
+type DestinationRuleRoute struct {
 	Istio *versioned.Clientset
 }
 
-func (v *DestinationRule) Validate(route *Route) (v1alpha3.DestinationRule, error) {
+func (v *DestinationRuleRoute) Validate(route *Route) (v1alpha3.DestinationRule, error) {
 	return v1alpha3.DestinationRule{}, nil
 
 }
 
-func (v *DestinationRule) Update(route *Route) error {
+func (v *DestinationRuleRoute) Update(route *Route) error {
 	return nil
 
 }
 
-func (v *DestinationRule) Delete(route *Route) error {
+func (v *DestinationRuleRoute) Delete(route *Route) error {
 	return nil
 
 }

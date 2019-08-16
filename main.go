@@ -21,11 +21,11 @@ func main() {
 		panic(err.Error())
 	}
 
-	dr := &router.DestinationRule{
+	dr := &router.DestinationRuleRoute{
 		Istio: istioClient,
 	}
 
-	vs := &router.VirtualService{
+	vs := &router.VirtualServiceRoute{
 		Istio: istioClient,
 	}
 

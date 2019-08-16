@@ -5,21 +5,21 @@ import (
 	"istio.io/api/networking/v1alpha3"
 )
 
-type VirtualService struct {
+type VirtualServiceRoute struct {
 	Istio *versioned.Clientset
 }
 
-func (v *VirtualService) Validate(route *Route) (v1alpha3.VirtualService, error) {
+func (v *VirtualServiceRoute) Validate(route *Route) (v1alpha3.VirtualService, error) {
 	return v1alpha3.VirtualService{}, nil
 
 }
 
-func (v *VirtualService) Update(route *Route) error {
+func (v *VirtualServiceRoute) Update(route *Route) error {
 	return nil
 
 }
 
-func (v *VirtualService) Delete(route *Route) error {
+func (v *VirtualServiceRoute) Delete(route *Route) error {
 	return nil
 
 }
