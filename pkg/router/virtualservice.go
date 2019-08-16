@@ -1,10 +1,25 @@
 package router
 
 import (
-	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
+	"istio.io/api/networking/v1alpha3"
 )
 
 type VirtualService struct {
-	Item  *v1alpha32.VirtualService
-	Route *Route
+	Istio *versioned.Clientset
+}
+
+func (v *VirtualService) Validate(route *Route) (v1alpha3.VirtualService, error) {
+	return v1alpha3.VirtualService{}, nil
+
+}
+
+func (v *VirtualService) Update(route *Route) error {
+	return nil
+
+}
+
+func (v *VirtualService) Delete(route *Route) error {
+	return nil
+
 }

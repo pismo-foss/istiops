@@ -1,15 +1,21 @@
 package router
 
-import "istio.io/api/networking/v1alpha3"
+import (
+	"istio.io/api/networking/v1alpha3"
+)
 
-type RouteInterface interface {
+type Route struct {
+	Port     uint32
+	Hostname string
+	Selector map[string]string
+	Headers  map[string]string
+	Weight   int32
+}
+
+type Router interface {
 	Validate(route Route) error
 	Update(route Route) error
 	Delete(route Route) error
-}
-
-type Route struct {
-	Destination *v1alpha3.RouteDestination
 }
 
 type Subset struct {
