@@ -21,6 +21,10 @@ type IstioRouteList struct {
 	DestinationRulesList *v1alpha32.DestinationRuleList
 }
 
+func (ips *Istiops) Get(r *router.Route) error {
+	return nil
+}
+
 func (ips *Istiops) Create(r *router.Route) error {
 
 	VsRouter := ips.VirtualServiceRouter
