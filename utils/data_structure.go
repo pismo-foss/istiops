@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -26,7 +27,6 @@ func MapifyLabels(cid string, headers string) (map[string]string, error) {
 
 // StringifyLabelSelector returns a k8s selector string based on given map. Ex: "key=value,key2=value2"
 func StringifyLabelSelector(cid string, labelSelector map[string]string) (string, error) {
-	var err error
 
 	var labelsPair []string
 
@@ -35,7 +35,7 @@ func StringifyLabelSelector(cid string, labelSelector map[string]string) (string
 	}
 
 	if len(labelsPair) == 0 {
-		return "", err
+		return "", errors.New("got an empty labelSelector")
 	}
 
 	return strings.Join(labelsPair[:], ","), nil

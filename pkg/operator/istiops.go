@@ -7,15 +7,10 @@ import (
 
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/pismo/istiops/utils"
-	"istio.io/api/networking/v1alpha3"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type Istiops struct {
-	TrackingId            string
-	Name                  string
-	Namespace             string
-	Build                 int8
+	Metadata              *router.Metadata
 	VirtualServiceRouter  *router.VirtualServiceRoute
 	DestinationRuleRouter *router.DestinationRuleRoute
 }
@@ -47,13 +42,13 @@ func (ips *Istiops) Create(r *router.Route) error {
 
 func (ips *Istiops) Delete(r *router.Route) error {
 	fmt.Println("Initializing something")
-	fmt.Println("", ips.TrackingId)
+	fmt.Println("", ips.Metadata.TrackingId)
 	return nil
 }
 
 func (ips *Istiops) Update(r *router.Route) error {
-	if len(r.Selector) == 0 {
-		utils.Fatal(fmt.Sprintf("Labels must not be empty otherwise istiops won't be able to find any resources."), ips.TrackingId)
+	if len(r.Selector.ResourceSelector) == 0 || len(r.Selector.PodSelector) == 0 {
+		utils.Fatal(fmt.Sprintf("Selectors must not be empty otherwise istiops won't be able to find any resources."), ips.Metadata.TrackingId)
 	}
 
 	VsRouter := ips.VirtualServiceRouter
@@ -81,33 +76,10 @@ func (ips *Istiops) Update(r *router.Route) error {
 	if r.Weight > 0 {
 		// update router to serve percentage
 		if err != nil {
-			utils.Fatal(fmt.Sprintf("Could no create resource due to an error '%s'", err), ips.TrackingId)
+			utils.Fatal(fmt.Sprintf("Could no create resource due to an error '%s'", err), ips.Metadata.TrackingId)
 		}
 	}
 
-	return nil
-}
-
-func createSubset(trackingId string, dr v1alpha32.DestinationRule, newSubset *v1alpha3.Subset) (*v1alpha32.DestinationRule, error) {
-	for _, subsetValue := range dr.Spec.Subsets {
-		if subsetValue.Name == newSubset.Name {
-			// remove item from slice
-			utils.Warn(fmt.Sprintf("Found already existent subset '%s', refusing to update", subsetValue.Name), trackingId)
-		}
-	}
-
-	dr.Spec.Subsets = append(dr.Spec.Subsets, newSubset)
-
-	return &dr, nil
-}
-
-// UpdateDestinationRule updates a specific virtualService given an updated object
-func UpdateDestinationRule(ips *Istiops, router router.VirtualServiceRoute, destinationRule *v1alpha32.DestinationRule) error {
-	utils.Info(fmt.Sprintf("Updating rule for destinationRule '%s'...", destinationRule.Name), ips.TrackingId)
-	_, err := router.Istio.NetworkingV1alpha3().DestinationRules(ips.Namespace).Update(destinationRule)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -140,72 +112,15 @@ func (ips *Istiops) Clear(labels map[string]string) error {
 	return nil
 }
 
-// GetResourcesToUpdate returns a slice of all DestinationRules and/or VirtualServices (based on given labelSelectors to a posterior update
-//func GetResourcesToUpdate(ips *Istiops, labelSelector map[string]string) (*IstioRouteList, error) {
-//	StringifyLabelSelector, _ := utils.StringifyLabelSelector(ips.TrackingId, labelSelector)
-//
-//	listOptions := metav1.ListOptions{
-//		LabelSelector: StringifyLabelSelector,
-//	}
-//
-//	matchedDrs, err := GetAllDestinationRules(ips, listOptions)
-//	if err != nil {
-//		utils.Fatal(fmt.Sprintf("%s", err), ips.TrackingId)
-//		return nil, err
-//	}
-//
-//	matchedVss, err := GetAllVirtualServices(ips, listOptions)
-//	if err != nil {
-//		utils.Fatal(fmt.Sprintf("%s", err), ips.TrackingId)
-//		return nil, err
-//	}
-//
-//	if len(matchedDrs.Items) == 0 || len(matchedVss.Items) == 0 {
-//		utils.Fatal(fmt.Sprintf("Couldn't find any istio resources based on given labelSelector '%s' to update. ", StringifyLabelSelector), ips.TrackingId)
-//		return nil, err
-//	}
-//
-//	matchedResourcesList := &IstioRouteList{
-//		matchedVss,
-//		matchedDrs,
-//	}
-//
-//	return matchedResourcesList, nil
-//}
-
-// GetAllVirtualServices returns all istio resources 'virtualservices'
-func GetAllVirtualServices(vsRoute router.VirtualServiceRoute, ips *Istiops, listOptions metav1.ListOptions) (virtualServiceList *v1alpha32.VirtualServiceList, error error) {
-	utils.Info(fmt.Sprintf("Finding virtualServices which matches selector '%s'...", listOptions.LabelSelector), ips.TrackingId)
-	vss, err := vsRoute.Istio.NetworkingV1alpha3().VirtualServices(ips.Namespace).List(listOptions)
-	if err != nil {
-		return nil, err
-	}
-
-	utils.Info(fmt.Sprintf("Found a total of '%d' virtualServices", len(vss.Items)), ips.TrackingId)
-	return vss, nil
-}
-
-// GetAllVirtualservices returns all istio resources 'virtualservices'
-func GetAllDestinationRules(drRoute router.DestinationRuleRoute, ips *Istiops, listOptions metav1.ListOptions) (destinationRuleList *v1alpha32.DestinationRuleList, error error) {
-	utils.Info(fmt.Sprintf("Finding destinationRules which matches selector '%s'...", listOptions.LabelSelector), ips.TrackingId)
-	drs, err := drRoute.Istio.NetworkingV1alpha3().DestinationRules(ips.Namespace).List(listOptions)
-	if err != nil {
-		return nil, err
-	}
-
-	utils.Info(fmt.Sprintf("Found a total of '%d' destinationRules", len(drs.Items)), ips.TrackingId)
-	return drs, nil
-}
-
 // UpdateVirtualService updates a specific virtualService given an updated object
 func UpdateVirtualService(drRoute router.DestinationRuleRoute, ips *Istiops, virtualService *v1alpha32.VirtualService) error {
-	utils.Info(fmt.Sprintf("Updating rule for virtualService '%s'...", virtualService.Name), ips.TrackingId)
-	_, err := drRoute.Istio.NetworkingV1alpha3().VirtualServices(ips.Namespace).Update(virtualService)
+	utils.Info(fmt.Sprintf("Updating rule for virtualService '%s'...", virtualService.Name), ips.Metadata.TrackingId)
+	_, err := drRoute.Istio.NetworkingV1alpha3().VirtualServices(ips.Metadata.Namespace).Update(virtualService)
 	if err != nil {
 		return err
 	}
 
-	utils.Info("VirtualService successfully updated", ips.TrackingId)
+	utils.Info("VirtualService successfully updated", ips.Metadata.TrackingId)
 	return nil
 }
 
@@ -238,23 +153,23 @@ func Percentage(ips *Istiops, istioResources *IstioRouteList, r *router.Route) (
 				if matchedHeaders == len(r.Headers) {
 					utils.Info(fmt.Sprintf("Configuring weight to '%v' from '%s' in subset '%s'",
 						r.Weight, vs.Name, httpValue.Route[matchKey].Destination.Subset,
-					), ips.TrackingId)
+					), ips.Metadata.TrackingId)
 					httpValue.Route[matchKey].Weight = r.Weight
 				}
 			}
 		}
 
 		if len(matchedUriSubset) == 0 {
-			utils.Fatal(fmt.Sprintf("Could not find any URI match in '%s' for final routing.", vs.Name), ips.TrackingId)
+			utils.Fatal(fmt.Sprintf("Could not find any URI match in '%s' for final routing.", vs.Name), ips.Metadata.TrackingId)
 		}
 
 		if len(matchedUriSubset) > 1 {
-			utils.Fatal(fmt.Sprintf("Found more than one URI match in '%s'. A unique URI match is expected instead.", vs.Name), ips.TrackingId)
+			utils.Fatal(fmt.Sprintf("Found more than one URI match in '%s'. A unique URI match is expected instead.", vs.Name), ips.Metadata.TrackingId)
 		}
 
 		//err := UpdateVirtualService(ips, &vs)
 		//if err != nil {
-		//	utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to an error '%s'", vs.Name, err), ips.TrackingId)
+		//	utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to an error '%s'", vs.Name, err), ips.Metadata.TrackingId)
 		//}
 
 	}

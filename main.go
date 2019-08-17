@@ -21,20 +21,26 @@ func main() {
 		panic(err.Error())
 	}
 
+	m := router.Metadata{
+		TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
+		Name:       "api-xpto",
+		Namespace:  "default",
+		Build:      28,
+	}
+
 	dr := &router.DestinationRuleRoute{
-		Istio: istioClient,
+		Metadata: m,
+		Istio:    istioClient,
 	}
 
 	vs := &router.VirtualServiceRoute{
-		Istio: istioClient,
+		Metadata: m,
+		Istio:    istioClient,
 	}
 
 	var op operator.Operator
 	op = &operator.Istiops{
-		TrackingId:            "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-		Name:                  "api-xpto",
-		Namespace:             "default",
-		Build:                 26,
+		Metadata:              &m,
 		DestinationRuleRouter: dr,
 		VirtualServiceRouter:  vs,
 	}
@@ -42,7 +48,10 @@ func main() {
 	route := &router.Route{
 		Port:     5000,
 		Hostname: "api.domain.io",
-		Selector: map[string]string{"environment": "pipeline-go"},
+		Selector: &router.Selector{
+			ResourceSelector: map[string]string{"environment": "pipeline-go"},
+			PodSelector:      map[string]string{"app": "api", "version": "1.3.2", "build": "24"},
+		},
 		Headers: map[string]string{
 			"x-version": "PR-141",
 			"x-cid":     "12312-123121-1212-1231-12131",
