@@ -2,11 +2,9 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/pismo/istiops/pkg/router"
-
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	"github.com/pismo/istiops/pkg/operator"
+	"github.com/pismo/istiops/pkg/router"
 	_ "github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -25,7 +23,7 @@ func main() {
 		TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
 		Name:       "api-xpto",
 		Namespace:  "default",
-		Build:      28,
+		Build:      29,
 	}
 
 	dr := &router.DestinationRuleRoute{
@@ -52,15 +50,18 @@ func main() {
 			ResourceSelector: map[string]string{"environment": "pipeline-go"},
 			PodSelector:      map[string]string{"app": "api", "version": "1.3.2", "build": "24"},
 		},
-		Headers: map[string]string{
-			"x-version": "PR-141",
-			"x-cid":     "12312-123121-1212-1231-12131",
+		Traffic: &router.Traffic{
+			RequestHeaders: 	map[string]string{
+				"x-version": "PR-141",
+				"x-cid":     "12312-123121-1212-1231-12131",
+			},
+			Weight: 0,
 		},
-		Weight: 0,
 	}
 
 	// Update a route
 	err = op.Update(route)
+
 	if err != nil {
 		fmt.Printf("")
 	}

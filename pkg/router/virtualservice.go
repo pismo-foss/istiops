@@ -18,7 +18,7 @@ func (v *VirtualServiceRoute) Validate(route *Route) (v1alpha3.VirtualService, e
 }
 
 func (v *VirtualServiceRoute) Update(route *Route) error {
-
+	fmt.Println("updating virtualservice")
 	return nil
 
 }

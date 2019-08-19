@@ -8,8 +8,12 @@ type Route struct {
 	Port     uint32
 	Hostname string
 	Selector *Selector
-	Headers  map[string]string
-	Weight   int32
+	Traffic  *Traffic
+}
+
+type Traffic struct {
+	RequestHeaders map[string]string
+	Weight         int32
 }
 
 type Metadata struct {

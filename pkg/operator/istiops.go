@@ -2,10 +2,8 @@ package operator
 
 import (
 	"fmt"
-
-	"github.com/pismo/istiops/pkg/router"
-
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+	"github.com/pismo/istiops/pkg/router"
 	"github.com/pismo/istiops/utils"
 )
 
@@ -77,7 +75,7 @@ func (ips *Istiops) Update(r *router.Route) error {
 		return err
 	}
 
-	if r.Weight > 0 {
+	if r.Traffic.Weight > 0 {
 		// update router to serve percentage
 		if err != nil {
 			utils.Fatal(fmt.Sprintf("Could no create resource due to an error '%s'", err), ips.Metadata.TrackingId)
@@ -139,13 +137,13 @@ func Percentage(ips *Istiops, istioResources *IstioRouteList, r *router.Route) (
 				// Find a URI match to serve as final routing
 				if matchValue.Uri != nil {
 					matchedUriSubset = append(matchedUriSubset, httpValue.Route[matchKey].Destination.Subset)
-					httpValue.Route[matchKey].Weight = 100 - r.Weight
+					httpValue.Route[matchKey].Weight = 100 - r.Traffic.Weight
 					fmt.Println(httpValue.Route[matchKey].Destination.Subset)
 				}
 
 				// Find the correct match-rule among all headers based on given input (ir.Weight.Headers)
 				matchedHeaders = 0
-				for headerKey, headerValue := range r.Headers {
+				for headerKey, headerValue := range r.Traffic.RequestHeaders {
 					if _, ok := matchValue.Headers[headerKey]; ok {
 						if matchValue.Headers[headerKey].GetExact() == headerValue {
 							matchedHeaders += 1
@@ -154,11 +152,11 @@ func Percentage(ips *Istiops, istioResources *IstioRouteList, r *router.Route) (
 				}
 
 				// In case of a Rule matches all headers' input, set weight between URI & Headers
-				if matchedHeaders == len(r.Headers) {
+				if matchedHeaders == len(r.Traffic.RequestHeaders) {
 					utils.Info(fmt.Sprintf("Configuring weight to '%v' from '%s' in subset '%s'",
-						r.Weight, vs.Name, httpValue.Route[matchKey].Destination.Subset,
+						r.Traffic.Weight, vs.Name, httpValue.Route[matchKey].Destination.Subset,
 					), ips.Metadata.TrackingId)
-					httpValue.Route[matchKey].Weight = r.Weight
+					httpValue.Route[matchKey].Weight = r.Traffic.Weight
 				}
 			}
 		}
