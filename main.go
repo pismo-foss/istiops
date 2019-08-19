@@ -26,24 +26,17 @@ func main() {
 		Build:      29,
 	}
 
-	dr := &router.DestinationRuleRoute{
+	dr := &router.DestinationRule{
 		Metadata: m,
 		Istio:    istioClient,
 	}
 
-	vs := &router.VirtualServiceRoute{
+	vs := &router.VirtualService{
 		Metadata: m,
 		Istio:    istioClient,
 	}
 
-	var op operator.Operator
-	op = &operator.Istiops{
-		Metadata:              &m,
-		DestinationRuleRouter: dr,
-		VirtualServiceRouter:  vs,
-	}
-
-	route := &router.Route{
+	shift := &router.Shift{
 		Port:     5000,
 		Hostname: "api.domain.io",
 		Selector: &router.Selector{
@@ -63,8 +56,15 @@ func main() {
 		},
 	}
 
+	var op operator.Operator
+	op = &operator.Istiops{
+		Shift:    shift,
+		DrRouter: dr,
+		VsRouter: vs,
+	}
+
 	// Update a route
-	err = op.Update(route)
+	err = op.Update(shift)
 
 	if err != nil {
 		fmt.Printf("")

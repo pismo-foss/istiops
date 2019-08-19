@@ -3,20 +3,23 @@ package operator
 import (
 	"errors"
 	"testing"
+
+	"github.com/pismo/istiops/pkg/operator"
+	"github.com/pismo/istiops/pkg/router"
 )
 
 func TestCreate(t *testing.T) {
 	tests := map[string]struct {
-		r    Route
+		r    router.Route
 		ips  Istiops
 		want error
 	}{
 		"Missing port in route": {
-			route: Route{
+			r: router.Route{
 				//Port:     5000,
 				Hostname: "api-xpto.domain.io",
-				Selector: operator.Selector{
-					Labels: map[string]string{"environment": "pipeline-go"},
+				Selector: &router.Selector{
+					router.Labels: map[string]string{"environment": "pipeline-go"},
 				},
 				Headers: map[string]string{
 					"x-version": "PR-141",
@@ -24,7 +27,7 @@ func TestCreate(t *testing.T) {
 				},
 				Weight: 0,
 			},
-			istiops: Istiops{
+			istiops: operator.Istiops{
 				TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
 				Name:       "api-xpto",
 				Namespace:  "default",
@@ -49,16 +52,18 @@ func TestCreate(t *testing.T) {
 	}
 }
 
-type mockVirtualSerivce struct {
+type mockVirtualService struct {
 	cool     string
-	validate func() (VirtualService, error)
-	update   func() (VirtualService, error)
-	delete   func() (VirtualService, error)
+	validate func() (router.Router, error)
+	update   func() (router.Router, error)
+	delete   func() (router.Router, error)
 }
 
-func (mvs *mockVirtualService) Validate(r Route) VirtualService { return m.validate() }
-func (mvs *mockVirtualService) Update(r Route) VirtualService   { return m.update() }
-func (mvs *mockVirtualService) Delete(r Route) VirtualService   { return m.delete() }
+func (mvs *mockVirtualService) Update(r router.Route) (mockVirtualService, error) { return m.update() }
+func (mvs *mockVirtualService) Delete(r router.Route) (mockVirtualService, error) { return m.delete() }
+func (mvs *mockVirtualService) Validate(r router.Route) (mockVirtualService, error) {
+	return m.validate()
+}
 
 type mockDestinationRule struct {
 	validate func() (DestinationRule, error)
