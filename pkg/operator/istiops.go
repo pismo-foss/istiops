@@ -5,14 +5,14 @@ import (
 
 	"github.com/pismo/istiops/pkg/router"
 
-	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+	//v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/pismo/istiops/utils"
 )
 
 type Istiops struct {
-	Metadata              *router.Metadata
-	VirtualServiceRouter  *router.VirtualServiceRoute
-	DestinationRuleRouter *router.DestinationRuleRoute
+	shift    *Shift
+	vsRouter *router.VirtualService
+	drRouter *router.DestinationRule
 }
 
 //should be inside router for vs and dr

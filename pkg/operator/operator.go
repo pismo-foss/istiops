@@ -1,10 +1,16 @@
 package operator
 
-import "github.com/pismo/istiops/pkg/router"
+type Shift struct {
+	Port     uint32
+	Hostname string
+	Selector *Selector
+	Headers  map[string]string
+	Weight   int32
+}
 
 type Operator interface {
-	Create(ir *router.Route) error
-	Delete(ir *router.Route) error
-	Update(ir *router.Route) error
+	Create(s *Shift) error
+	Delete(s *Shift) error
+	Update(s *Shift) error
 	Clear(map[string]string) error
 }
