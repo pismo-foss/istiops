@@ -25,6 +25,7 @@ func (v *DestinationRuleRoute) Update(route *Route) error {
 	StringifyLabelSelector, err := utils.StringifyLabelSelector(v.Metadata.TrackingId, route.Selector.Labels)
 	if err != nil {
 		fmt.Println("null drs")
+		return err
 	}
 
 	listOptions := metav1.ListOptions{
@@ -34,6 +35,7 @@ func (v *DestinationRuleRoute) Update(route *Route) error {
 	drs, err := GetAllDestinationRules(v, route, listOptions)
 	if err != nil {
 		fmt.Println("null drs")
+		return err
 	}
 
 	for _, dr := range drs.Items {
@@ -43,12 +45,14 @@ func (v *DestinationRuleRoute) Update(route *Route) error {
 		}
 		updatedDr, err := createSubset(dr, newSubset)
 		if err != nil {
-			utils.Fatal(fmt.Sprintf("could not create subset due to error '%s'", err), v.Metadata.TrackingId)
+			utils.Error(fmt.Sprintf("could not create subset due to error '%s'", err), v.Metadata.TrackingId)
+			return err
 		}
 
 		err = UpdateDestinationRule(v, updatedDr)
 		if err != nil {
-			utils.Fatal(fmt.Sprintf("could not update destinationRule '%s' due to error '%s'", updatedDr.Name, err), v.Metadata.TrackingId)
+			utils.Error(fmt.Sprintf("could not update destinationRule '%s' due to error '%s'", updatedDr.Name, err), v.Metadata.TrackingId)
+			return err
 		}
 
 	}

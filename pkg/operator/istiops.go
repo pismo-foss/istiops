@@ -57,22 +57,22 @@ func (ips *Istiops) Update(r *router.Route) error {
 	vs, err := VsRouter.Validate(r)
 	fmt.Println(vs)
 	if err != nil {
-		return err
+		panic(fmt.Sprintf("%s", err))
 	}
 
 	DrRouter := ips.DestinationRuleRouter
 	dr, err := DrRouter.Validate(r)
 	fmt.Println(dr)
 	if err != nil {
-		return err
+		panic(fmt.Sprintf("%s", err))
 	}
 	err = DrRouter.Update(r)
 	if err != nil {
-		return err
+		panic(fmt.Sprintf("%s", err))
 	}
 	err = VsRouter.Update(r)
 	if err != nil {
-		return err
+		panic(fmt.Sprintf("%s", err))
 	}
 
 	if r.Traffic.Weight > 0 {

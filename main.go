@@ -50,8 +50,12 @@ func main() {
 			Labels: map[string]string{"environment": "pipeline-go"},
 		},
 		Traffic: &router.Traffic{
-			PodSelector:      map[string]string{"app": "api", "version": "1.3.2", "build": "24"},
-			RequestHeaders: 	map[string]string{
+			PodSelector: map[string]string{
+				"app":     "api",
+				"version": "1.3.2",
+				"build":   "24",
+			},
+			RequestHeaders: map[string]string{
 				"x-version": "PR-141",
 				"x-cid":     "12312-123121-1212-1231-12131",
 			},

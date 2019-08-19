@@ -12,7 +12,7 @@ type Route struct {
 }
 
 type Traffic struct {
-	PodSelector      map[string]string
+	PodSelector    map[string]string
 	RequestHeaders map[string]string
 	Weight         int32
 }
