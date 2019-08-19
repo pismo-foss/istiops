@@ -22,7 +22,7 @@ func (v *DestinationRuleRoute) Validate(route *Route) (v1alpha3.DestinationRule,
 }
 
 func (v *DestinationRuleRoute) Update(route *Route) error {
-	StringifyLabelSelector, err := utils.StringifyLabelSelector(v.Metadata.TrackingId, route.Selector.ResourceSelector)
+	StringifyLabelSelector, err := utils.StringifyLabelSelector(v.Metadata.TrackingId, route.Selector.Labels)
 	if err != nil {
 		fmt.Println("null drs")
 	}
@@ -39,7 +39,7 @@ func (v *DestinationRuleRoute) Update(route *Route) error {
 	for _, dr := range drs.Items {
 		newSubset := &v1alpha3.Subset{
 			Name:   fmt.Sprintf("%s-%v-%s", v.Metadata.Name, v.Metadata.Build, v.Metadata.Namespace),
-			Labels: route.Selector.PodSelector,
+			Labels: route.Traffic.PodSelector,
 		}
 		updatedDr, err := createSubset(dr, newSubset)
 		if err != nil {

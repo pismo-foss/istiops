@@ -49,7 +49,7 @@ func (ips *Istiops) Delete(r *router.Route) error {
 }
 
 func (ips *Istiops) Update(r *router.Route) error {
-	if len(r.Selector.ResourceSelector) == 0 || len(r.Selector.PodSelector) == 0 {
+	if len(r.Selector.Labels) == 0 || len(r.Traffic.PodSelector) == 0 {
 		utils.Fatal(fmt.Sprintf("Selectors must not be empty otherwise istiops won't be able to find any resources."), ips.Metadata.TrackingId)
 	}
 

@@ -12,6 +12,7 @@ type Route struct {
 }
 
 type Traffic struct {
+	PodSelector      map[string]string
 	RequestHeaders map[string]string
 	Weight         int32
 }
@@ -24,8 +25,7 @@ type Metadata struct {
 }
 
 type Selector struct {
-	ResourceSelector map[string]string
-	PodSelector      map[string]string
+	Labels map[string]string
 }
 
 type Router interface {
