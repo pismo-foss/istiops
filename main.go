@@ -23,14 +23,14 @@ func main() {
 		TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
 		Name:       "api-xpto",
 		Namespace:  "default",
-		Build:      29,
+		Build:      32,
 	}
 
 	VsM := router.VsMetadata{
 		TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
 		Name:       "api-xpto",
 		Namespace:  "default",
-		Build:      29,
+		Build:      32,
 	}
 
 	dr := &router.DestinationRule{
