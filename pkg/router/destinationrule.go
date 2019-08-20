@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type Metadata struct {
+type DrMetadata struct {
 	TrackingId string
 	Name       string
 	Namespace  string
@@ -19,13 +19,13 @@ type Metadata struct {
 }
 
 type DestinationRule struct {
-	Metadata Metadata
+	Metadata DrMetadata
 	Istio    *versioned.Clientset
 }
 
 func (v *DestinationRule) Validate(s *Shift) error {
 	fmt.Println("validating dr")
-	return v1alpha3.DestinationRule{}, nil
+	return nil
 
 }
 
@@ -74,15 +74,16 @@ func (v *DestinationRule) Delete(s *Shift) error {
 }
 
 // GetAllDestinationRules returns all istio resources 'virtualservices'
-func GetAllDestinationRules(drs *DestinationRule, Shift *Shift, listOptions metav1.ListOptions) (*v1alpha32.DestinationRuleList, error) {
+func GetAllDestinationRules(dr *DestinationRule, s *Shift, listOptions metav1.ListOptions) (*v1alpha32.DestinationRuleList, error) {
 
-	utils.Info(fmt.Sprintf("Finding destinationRules which matches selector '%s'...", listOptions.LabelSelector), drRoute.Metadata.Namespace)
-	drs, err := drRoute.Istio.NetworkingV1alpha3().DestinationRules(drRoute.Metadata.Namespace).List(listOptions)
+	utils.Info(fmt.Sprintf("Finding destinationRules which matches selector '%s'...", listOptions.LabelSelector), dr.Metadata.Namespace)
+
+	drs, err := dr.Istio.NetworkingV1alpha3().DestinationRules(dr.Metadata.Namespace).List(listOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	utils.Info(fmt.Sprintf("Found a total of '%d' destinationRules", len(drs.Items)), drRoute.Metadata.TrackingId)
+	utils.Info(fmt.Sprintf("Found a total of '%d' destinationRules", len(drs.Items)), dr.Metadata.TrackingId)
 	return drs, nil
 }
 
@@ -100,9 +101,9 @@ func createSubset(dr v1alpha32.DestinationRule, newSubset *v1alpha3.Subset) (*v1
 }
 
 // UpdateDestinationRule updates a specific virtualService given an updated object
-func UpdateDestinationRule(drs *DestinationRule, destinationRule *v1alpha32.DestinationRule) error {
-	utils.Info(fmt.Sprintf("Updating rule for destinationRule '%s'...", destinationRule.Name), drRoute.Metadata.TrackingId)
-	_, err := drRoute.Istio.NetworkingV1alpha3().DestinationRules(drRoute.Metadata.Namespace).Update(destinationRule)
+func UpdateDestinationRule(dr *DestinationRule, destinationRule *v1alpha32.DestinationRule) error {
+	utils.Info(fmt.Sprintf("Updating rule for destinationRule '%s'...", destinationRule.Name), dr.Metadata.TrackingId)
+	_, err := dr.Istio.NetworkingV1alpha3().DestinationRules(dr.Metadata.Namespace).Update(destinationRule)
 	if err != nil {
 		return err
 	}

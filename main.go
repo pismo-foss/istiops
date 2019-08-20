@@ -19,7 +19,14 @@ func main() {
 		panic(err.Error())
 	}
 
-	m := router.Metadata{
+	DrM := router.DrMetadata{
+		TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
+		Name:       "api-xpto",
+		Namespace:  "default",
+		Build:      29,
+	}
+
+	VsM := router.VsMetadata{
 		TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
 		Name:       "api-xpto",
 		Namespace:  "default",
@@ -27,12 +34,12 @@ func main() {
 	}
 
 	dr := &router.DestinationRule{
-		Metadata: m,
+		Metadata: DrM,
 		Istio:    istioClient,
 	}
 
 	vs := &router.VirtualService{
-		Metadata: m,
+		Metadata: VsM,
 		Istio:    istioClient,
 	}
 

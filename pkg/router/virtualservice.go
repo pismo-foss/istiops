@@ -9,8 +9,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type VsMetadata struct {
+	TrackingId string
+	Name       string
+	Namespace  string
+	Build      uint32
+}
+
 type VirtualService struct {
-	Metadata Metadata
+	Metadata VsMetadata
 	Istio    *versioned.Clientset
 }
 
@@ -24,7 +31,7 @@ func (v *VirtualService) Update(s *Shift) error {
 	fmt.Println("updating virtualservice")
 	subsetName := fmt.Sprintf("%s-%v-%s", v.Metadata.Name, v.Metadata.Build, v.Metadata.Namespace)
 
-	StringifyLabelSelector, err := utils.StringifyLabelSelector(v.Metadata.TrackingId, route.Selector.Labels)
+	StringifyLabelSelector, err := utils.StringifyLabelSelector(v.Metadata.TrackingId, s.Selector.Labels)
 	if err != nil {
 		fmt.Println("null drs")
 		return err
@@ -34,7 +41,7 @@ func (v *VirtualService) Update(s *Shift) error {
 		LabelSelector: StringifyLabelSelector,
 	}
 
-	vss, err := GetAllVirtualServices(v, route, listOptions)
+	vss, err := GetAllVirtualServices(v, s, listOptions)
 	for _, vs := range vss.Items {
 		for _, httpValue := range vs.Spec.Http {
 			for _, routeValue := range httpValue.Route {
