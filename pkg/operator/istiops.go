@@ -19,8 +19,7 @@ func (ips *Istiops) Get(r *router.Shift) error {
 func (ips *Istiops) Create(r *router.Shift) error {
 
 	VsRouter := ips.VsRouter
-	vs, err := VsRouter.Validate(r)
-	fmt.Println(vs)
+	err := VsRouter.Validate(r)
 	if err != nil {
 		return err
 	}
@@ -45,25 +44,26 @@ func (ips *Istiops) Update(r *router.Shift) error {
 		utils.Fatal(fmt.Sprintf("Selectors must not be empty otherwise istiops won't be able to find any resources."), "")
 	}
 
-	VsRouter := ips.VsRouter
-	vs, err := VsRouter.Validate(r)
-	fmt.Println(vs)
-	if err != nil {
-		panic(fmt.Sprintf("%s", err))
-	}
-
 	DrRouter := ips.DrRouter
+	VsRouter := ips.VsRouter
+	var err error
+
 	err = DrRouter.Validate(r)
 	if err != nil {
-		panic(fmt.Sprintf("%s", err))
+		utils.Fatal(fmt.Sprintf("%s", err), ips.DrRouter.Metadata.TrackingId)
 	}
 	err = DrRouter.Update(r)
 	if err != nil {
-		panic(fmt.Sprintf("%s", err))
+		utils.Fatal(fmt.Sprintf("%s", err), ips.DrRouter.Metadata.TrackingId)
+	}
+
+	err = VsRouter.Validate(r)
+	if err != nil {
+		utils.Fatal(fmt.Sprintf("%s", err), ips.VsRouter.Metadata.TrackingId)
 	}
 	err = VsRouter.Update(r)
 	if err != nil {
-		panic(fmt.Sprintf("%s", err))
+		utils.Fatal(fmt.Sprintf("%s", err), ips.VsRouter.Metadata.TrackingId)
 	}
 
 	if r.Traffic.Weight > 0 {

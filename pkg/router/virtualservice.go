@@ -21,14 +21,13 @@ type VirtualService struct {
 	Istio    *versioned.Clientset
 }
 
-func (v *VirtualService) Validate(s *Shift) (v1alpha3.VirtualService, error) {
-	fmt.Println("validating vr")
-	return v1alpha3.VirtualService{}, nil
+func (v *VirtualService) Validate(s *Shift) error {
+
+	return nil
 
 }
 
 func (v *VirtualService) Update(s *Shift) error {
-	fmt.Println("updating virtualservice")
 	subsetName := fmt.Sprintf("%s-%v-%s", v.Metadata.Name, v.Metadata.Build, v.Metadata.Namespace)
 
 	StringifyLabelSelector, err := utils.StringifyLabelSelector(v.Metadata.TrackingId, s.Selector.Labels)
