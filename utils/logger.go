@@ -53,8 +53,6 @@ func output(cid string, fields []Fields) *logJSON.Entry {
 	} else {
 		f = fields[0]
 	}
-	f["system"] = System
-	f["env"] = Env
 	f["systemVersion"] = Version
 	f["cid"] = cid
 

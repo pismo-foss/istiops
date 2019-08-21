@@ -2,37 +2,30 @@ package operator
 
 import (
 	"fmt"
-
 	"github.com/pismo/istiops/pkg/router"
-
-	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/pismo/istiops/utils"
 )
 
 type Istiops struct {
-	Metadata              *router.Metadata
-	VirtualServiceRouter  *router.VirtualServiceRoute
-	DestinationRuleRouter *router.DestinationRuleRoute
+	Shift    *router.Shift
+	VsRouter *router.VirtualService
+	DrRouter *router.DestinationRule
 }
 
-//should be inside router for vs and dr
-type IstioRouteList struct {
-	VirtualServiceList   *v1alpha32.VirtualServiceList
-	DestinationRulesList *v1alpha32.DestinationRuleList
+func (ips *Istiops) Get(r *router.Shift) error {
+	return nil
 }
 
-func (ips *Istiops) Create(r *router.Route) error {
+func (ips *Istiops) Create(r *router.Shift) error {
 
-	VsRouter := ips.VirtualServiceRouter
-	vs, err := VsRouter.Validate(r)
-	fmt.Println(vs)
+	VsRouter := ips.VsRouter
+	err := VsRouter.Validate(r)
 	if err != nil {
 		return err
 	}
 
-	DrRouter := ips.DestinationRuleRouter
-	dr, err := DrRouter.Validate(r)
-	fmt.Println(dr)
+	DrRouter := ips.DrRouter
+	err = DrRouter.Validate(r)
 	if err != nil {
 		return err
 	}
@@ -40,43 +33,43 @@ func (ips *Istiops) Create(r *router.Route) error {
 	return nil
 }
 
-func (ips *Istiops) Delete(r *router.Route) error {
+func (ips *Istiops) Delete(r *router.Shift) error {
 	fmt.Println("Initializing something")
-	fmt.Println("", ips.Metadata.TrackingId)
+	fmt.Println("", "cid")
 	return nil
 }
 
-func (ips *Istiops) Update(r *router.Route) error {
-	if len(r.Selector.ResourceSelector) == 0 || len(r.Selector.PodSelector) == 0 {
-		utils.Fatal(fmt.Sprintf("Selectors must not be empty otherwise istiops won't be able to find any resources."), ips.Metadata.TrackingId)
+func (ips *Istiops) Update(r *router.Shift) error {
+	if len(r.Selector.Labels) == 0 || len(r.Traffic.PodSelector) == 0 {
+		utils.Fatal(fmt.Sprintf("Selectors must not be empty otherwise istiops won't be able to find any resources."), "")
 	}
 
-	VsRouter := ips.VirtualServiceRouter
-	vs, err := VsRouter.Validate(r)
-	fmt.Println(vs)
-	if err != nil {
-		return err
-	}
+	DrRouter := ips.DrRouter
+	VsRouter := ips.VsRouter
+	var err error
 
-	DrRouter := ips.DestinationRuleRouter
-	dr, err := DrRouter.Validate(r)
-	fmt.Println(dr)
+	err = DrRouter.Validate(r)
 	if err != nil {
-		return err
+		utils.Fatal(fmt.Sprintf("%s", err), ips.DrRouter.Metadata.TrackingId)
 	}
 	err = DrRouter.Update(r)
 	if err != nil {
-		return err
+		utils.Fatal(fmt.Sprintf("%s", err), ips.DrRouter.Metadata.TrackingId)
+	}
+
+	err = VsRouter.Validate(r)
+	if err != nil {
+		utils.Fatal(fmt.Sprintf("%s", err), ips.VsRouter.Metadata.TrackingId)
 	}
 	err = VsRouter.Update(r)
 	if err != nil {
-		return err
+		utils.Fatal(fmt.Sprintf("%s", err), ips.VsRouter.Metadata.TrackingId)
 	}
 
-	if r.Weight > 0 {
+	if r.Traffic.Weight > 0 {
 		// update router to serve percentage
 		if err != nil {
-			utils.Fatal(fmt.Sprintf("Could no create resource due to an error '%s'", err), ips.Metadata.TrackingId)
+			utils.Fatal(fmt.Sprintf("Could no create resource due to an error '%s'", err), "")
 		}
 	}
 
@@ -112,19 +105,7 @@ func (ips *Istiops) Clear(labels map[string]string) error {
 	return nil
 }
 
-// UpdateVirtualService updates a specific virtualService given an updated object
-func UpdateVirtualService(drRoute router.DestinationRuleRoute, ips *Istiops, virtualService *v1alpha32.VirtualService) error {
-	utils.Info(fmt.Sprintf("Updating rule for virtualService '%s'...", virtualService.Name), ips.Metadata.TrackingId)
-	_, err := drRoute.Istio.NetworkingV1alpha3().VirtualServices(ips.Metadata.Namespace).Update(virtualService)
-	if err != nil {
-		return err
-	}
-
-	utils.Info("VirtualService successfully updated", ips.Metadata.TrackingId)
-	return nil
-}
-
-func Percentage(ips *Istiops, istioResources *IstioRouteList, r *router.Route) (err error) {
+func Percentage(istioResources *router.IstioRouteList, s *router.Shift) (err error) {
 
 	var matchedHeaders int
 	var matchedUriSubset []string
@@ -135,13 +116,13 @@ func Percentage(ips *Istiops, istioResources *IstioRouteList, r *router.Route) (
 				// Find a URI match to serve as final routing
 				if matchValue.Uri != nil {
 					matchedUriSubset = append(matchedUriSubset, httpValue.Route[matchKey].Destination.Subset)
-					httpValue.Route[matchKey].Weight = 100 - r.Weight
+					httpValue.Route[matchKey].Weight = 100 - s.Traffic.Weight
 					fmt.Println(httpValue.Route[matchKey].Destination.Subset)
 				}
 
 				// Find the correct match-rule among all headers based on given input (ir.Weight.Headers)
 				matchedHeaders = 0
-				for headerKey, headerValue := range r.Headers {
+				for headerKey, headerValue := range s.Traffic.RequestHeaders {
 					if _, ok := matchValue.Headers[headerKey]; ok {
 						if matchValue.Headers[headerKey].GetExact() == headerValue {
 							matchedHeaders += 1
@@ -150,21 +131,21 @@ func Percentage(ips *Istiops, istioResources *IstioRouteList, r *router.Route) (
 				}
 
 				// In case of a Rule matches all headers' input, set weight between URI & Headers
-				if matchedHeaders == len(r.Headers) {
+				if matchedHeaders == len(s.Traffic.RequestHeaders) {
 					utils.Info(fmt.Sprintf("Configuring weight to '%v' from '%s' in subset '%s'",
-						r.Weight, vs.Name, httpValue.Route[matchKey].Destination.Subset,
-					), ips.Metadata.TrackingId)
-					httpValue.Route[matchKey].Weight = r.Weight
+						s.Traffic.Weight, vs.Name, httpValue.Route[matchKey].Destination.Subset,
+					), "cid")
+					httpValue.Route[matchKey].Weight = s.Traffic.Weight
 				}
 			}
 		}
 
 		if len(matchedUriSubset) == 0 {
-			utils.Fatal(fmt.Sprintf("Could not find any URI match in '%s' for final routing.", vs.Name), ips.Metadata.TrackingId)
+			utils.Fatal(fmt.Sprintf("Could not find any URI match in '%s' for final routing.", vs.Name), "cid")
 		}
 
 		if len(matchedUriSubset) > 1 {
-			utils.Fatal(fmt.Sprintf("Found more than one URI match in '%s'. A unique URI match is expected instead.", vs.Name), ips.Metadata.TrackingId)
+			utils.Fatal(fmt.Sprintf("Found more than one URI match in '%s'. A unique URI match is expected instead.", vs.Name), "")
 		}
 
 		//err := UpdateVirtualService(ips, &vs)

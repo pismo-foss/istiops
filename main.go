@@ -2,11 +2,9 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/pismo/istiops/pkg/router"
-
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	"github.com/pismo/istiops/pkg/operator"
+	"github.com/pismo/istiops/pkg/router"
 	_ "github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -21,46 +19,60 @@ func main() {
 		panic(err.Error())
 	}
 
-	m := router.Metadata{
+	DrM := router.DrMetadata{
 		TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
 		Name:       "api-xpto",
 		Namespace:  "default",
-		Build:      28,
+		Build:      32,
 	}
 
-	dr := &router.DestinationRuleRoute{
-		Metadata: m,
+	VsM := router.VsMetadata{
+		TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
+		Name:       "api-xpto",
+		Namespace:  "default",
+		Build:      32,
+	}
+
+	dr := &router.DestinationRule{
+		Metadata: DrM,
 		Istio:    istioClient,
 	}
 
-	vs := &router.VirtualServiceRoute{
-		Metadata: m,
+	vs := &router.VirtualService{
+		Metadata: VsM,
 		Istio:    istioClient,
+	}
+
+	shift := &router.Shift{
+		Port:     5000,
+		Hostname: "api.domain.io",
+		Selector: &router.Selector{
+			Labels: map[string]string{"environment": "pipeline-go"},
+		},
+		Traffic: &router.Traffic{
+			PodSelector: map[string]string{
+				"app":     "api",
+				"version": "1.3.2",
+				"build":   "24",
+			},
+			RequestHeaders: map[string]string{
+				"x-version": "PR-141",
+				"x-cid":     "12312-123121-1212-1231-12131",
+			},
+			Weight: 0,
+		},
 	}
 
 	var op operator.Operator
 	op = &operator.Istiops{
-		Metadata:              &m,
-		DestinationRuleRouter: dr,
-		VirtualServiceRouter:  vs,
-	}
-
-	route := &router.Route{
-		Port:     5000,
-		Hostname: "api.domain.io",
-		Selector: &router.Selector{
-			ResourceSelector: map[string]string{"environment": "pipeline-go"},
-			PodSelector:      map[string]string{"app": "api", "version": "1.3.2", "build": "24"},
-		},
-		Headers: map[string]string{
-			"x-version": "PR-141",
-			"x-cid":     "12312-123121-1212-1231-12131",
-		},
-		Weight: 0,
+		Shift:    shift,
+		DrRouter: dr,
+		VsRouter: vs,
 	}
 
 	// Update a route
-	err = op.Update(route)
+	err = op.Update(shift)
+
 	if err != nil {
 		fmt.Printf("")
 	}
