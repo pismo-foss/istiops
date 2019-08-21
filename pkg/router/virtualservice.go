@@ -33,7 +33,6 @@ func (v *VirtualService) Update(s *Shift) error {
 
 	StringifyLabelSelector, err := utils.StringifyLabelSelector(v.Metadata.TrackingId, s.Selector.Labels)
 	if err != nil {
-		fmt.Println("null drs")
 		return err
 	}
 
@@ -54,7 +53,7 @@ func (v *VirtualService) Update(s *Shift) error {
 			}
 		}
 
-		if ! subsetExists {
+		if !subsetExists {
 			// create new subset
 			utils.Info(fmt.Sprintf("Creating new route"), v.Metadata.TrackingId)
 			newHttpRoute, err := CreateNewRoute(subsetName, v, s)

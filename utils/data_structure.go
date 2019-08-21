@@ -40,12 +40,3 @@ func StringifyLabelSelector(cid string, labelSelector map[string]string) (string
 
 	return strings.Join(labelsPair[:], ","), nil
 }
-
-func ValidateCobraStringFlag(flag string) error {
-	var err error
-
-	if flag == "" {
-		return err
-	}
-	return nil
-}
