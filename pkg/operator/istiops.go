@@ -7,9 +7,8 @@ import (
 )
 
 type Istiops struct {
-	Shift    *router.Shift
-	VsRouter *router.VirtualService
-	DrRouter *router.DestinationRule
+	VsRouter router.Router
+	DrRouter router.Router
 }
 
 func (ips *Istiops) Get(r *router.Shift) error {
@@ -50,27 +49,27 @@ func (ips *Istiops) Update(r *router.Shift) error {
 
 	err = DrRouter.Validate(r)
 	if err != nil {
-		utils.Fatal(fmt.Sprintf("%s", err), ips.DrRouter.Metadata.TrackingId)
+		return err
 	}
 	err = DrRouter.Update(r)
 	if err != nil {
-		utils.Fatal(fmt.Sprintf("%s", err), ips.DrRouter.Metadata.TrackingId)
+		return err
 	}
 
 	err = VsRouter.Validate(r)
 	if err != nil {
-		utils.Fatal(fmt.Sprintf("%s", err), ips.VsRouter.Metadata.TrackingId)
+		return err
 	}
 	err = VsRouter.Update(r)
 	if err != nil {
-		utils.Fatal(fmt.Sprintf("%s", err), ips.VsRouter.Metadata.TrackingId)
+		return err
 	}
 
 	if r.Traffic.Weight > 0 {
 		// update router to serve percentage
-		if err != nil {
-			utils.Fatal(fmt.Sprintf("Could no create resource due to an error '%s'", err), "")
-		}
+		//if err != nil {
+		//	utils.Fatal(fmt.Sprintf("Could no create resource due to an error '%s'", err), "")
+		//}
 	}
 
 	return nil
@@ -83,14 +82,14 @@ func (ips *Istiops) Clear(s *router.Shift) error {
 	VsRouter := ips.VsRouter
 	var err error
 
-	err = DrRouter.Clear(ips.Shift)
+	err = DrRouter.Clear(s)
 	if err != nil {
-		utils.Fatal(fmt.Sprintf("%s", err), ips.DrRouter.Metadata.TrackingId)
+		return err
 	}
 
-	err = VsRouter.Clear(ips.Shift)
+	err = VsRouter.Clear(s)
 	if err != nil {
-		utils.Fatal(fmt.Sprintf("%s", err), ips.DrRouter.Metadata.TrackingId)
+		return err
 	}
 
 	// Clean dr rules ?

@@ -5,6 +5,7 @@ import (
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	"github.com/pismo/istiops/pkg/operator"
 	"github.com/pismo/istiops/pkg/router"
+	"github.com/pismo/istiops/utils"
 	_ "github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -43,12 +44,14 @@ func main() {
 		Build:      build,
 	}
 
-	dr := &router.DestinationRule{
+	var dr router.Router
+	dr = &router.DestinationRule{
 		Metadata: DrM,
 		Istio:    istioClient,
 	}
 
-	vs := &router.VirtualService{
+	var vs router.Router
+	vs = &router.VirtualService{
 		Metadata: VsM,
 		Istio:    istioClient,
 	}
@@ -75,21 +78,20 @@ func main() {
 
 	var op operator.Operator
 	op = &operator.Istiops{
-		Shift:    shift,
 		DrRouter: dr,
 		VsRouter: vs,
 	}
 
 	// clear all routes + subsets
-	//err = op.Clear(shift)
-	//if err != nil {
-	//	fmt.Printf("")
-	//}
+	err = op.Clear(shift)
+	if err != nil {
+	   utils.Fatal(fmt.Sprintf("%s", err), trackingId)
+	}
 
 	// Update a route
 	err = op.Update(shift)
 	if err != nil {
-		fmt.Printf("")
+		utils.Fatal(fmt.Sprintf("%s", err), trackingId)
 	}
 
 }
