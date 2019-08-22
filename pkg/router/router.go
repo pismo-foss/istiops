@@ -6,6 +6,7 @@ type Router interface {
 	Validate(s *Shift) error
 	Update(s *Shift) error
 	Delete(s *Shift) error
+	Clear(s *Shift) error
 }
 
 type Shift struct {

@@ -59,16 +59,16 @@ type mockVirtualService struct {
 	delete   func() (router.Router, error)
 }
 
-func (mvs *mockVirtualService) Update(r router.Route) (mockVirtualService, error) { return m.update() }
-func (mvs *mockVirtualService) Delete(r router.Route) (mockVirtualService, error) { return m.delete() }
-func (mvs *mockVirtualService) Validate(r router.Route) (mockVirtualService, error) {
-	return m.validate()
+func (mvs *mockVirtualService) Update(s router.Shift) (mockVirtualService, error) { return mvs.update() }
+func (mvs *mockVirtualService) Delete(r router.Shift) (mockVirtualService, error) { return mvs.delete() }
+func (mvs *mockVirtualService) Validate(r router.Shift) (mockVirtualService, error) {
+	return mvs.validate()
 }
 
 type mockDestinationRule struct {
 	validate func() (DestinationRule, error)
 	update   func() (DestinationRule, error)
-	delete   func() (DestinationRule error)
+	delete   func() (DestinationRule, error)
 }
 
 func (mvs *mockDestinationRule) Validate(r Route) DestinationRule { return m.validate() }

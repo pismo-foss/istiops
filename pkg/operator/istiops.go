@@ -78,83 +78,22 @@ func (ips *Istiops) Update(r *router.Shift) error {
 
 // ClearRules will remove any destination & virtualService rules except the main one (provided by client).
 // Ex: URI or Prefix
-func (ips *Istiops) Clear(labels map[string]string) error {
-	//resources, err := GetResourcesToUpdate(ips, labels)
-	//if err != nil {
-	//	return err
-	//}
+func (ips *Istiops) Clear(s *router.Shift) error {
+	DrRouter := ips.DrRouter
+	VsRouter := ips.VsRouter
+	var err error
 
-	// Clean vs rules
-	//for _, vs := range resources.VirtualServiceList.Items {
-	//	var cleanedRoutes []*v1alpha3.HTTPRoute
-	//	for httpRuleKey, httpRuleValue := range vs.Spec.Http {
-	//		for _, matchRuleValue := range httpRuleValue.Match {
-	//			if matchRuleValue.Uri != nil {
-	//				// remove rule with no Uri from HTTPRoute list to a posterior update
-	//				cleanedRoutes = append(cleanedRoutes, vs.Spec.Http[httpRuleKey])
-	//			}
-	//		}
-	//	}
-	//
-	//	vs.Spec.Http = cleanedRoutes
-	//	// update virtualService
-	//}
+	err = DrRouter.Clear(ips.Shift)
+	if err != nil {
+		utils.Fatal(fmt.Sprintf("%s", err), ips.DrRouter.Metadata.TrackingId)
+	}
+
+	err = VsRouter.Clear(ips.Shift)
+	if err != nil {
+		utils.Fatal(fmt.Sprintf("%s", err), ips.DrRouter.Metadata.TrackingId)
+	}
 
 	// Clean dr rules ?
 
 	return nil
-}
-
-func Percentage(istioResources *router.IstioRouteList, s *router.Shift) (err error) {
-
-	var matchedHeaders int
-	var matchedUriSubset []string
-	for _, vs := range istioResources.VirtualServiceList.Items {
-		matchedUriSubset = []string{}
-		for _, httpValue := range vs.Spec.Http {
-			for matchKey, matchValue := range httpValue.Match {
-				// Find a URI match to serve as final routing
-				if matchValue.Uri != nil {
-					matchedUriSubset = append(matchedUriSubset, httpValue.Route[matchKey].Destination.Subset)
-					httpValue.Route[matchKey].Weight = 100 - s.Traffic.Weight
-					fmt.Println(httpValue.Route[matchKey].Destination.Subset)
-				}
-
-				// Find the correct match-rule among all headers based on given input (ir.Weight.Headers)
-				matchedHeaders = 0
-				for headerKey, headerValue := range s.Traffic.RequestHeaders {
-					if _, ok := matchValue.Headers[headerKey]; ok {
-						if matchValue.Headers[headerKey].GetExact() == headerValue {
-							matchedHeaders += 1
-						}
-					}
-				}
-
-				// In case of a Rule matches all headers' input, set weight between URI & Headers
-				if matchedHeaders == len(s.Traffic.RequestHeaders) {
-					utils.Info(fmt.Sprintf("Configuring weight to '%v' from '%s' in subset '%s'",
-						s.Traffic.Weight, vs.Name, httpValue.Route[matchKey].Destination.Subset,
-					), "cid")
-					httpValue.Route[matchKey].Weight = s.Traffic.Weight
-				}
-			}
-		}
-
-		if len(matchedUriSubset) == 0 {
-			utils.Fatal(fmt.Sprintf("Could not find any URI match in '%s' for final routing.", vs.Name), "cid")
-		}
-
-		if len(matchedUriSubset) > 1 {
-			utils.Fatal(fmt.Sprintf("Found more than one URI match in '%s'. A unique URI match is expected instead.", vs.Name), "")
-		}
-
-		//err := UpdateVirtualService(ips, &vs)
-		//if err != nil {
-		//	utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to an error '%s'", vs.Name, err), ips.Metadata.TrackingId)
-		//}
-
-	}
-
-	return nil
-
 }

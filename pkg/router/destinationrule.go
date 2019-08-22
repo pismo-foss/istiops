@@ -92,6 +92,31 @@ func (v *DestinationRule) Update(s *Shift) error {
 
 }
 
+func (v *DestinationRule) Clear(s *Shift) error {
+	StringifyLabelSelector, err := utils.StringifyLabelSelector(v.Metadata.TrackingId, s.Selector.Labels)
+	if err != nil {
+		return err
+	}
+
+	listOptions := metav1.ListOptions{
+		LabelSelector: StringifyLabelSelector,
+	}
+
+	drs, err := GetAllDestinationRules(v, s, listOptions)
+
+	for _, dr := range drs.Items {
+		dr.Spec.Subsets = []*v1alpha3.Subset{}
+
+		utils.Info(fmt.Sprintf("Clearing all destinationRules subsets from '%s'...", dr.Name), v.Metadata.TrackingId)
+		err := UpdateDestinationRule(v, &dr)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (v *DestinationRule) Delete(s *Shift) error {
 	return nil
 
