@@ -5,10 +5,10 @@ import (
 	"os"
 )
 
-func init() {
-	trafficCmd.AddCommand(cleanRulesCmd)
-	trafficCmd.AddCommand(setHeadersCmd)
-}
+//func init() {
+//	trafficCmd.AddCommand(cleanRulesCmd)
+//	trafficCmd.AddCommand(setHeadersCmd)
+//}
 
 var trafficCmd = &cobra.Command{
 	Use:   "traffic",

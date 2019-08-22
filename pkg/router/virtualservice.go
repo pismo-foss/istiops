@@ -119,7 +119,6 @@ func (v *VirtualService) Clear(s *Shift) error {
 
 }
 
-
 // GetAllVirtualServices returns all istio resources 'virtualservices'
 func GetAllVirtualServices(vsRoute *VirtualService, s *Shift, listOptions metav1.ListOptions) (*v1alpha32.VirtualServiceList, error) {
 	utils.Info(fmt.Sprintf("Getting all virtualservices..."), vsRoute.Metadata.TrackingId)
