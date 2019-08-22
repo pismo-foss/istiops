@@ -83,6 +83,43 @@ func (v *VirtualService) Delete(s *Shift) error {
 
 }
 
+func (v *VirtualService) Clear(s *Shift) error {
+	StringifyLabelSelector, err := utils.StringifyLabelSelector(v.Metadata.TrackingId, s.Selector.Labels)
+	if err != nil {
+		return err
+	}
+
+	listOptions := metav1.ListOptions{
+		LabelSelector: StringifyLabelSelector,
+	}
+
+	vss, err := GetAllVirtualServices(v, s, listOptions)
+
+	for _, vs := range vss.Items {
+		var cleanedRoutes []*v1alpha3.HTTPRoute
+		for httpRuleKey, httpRuleValue := range vs.Spec.Http {
+			for _, matchRuleValue := range httpRuleValue.Match {
+				if matchRuleValue.Uri != nil {
+					// remove rule with no Uri from HTTPRoute list to a posterior update
+					cleanedRoutes = append(cleanedRoutes, vs.Spec.Http[httpRuleKey])
+				}
+			}
+		}
+
+		vs.Spec.Http = cleanedRoutes
+
+		utils.Info(fmt.Sprintf("Clearing all virtualService routes from '%s' except the URI or Weighted ones...", vs.Name), v.Metadata.TrackingId)
+		err := UpdateVirtualService(v, &vs)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+
+}
+
+
 // GetAllVirtualServices returns all istio resources 'virtualservices'
 func GetAllVirtualServices(vsRoute *VirtualService, s *Shift, listOptions metav1.ListOptions) (*v1alpha32.VirtualServiceList, error) {
 	utils.Info(fmt.Sprintf("Getting all virtualservices..."), vsRoute.Metadata.TrackingId)

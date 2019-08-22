@@ -71,7 +71,7 @@ func main() {
 				"x-version": "PR-141",
 				"x-cid":     "12312-123121-1212-1231-12131",
 			},
-			Weight: 10,
+			Weight: 0,
 		},
 	}
 
@@ -82,9 +82,14 @@ func main() {
 		VsRouter: vs,
 	}
 
+	// clear all routes + subsets
+	//err = op.Clear(shift)
+	//if err != nil {
+	//	fmt.Printf("")
+	//}
+
 	// Update a route
 	err = op.Update(shift)
-
 	if err != nil {
 		fmt.Printf("")
 	}

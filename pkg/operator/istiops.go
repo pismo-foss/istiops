@@ -78,27 +78,20 @@ func (ips *Istiops) Update(r *router.Shift) error {
 
 // ClearRules will remove any destination & virtualService rules except the main one (provided by client).
 // Ex: URI or Prefix
-func (ips *Istiops) Clear(labels map[string]string) error {
-	//resources, err := GetResourcesToUpdate(ips, labels)
-	//if err != nil {
-	//	return err
-	//}
+func (ips *Istiops) Clear(s *router.Shift) error {
+	DrRouter := ips.DrRouter
+	VsRouter := ips.VsRouter
+	var err error
 
-	// Clean vs rules
-	//for _, vs := range resources.VirtualServiceList.Items {
-	//	var cleanedRoutes []*v1alpha3.HTTPRoute
-	//	for httpRuleKey, httpRuleValue := range vs.Spec.Http {
-	//		for _, matchRuleValue := range httpRuleValue.Match {
-	//			if matchRuleValue.Uri != nil {
-	//				// remove rule with no Uri from HTTPRoute list to a posterior update
-	//				cleanedRoutes = append(cleanedRoutes, vs.Spec.Http[httpRuleKey])
-	//			}
-	//		}
-	//	}
-	//
-	//	vs.Spec.Http = cleanedRoutes
-	//	// update virtualService
-	//}
+	err = DrRouter.Clear(ips.Shift)
+	if err != nil {
+		utils.Fatal(fmt.Sprintf("%s", err), ips.DrRouter.Metadata.TrackingId)
+	}
+
+	err = VsRouter.Clear(ips.Shift)
+	if err != nil {
+		utils.Fatal(fmt.Sprintf("%s", err), ips.DrRouter.Metadata.TrackingId)
+	}
 
 	// Clean dr rules ?
 
