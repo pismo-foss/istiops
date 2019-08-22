@@ -1,22 +1,95 @@
-/*
-Copyright © 2019 NAME HERE <EMAIL ADDRESS>
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package main
 
-import "github.com/pismo/istiops/cmd"
+import (
+	"fmt"
+	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
+	"github.com/pismo/istiops/pkg/operator"
+	"github.com/pismo/istiops/pkg/router"
+	_ "github.com/pkg/errors"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
+)
 
 func main() {
-	cmd.Execute()
+
+	kubeConfigPath := homedir.HomeDir() + "/.kube/config"
+	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
+	istioClient, err := versioned.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var build uint32
+	var trackingId string
+	var metadataName string
+	var metadataNamespace string
+
+	trackingId = "54ec4fd3-879b-404f-9812-c6b97f663b8d"
+	metadataName = "api-xpto"
+	metadataNamespace = "default"
+	build = 35
+
+	DrM := router.DrMetadata{
+		TrackingId: trackingId,
+		Name:       metadataName,
+		Namespace:  metadataNamespace,
+		Build:      build,
+	}
+
+	VsM := router.VsMetadata{
+		TrackingId: trackingId,
+		Name:       metadataName,
+		Namespace:  metadataNamespace,
+		Build:      build,
+	}
+
+	dr := &router.DestinationRule{
+		Metadata: DrM,
+		Istio:    istioClient,
+	}
+
+	vs := &router.VirtualService{
+		Metadata: VsM,
+		Istio:    istioClient,
+	}
+
+	shift := &router.Shift{
+		Port:     5000,
+		Hostname: "api.domain.io",
+		Selector: &router.Selector{
+			Labels: map[string]string{"environment": "pipeline-go"},
+		},
+		Traffic: &router.Traffic{
+			PodSelector: map[string]string{
+				"app":     "api",
+				"version": "1.3.2",
+				"build":   "24",
+			},
+			RequestHeaders: map[string]string{
+				"x-version": "PR-141",
+				"x-cid":     "12312-123121-1212-1231-12131",
+			},
+			Weight: 0,
+		},
+	}
+
+	var op operator.Operator
+	op = &operator.Istiops{
+		Shift:    shift,
+		DrRouter: dr,
+		VsRouter: vs,
+	}
+
+	// clear all routes + subsets
+	//err = op.Clear(shift)
+	//if err != nil {
+	//	fmt.Printf("")
+	//}
+
+	// Update a route
+	err = op.Update(shift)
+	if err != nil {
+		fmt.Printf("")
+	}
+
 }

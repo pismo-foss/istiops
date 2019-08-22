@@ -2,6 +2,9 @@ package operator
 
 import (
 	"errors"
+	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 	"testing"
 
 	"github.com/pismo/istiops/pkg/operator"
@@ -9,68 +12,72 @@ import (
 )
 
 func TestCreate(t *testing.T) {
-	tests := map[string]struct {
-		r    router.Route
-		ips  Istiops
-		want error
-	}{
-		"Missing port in route": {
-			r: router.Route{
-				//Port:     5000,
-				Hostname: "api-xpto.domain.io",
-				Selector: &router.Selector{
-					router.Labels: map[string]string{"environment": "pipeline-go"},
-				},
-				Headers: map[string]string{
-					"x-version": "PR-141",
-					"x-cid":     "blau",
-				},
-				Weight: 0,
+
+	kubeConfigPath := homedir.HomeDir() + "/.kube/config"
+	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
+	istioClient, err := versioned.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var build uint32
+	var trackingId string
+	var metadataName string
+	var metadataNamespace string
+
+	trackingId = "54ec4fd3-879b-404f-9812-c6b97f663b8d"
+	metadataName = "api-xpto"
+	metadataNamespace = "default"
+	build = 35
+
+	DrM := router.DrMetadata{
+		TrackingId: trackingId,
+		Name:       metadataName,
+		Namespace:  metadataNamespace,
+		Build:      build,
+	}
+
+	VsM := router.VsMetadata{
+		TrackingId: trackingId,
+		Name:       metadataName,
+		Namespace:  metadataNamespace,
+		Build:      build,
+	}
+
+	dr := &router.DestinationRule{
+		Metadata: DrM,
+		Istio:    istioClient,
+	}
+
+	vs := &router.VirtualService{
+		Metadata: VsM,
+		Istio:    istioClient,
+	}
+
+	shift := &router.Shift{
+		Port:     5000,
+		Hostname: "api.domain.io",
+		Selector: &router.Selector{
+			Labels: map[string]string{"environment": "pipeline-go"},
+		},
+		Traffic: &router.Traffic{
+			PodSelector: map[string]string{
+				"app":     "api",
+				"version": "1.3.2",
+				"build":   "24",
 			},
-			istiops: operator.Istiops{
-				TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-				Name:       "api-xpto",
-				Namespace:  "default",
-				Build:      26,
-				VirtualService: &mockVirtualService{
-					validate: func() (VirtualService, error) {
-						return nil, errors.New("Missing port for VirtualService spec")
-					},
-				},
+			RequestHeaders: map[string]string{
+				"x-version": "PR-141",
+				"x-cid":     "12312-123121-1212-1231-12131",
 			},
-			want: errors.New("Missing port for VirtualService spec"),
+			Weight: 0,
 		},
 	}
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			got := tc.istiops.Create(tc.route)
-			if !equalError(tc.want, got) {
-				t.Fatalf("expected: %v, got: %v", tc.want, got)
-			}
-		})
+	var op operator.Operator
+	op = &operator.Istiops{
+		Shift:    shift,
+		DrRouter: dr,
+		VsRouter: vs,
 	}
 }
-
-type mockVirtualService struct {
-	cool     string
-	validate func() (router.Router, error)
-	update   func() (router.Router, error)
-	delete   func() (router.Router, error)
-}
-
-func (mvs *mockVirtualService) Update(s router.Shift) (mockVirtualService, error) { return mvs.update() }
-func (mvs *mockVirtualService) Delete(r router.Shift) (mockVirtualService, error) { return mvs.delete() }
-func (mvs *mockVirtualService) Validate(r router.Shift) (mockVirtualService, error) {
-	return mvs.validate()
-}
-
-type mockDestinationRule struct {
-	validate func() (DestinationRule, error)
-	update   func() (DestinationRule, error)
-	delete   func() (DestinationRule, error)
-}
-
-func (mvs *mockDestinationRule) Validate(r Route) DestinationRule { return m.validate() }
-func (mvs *mockDestinationRule) Update(r Route) DestinationRule   { return m.update() }
-func (mvs *mockDestinationRule) Delete(r Route) DestinationRule   { return m.delete() }
