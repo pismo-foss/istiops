@@ -19,18 +19,30 @@ func main() {
 		panic(err.Error())
 	}
 
+
+	var build uint32
+	var trackingId string
+	var metadataName string
+	var metadataNamespace string
+
+
+	trackingId = "54ec4fd3-879b-404f-9812-c6b97f663b8d"
+	metadataName = "api-xpto"
+	metadataNamespace = "default"
+	build = 35
+
 	DrM := router.DrMetadata{
-		TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-		Name:       "api-xpto",
-		Namespace:  "default",
-		Build:      32,
+		TrackingId: trackingId,
+		Name:       metadataName,
+		Namespace:  metadataNamespace,
+		Build:      build,
 	}
 
 	VsM := router.VsMetadata{
-		TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-		Name:       "api-xpto",
-		Namespace:  "default",
-		Build:      32,
+		TrackingId: trackingId,
+		Name:       metadataName,
+		Namespace:  metadataNamespace,
+		Build:      build,
 	}
 
 	dr := &router.DestinationRule{
@@ -59,7 +71,7 @@ func main() {
 				"x-version": "PR-141",
 				"x-cid":     "12312-123121-1212-1231-12131",
 			},
-			Weight: 0,
+			Weight: 10,
 		},
 	}
 

@@ -5,6 +5,7 @@ import (
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	"github.com/pismo/istiops/utils"
+	"github.com/pkg/errors"
 	"istio.io/api/networking/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -22,6 +23,9 @@ type VirtualService struct {
 }
 
 func (v *VirtualService) Validate(s *Shift) error {
+	if s.Traffic.Weight != 0 && len(s.Traffic.RequestHeaders) >= 0 {
+		return errors.New("a route needs to be served with a 'weight' or 'request headers', not both")
+	}
 
 	return nil
 
@@ -54,7 +58,6 @@ func (v *VirtualService) Update(s *Shift) error {
 
 		if !subsetExists {
 			// create new subset
-			utils.Info(fmt.Sprintf("Creating new route"), v.Metadata.TrackingId)
 			newHttpRoute, err := CreateNewRoute(subsetName, v, s)
 			fmt.Println(newHttpRoute)
 			if err != nil {
