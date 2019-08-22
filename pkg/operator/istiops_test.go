@@ -1,18 +1,31 @@
 package operator
 
 import (
-	"errors"
+	"fmt"
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
+	"io/ioutil"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"log"
+	"os"
 	"testing"
 
-	"github.com/pismo/istiops/pkg/operator"
 	"github.com/pismo/istiops/pkg/router"
 )
 
-func TestCreate(t *testing.T) {
+func TearUp() {
 
+}
+
+func TestMain(m *testing.M) {
+	// discard stdout logs if not being run with '-v' flag
+	log.SetOutput(ioutil.Discard)
+	TearUp()
+	result := m.Run()
+	os.Exit(result)
+}
+
+func TestCreate(t *testing.T) {
 	kubeConfigPath := homedir.HomeDir() + "/.kube/config"
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
 	istioClient, err := versioned.NewForConfig(config)
@@ -20,36 +33,31 @@ func TestCreate(t *testing.T) {
 		panic(err.Error())
 	}
 
-	var build uint32
-	var trackingId string
-	var metadataName string
-	var metadataNamespace string
-
-	trackingId = "54ec4fd3-879b-404f-9812-c6b97f663b8d"
-	metadataName = "api-xpto"
-	metadataNamespace = "default"
-	build = 35
+	mockedTrackingId := "54ec4fd3-879b-404f-9812-c6b97f663b8d"
+	mockedMetadataName := "api-xpto"
+	mockedMetadataNamespace := "default"
+	mockedBuild := uint32(35)
 
 	DrM := router.DrMetadata{
-		TrackingId: trackingId,
-		Name:       metadataName,
-		Namespace:  metadataNamespace,
-		Build:      build,
+		TrackingId: mockedTrackingId,
+		Name:       mockedMetadataName,
+		Namespace:  mockedMetadataNamespace,
+		Build:      mockedBuild,
 	}
 
 	VsM := router.VsMetadata{
-		TrackingId: trackingId,
-		Name:       metadataName,
-		Namespace:  metadataNamespace,
-		Build:      build,
+		TrackingId: mockedTrackingId,
+		Name:       mockedMetadataName,
+		Namespace:  mockedMetadataNamespace,
+		Build:      mockedBuild,
 	}
 
-	dr := &router.DestinationRule{
+	mockedDr := &router.DestinationRule{
 		Metadata: DrM,
 		Istio:    istioClient,
 	}
 
-	vs := &router.VirtualService{
+	mockedVs := &router.VirtualService{
 		Metadata: VsM,
 		Istio:    istioClient,
 	}
@@ -74,10 +82,12 @@ func TestCreate(t *testing.T) {
 		},
 	}
 
-	var op operator.Operator
-	op = &operator.Istiops{
+	var op Operator
+	op = &Istiops{
 		Shift:    shift,
-		DrRouter: dr,
-		VsRouter: vs,
+		DrRouter: mockedDr,
+		VsRouter: mockedVs,
 	}
+
+	fmt.Println(op.Update(shift))
 }
