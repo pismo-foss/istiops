@@ -1,9 +1,10 @@
 package operator
 
 import (
-	"fmt"
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	versionedClientFake "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 
 	"io/ioutil"
 	"istio.io/api/networking/v1alpha3"
@@ -18,35 +19,6 @@ var fClient *versionedClientFake.Clientset
 var namespace string
 var mockedDestinationRuleName string
 var mockedVirtualServiceName string
-
-
-type MockedResources struct {
-	Metadata MockedMetadata
-	Istio    *versionedClientFake.Clientset
-}
-
-func (MockedResources) Validate(s *router.Shift) error {
-	panic("implement me")
-}
-
-func (MockedResources) Update(s *router.Shift) error {
-	panic("implement me")
-}
-
-func (MockedResources) Delete(s *router.Shift) error {
-	panic("implement me")
-}
-
-func (MockedResources) Clear(s *router.Shift) error {
-	panic("implement me")
-}
-
-type MockedMetadata struct {
-	TrackingId string
-	Name       string
-	Namespace  string
-	Build      uint32
-}
 
 func TestMain(m *testing.M) {
 	// discard stdout logs if not being run with '-v' flag
@@ -128,7 +100,7 @@ func CreateMockedVirtualService(resourceName string, resourceNamespace string) (
 	return mockedVs, err
 }
 
-func TestCreate(t *testing.T) {
+func TestInterface(t *testing.T) {
 
 	mockedTrackingId := "54ec4fd3-879b-404f-9812-c6b97f663b8d"
 	mockedMetadataName := "api-xpto"
@@ -142,8 +114,8 @@ func TestCreate(t *testing.T) {
 		Build:      mockedBuild,
 	}
 
-	var mockedDr router.Router
-	var mockedVs router.Router
+	var mockedDr MockedRouter
+	var mockedVs MockedRouter
 
 	mockedDr = &MockedResources{
 		Metadata: m,
@@ -175,12 +147,44 @@ func TestCreate(t *testing.T) {
 		},
 	}
 
-	var op Operator
-	op = &Istiops{
-		Shift:    shift,
+	var fop Operator
+	fop = &Istiops{
 		DrRouter: mockedDr,
 		VsRouter: mockedVs,
 	}
 
-	fmt.Println(op.Update(shift))
+	assert.Equal(t, nil, fop.Clear(shift))
+	assert.Equal(t, nil, fop.Update(shift))
+	assert.Equal(t, nil, fop.Create(shift))
+	assert.Equal(t, nil, fop.Delete(shift))
+
+}
+
+type MockedResources struct {
+	Metadata MockedMetadata
+	Istio    *versionedClientFake.Clientset
+}
+
+type MockedRouter interface {
+	Clear(s *router.Shift) error
+	Validate(s *router.Shift) error
+	Update(s *router.Shift) error
+	Delete(s *router.Shift) error
+}
+
+func (m MockedResources) Clear(s *router.Shift) error { return errors.New("mocked router.Clear()") }
+
+func (m MockedResources) Validate(s *router.Shift) error { return errors.New("mocked error from validate") }
+
+func (m MockedResources) Update(s *router.Shift) error { return nil }
+
+func (m MockedResources) Delete(s *router.Shift) error { return nil }
+
+
+
+type MockedMetadata struct {
+	TrackingId string
+	Name       string
+	Namespace  string
+	Build      uint32
 }

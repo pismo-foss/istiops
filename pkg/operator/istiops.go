@@ -7,8 +7,8 @@ import (
 )
 
 type Istiops struct {
-	VsRouter router.Router
 	DrRouter router.Router
+	VsRouter router.Router
 }
 
 func (ips *Istiops) Get(r *router.Shift) error {
