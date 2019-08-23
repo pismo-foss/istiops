@@ -22,20 +22,18 @@ import (
 )
 
 func init() {
-	var namespace string
-
-	RootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "default", "Kubernetes' cluster namespace")
+	rootCmd.AddCommand(trafficCmd)
+	rootCmd.AddCommand(versionCmd)
 }
 
-var RootCmd = &cobra.Command{
+var rootCmd = &cobra.Command{
 	Use:   "istiops",
 	Short: "Main",
 	Long:  `Istiops is a CLI library for Go that manages istio's traffic shifting easily.`,
 }
 
 func Execute() {
-
-	if err := RootCmd.Execute(); err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
 	}

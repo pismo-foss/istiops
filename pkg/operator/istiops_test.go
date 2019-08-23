@@ -114,8 +114,8 @@ func TestInterface(t *testing.T) {
 		Build:      mockedBuild,
 	}
 
-	var mockedDr MockedRouter
-	var mockedVs MockedRouter
+	var mockedDr router.Router
+	var mockedVs router.Router
 
 	mockedDr = &MockedResources{
 		Metadata: m,
@@ -153,10 +153,10 @@ func TestInterface(t *testing.T) {
 		VsRouter: mockedVs,
 	}
 
-	assert.Equal(t, nil, fop.Clear(shift))
-	assert.Equal(t, nil, fop.Update(shift))
-	assert.Equal(t, nil, fop.Create(shift))
-	assert.Equal(t, nil, fop.Delete(shift))
+	assert.Error(t, fop.Clear(shift))
+	assert.Error(t, fop.Update(shift))
+	assert.Error(t, fop.Create(shift))
+	assert.Error(t, fop.Delete(shift))
 
 }
 
@@ -165,26 +165,19 @@ type MockedResources struct {
 	Istio    *versionedClientFake.Clientset
 }
 
-type MockedRouter interface {
-	Clear(s *router.Shift) error
-	Validate(s *router.Shift) error
-	Update(s *router.Shift) error
-	Delete(s *router.Shift) error
-}
-
-func (m MockedResources) Clear(s *router.Shift) error { return errors.New("mocked router.Clear()") }
-
-func (m MockedResources) Validate(s *router.Shift) error { return errors.New("mocked error from validate") }
-
-func (m MockedResources) Update(s *router.Shift) error { return nil }
-
-func (m MockedResources) Delete(s *router.Shift) error { return nil }
-
-
-
 type MockedMetadata struct {
 	TrackingId string
 	Name       string
 	Namespace  string
 	Build      uint32
 }
+
+func (m MockedResources) Clear(s *router.Shift) error { return errors.New("mocked router.Clear()") }
+
+func (m MockedResources) Validate(s *router.Shift) error {
+	return errors.New("mocked from router.Validate()")
+}
+
+func (m MockedResources) Delete(s *router.Shift) error { return errors.New("mocked router.Delete()") }
+
+func (m MockedResources) Update(s *router.Shift) error { return errors.New("mocked router.Update()") }

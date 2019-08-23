@@ -33,8 +33,18 @@ func (ips *Istiops) Create(r *router.Shift) error {
 }
 
 func (ips *Istiops) Delete(r *router.Shift) error {
-	fmt.Println("Initializing something")
-	fmt.Println("", "cid")
+	VsRouter := ips.VsRouter
+	err := VsRouter.Delete(r)
+	if err != nil {
+		return err
+	}
+
+	DrRouter := ips.DrRouter
+	err = DrRouter.Delete(r)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

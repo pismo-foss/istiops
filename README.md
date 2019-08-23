@@ -12,9 +12,9 @@
 
 `istiops traffic clear --label-selector app=api-gateway,build=1`
 
-2. Send requests with HTTP header x-cid:seu_madruga to pods with labels: app=api-accounts,build:PR-10
+2. Send requests with HTTP header x-cid:seu_madruga to pods with labels: app=api-accounts,build=PR-10
 
-`istiops traffic headers --headers x-cid=seu_madruga --label-selector app=api-accounts,build:PR-10`
+`istiops traffic headers --headers x-cid=seu_madruga --label-selector app=api-accounts,build=PR-10`
 
 3. Send 10% of traffic to pods with labels: app=api-gateway,version:1.0.0
 
