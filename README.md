@@ -4,6 +4,12 @@
 
 `$ go test ./... -v`
 
+## Building
+
+`./run` or `go build -o build/istiops main.go`
+
+You can then run it as: `./build/istiops version`
+
 ## Commands on traffic shifting
 
 ### Each operation creates or removes items from both the VirtualService and DestinationRule
