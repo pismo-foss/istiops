@@ -88,10 +88,10 @@ func main() {
 		utils.Fatal(fmt.Sprintf("%s", err), trackingId)
 	}
 
-	// Update a route
-	err = op.Update(shift)
-	if err != nil {
-		utils.Fatal(fmt.Sprintf("%s", err), trackingId)
-	}
+	//// Update a route
+	//err = op.Update(shift)
+	//if err != nil {
+	//	utils.Fatal(fmt.Sprintf("%s", err), trackingId)
+	//}
 
 }

@@ -94,19 +94,24 @@ func (v *VirtualService) Clear(s *Shift) error {
 	}
 
 	vss, err := GetAllVirtualServices(v, s, listOptions)
+	if err != nil {
+		return err
+	}
 
 	for _, vs := range vss.Items {
-		var cleanedRoutes []*v1alpha3.HTTPRoute
 		for httpRuleKey, httpRuleValue := range vs.Spec.Http {
-			for _, matchRuleValue := range httpRuleValue.Match {
-				if matchRuleValue.Uri != nil {
-					// remove rule with no Uri from HTTPRoute list to a posterior update
-					cleanedRoutes = append(cleanedRoutes, vs.Spec.Http[httpRuleKey])
+			for _, httpRoute := range httpRuleValue.Route {
+				if httpRoute.Weight <= 0 {
+					utils.Info(fmt.Sprintf("The subset '%s' will be removed due to a non-active weight rule attached", httpRoute.Destination.Subset), v.Metadata.TrackingId)
+					vs.Spec.Http = append(vs.Spec.Http[:httpRuleKey], vs.Spec.Http[httpRuleKey+1:]...)
 				}
 			}
 		}
 
-		vs.Spec.Http = cleanedRoutes
+		// In case of all rules had being removed, refuse to continue
+		if len(vs.Spec.Http) == 0 {
+			return errors.New(fmt.Sprintf("the clear command will result in a resource '%s' without any rules which is not accepted by istio", vs.Name))
+		}
 
 		utils.Info(fmt.Sprintf("Clearing all virtualService routes from '%s' except the URI or Weighted ones...", vs.Name), v.Metadata.TrackingId)
 		err := UpdateVirtualService(v, &vs)
