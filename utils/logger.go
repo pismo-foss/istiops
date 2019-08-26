@@ -53,7 +53,7 @@ func output(cid string, fields []Fields) *logJSON.Entry {
 	} else {
 		f = fields[0]
 	}
-	f["systemVersion"] = Version
+	//f["systemVersion"] = Version
 	f["cid"] = cid
 
 	return log.WithFields(logJSON.Fields(f))

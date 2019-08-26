@@ -59,7 +59,6 @@ func (v *VirtualService) Update(s *Shift) error {
 		if !subsetExists {
 			// create new subset
 			newHttpRoute, err := CreateNewRoute(subsetName, v, s)
-			fmt.Println(newHttpRoute)
 			if err != nil {
 				return err
 			}
