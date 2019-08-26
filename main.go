@@ -28,7 +28,7 @@ func main() {
 	trackingId = "54ec4fd3-879b-404f-9812-c6b97f663b8d"
 	metadataName = "api-xpto"
 	metadataNamespace = "default"
-	build = 35
+	build = 37
 
 	DrM := router.DrMetadata{
 		TrackingId: trackingId,
@@ -68,10 +68,10 @@ func main() {
 				"version": "1.3.2",
 				"build":   "24",
 			},
-			RequestHeaders: map[string]string{
-				"x-version": "PR-141",
-				"x-cid":     "12312-123121-1212-1231-12131",
-			},
+			//RequestHeaders: map[string]string{
+			//	"x-version": "PR-141",
+			//	"x-cid":     "12312-123121-1212-1231-12131",
+			//},
 			Weight: 0,
 		},
 	}
@@ -83,10 +83,10 @@ func main() {
 	}
 
 	// clear all routes + subsets
-	err = op.Clear(shift)
-	if err != nil {
-		utils.Fatal(fmt.Sprintf("%s", err), trackingId)
-	}
+	//err = op.Clear(shift)
+	//if err != nil {
+	//	utils.Fatal(fmt.Sprintf("%s", err), trackingId)
+	//}
 
 	//// Update a route
 	err = op.Update(shift)

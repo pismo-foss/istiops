@@ -24,8 +24,8 @@ You can then run it as: `./build/istiops version`
 
 3. Send 10% of traffic to pods with labels: app=api-gateway,version:1.0.0
 
-`istiops traffic weight --percentage 10 --headers app=api-gateway,version=1.0.0`
+`istiops traffic weight --percentage 10 --pod-selector app=api-gateway,version=1.0.0`
 
 4. Removes all traffic (rollback), headers and percentage, for pods with labels: app=api-gateway,version:1.0.0
 
-`istiops traffic rollback app=api-gateway,version:1.0.0`
+`istiops traffic rollback --label-selector --pod-selector app=api-gateway,version:1.0.0`

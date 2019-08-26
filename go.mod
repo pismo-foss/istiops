@@ -28,8 +28,8 @@ require (
 	github.com/sergi/go-diff v1.0.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/snowzach/rotatefilehook v0.0.0-20180327172521-2f64f265f58c
-	github.com/spf13/cobra v0.0.0-20150605180824-312092086bed
-	github.com/spf13/pflag v0.0.0-20171106142849-4c012f6dcd95
+	github.com/spf13/cobra v0.0.5
+	github.com/spf13/pflag v1.0.3
 	github.com/src-d/gcfg v1.4.0
 	github.com/src-d/go-git v4.5.0+incompatible
 	github.com/stretchr/testify v1.3.0
@@ -46,7 +46,7 @@ require (
 	gopkg.in/src-d/go-billy.v4 v4.3.2
 	gopkg.in/src-d/go-git.v4 v4.12.0
 	gopkg.in/warnings.v0 v0.1.2
-	gopkg.in/yaml.v2 v2.0.0-20150924142314-53feefa2559f
+	gopkg.in/yaml.v2 v2.2.2
 	istio.io/api v0.0.0-20190416154520-4a9a2a12a700
 	k8s.io/api v0.0.0-20180308224125-73d903622b73
 	k8s.io/apimachinery v0.0.0-20180228050457-302974c03f7e

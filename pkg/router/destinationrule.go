@@ -43,7 +43,6 @@ func (v *DestinationRule) Validate(s *Shift) error {
 	for _, dr := range drs.Items {
 		utils.Info(fmt.Sprintf("Validating destinationRule '%s'", dr.Name), v.Metadata.TrackingId)
 		for _, subsetValue := range dr.Spec.Subsets {
-			fmt.Println("subsets")
 			if subsetValue.Name == newSubset {
 				// remove item from slice
 				return errors.New(fmt.Sprintf("Found already existent subset '%s', refusing to update", subsetValue.Name))
