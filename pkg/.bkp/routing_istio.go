@@ -33,8 +33,8 @@ type IstioOperationsInterface interface {
 	ClearRules(cid string, labels map[string]string) error
 }
 
-// GetAllVirtualServices returns all istio resources 'virtualservices'
-func GetAllVirtualServices(cid string, namespace string, listOptions metav1.ListOptions) (virtualServiceList *v1alpha32.VirtualServiceList, error error) {
+// getAllVirtualServices returns all istio resources 'virtualservices'
+func getAllVirtualServices(cid string, namespace string, listOptions metav1.ListOptions) (virtualServiceList *v1alpha32.VirtualServiceList, error error) {
 	utils.Info(fmt.Sprintf("Getting all virtualservices..."), cid)
 	vss, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).List(listOptions)
 	if err != nil {
@@ -108,7 +108,7 @@ func GetResourcesToUpdate(cid string, v IstioValues, labelSelector map[string]st
 		return nil, nil, err
 	}
 
-	matchedVss, err := GetAllVirtualServices(cid, v.Namespace, listOptions)
+	matchedVss, err := getAllVirtualServices(cid, v.Namespace, listOptions)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -300,7 +300,7 @@ func ClearRules(cid string, labels map[string]string) error {
 		return err
 	}
 
-	vss, err := GetAllVirtualServices(cid, "string", metav1.ListOptions{
+	vss, err := getAllVirtualServices(cid, "string", metav1.ListOptions{
 		LabelSelector: stringfiedLabels,
 	})
 	if err != nil {

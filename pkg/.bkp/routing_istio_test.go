@@ -129,9 +129,9 @@ func TestGetDestinationRule(t *testing.T) {
 	assert.EqualValues(t, mockedDestinationRuleName, dr.Name)
 }
 
-func TestGetAllVirtualServices(t *testing.T) {
+func TestgetAllVirtualServices(t *testing.T) {
 	listOptions := metav1.ListOptions{}
-	mockedVss, err := GetAllVirtualServices("random-cid", namespace, listOptions)
+	mockedVss, err := getAllVirtualServices("random-cid", namespace, listOptions)
 
 	assert.NoError(t, err)
 	assert.IsType(t, v1alpha32.VirtualServiceList{}, *mockedVss)

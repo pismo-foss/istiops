@@ -39,7 +39,7 @@ func (v *VirtualService) Update(s *Shift) error {
 		LabelSelector: StringifyLabelSelector,
 	}
 
-	vss, err := GetAllVirtualServices(v, s, listOptions)
+	vss, err := getAllVirtualServices(v, listOptions)
 	for _, vs := range vss.Items {
 		subsetExists := false
 		for _, httpValue := range vs.Spec.Http {
@@ -88,7 +88,7 @@ func (v *VirtualService) Clear(s *Shift) error {
 		LabelSelector: StringifyLabelSelector,
 	}
 
-	vss, err := GetAllVirtualServices(v, s, listOptions)
+	vss, err := getAllVirtualServices(v, listOptions)
 	if err != nil {
 		return err
 	}
@@ -119,8 +119,8 @@ func (v *VirtualService) Clear(s *Shift) error {
 
 }
 
-// GetAllVirtualServices returns all istio resources 'virtualservices'
-func GetAllVirtualServices(vsRoute *VirtualService, listOptions metav1.ListOptions) (*v1alpha32.VirtualServiceList, error) {
+// getAllVirtualServices returns all istio resources 'virtualservices'
+func getAllVirtualServices(vsRoute *VirtualService, listOptions metav1.ListOptions) (*v1alpha32.VirtualServiceList, error) {
 	utils.Info(fmt.Sprintf("Getting all virtualservices..."), vsRoute.TrackingId)
 
 	vss, err := vsRoute.Istio.NetworkingV1alpha3().VirtualServices(vsRoute.Namespace).List(listOptions)
