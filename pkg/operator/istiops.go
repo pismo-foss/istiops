@@ -1,9 +1,8 @@
 package operator
 
 import (
-	"fmt"
 	"github.com/pismo/istiops/pkg/router"
-	"github.com/pismo/istiops/utils"
+	"github.com/pkg/errors"
 )
 
 type Istiops struct {
@@ -49,8 +48,12 @@ func (ips *Istiops) Delete(r *router.Shift) error {
 }
 
 func (ips *Istiops) Update(r *router.Shift) error {
-	if len(r.Selector.Labels) == 0 || len(r.Traffic.PodSelector) == 0 {
-		utils.Fatal(fmt.Sprintf("Selectors must not be empty otherwise istiops won't be able to find any resources."), "")
+	if len(r.Selector.Labels) == 0 {
+		return errors.New("label-selector must not be empty otherwise istiops won't be able to find any resources")
+	}
+
+	if len(r.Traffic.PodSelector) == 0 {
+		return errors.New("pod-selector must no be empty otherwise istiops won't be able to know where to route traffic")
 	}
 
 	DrRouter := ips.DrRouter
