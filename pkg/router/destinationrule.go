@@ -19,13 +19,19 @@ type DrMetadata struct {
 }
 
 type DestinationRule struct {
-	Metadata DrMetadata
-	Istio    *versioned.Clientset
+	//acho que nao fica bom deixar o metadata em uma struct aqui, sao poucos campos, manter aqui vai deixar mais direto:
+	//TrackingId string
+	//Name       string
+	//Namespace  string
+	//Build      uint32
+	//Metadata DrMetadata
+	Istio *versioned.Clientset
 }
 
 func (v *DestinationRule) Validate(s *Shift) error {
 	newSubset := fmt.Sprintf("%s-%v-%s", v.Metadata.Name, v.Metadata.Build, v.Metadata.Namespace)
 
+	// remover utils: bad pattern in go
 	StringifyLabelSelector, err := utils.StringifyLabelSelector(v.Metadata.TrackingId, s.Selector.Labels)
 	if err != nil {
 		return err
@@ -35,6 +41,8 @@ func (v *DestinationRule) Validate(s *Shift) error {
 		LabelSelector: StringifyLabelSelector,
 	}
 
+	// acho uma boa esse metodo ser privad, vamos deixar so a interface publica
+	// tambem seria legal montar uma estrutura de dados que faca sentido pra ele, nao repassar o vs direto, isso mata reuso
 	drs, err := GetAllDestinationRules(v, listOptions)
 	if err != nil {
 		return err

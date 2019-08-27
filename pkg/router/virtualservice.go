@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	"github.com/pismo/istiops/utils"
@@ -18,11 +19,13 @@ type VsMetadata struct {
 }
 
 type VirtualService struct {
+	// remover metadata de struct
 	Metadata VsMetadata
 	Istio    *versioned.Clientset
 }
 
 func (v *VirtualService) Validate(s *Shift) error {
+	// validar cada problema individualmente pra gerar erros especificos
 	if s.Traffic.Weight != 0 && len(s.Traffic.RequestHeaders) >= 0 {
 		return errors.New("a route needs to be served with a 'weight' or 'request headers', not both")
 	}
@@ -43,6 +46,7 @@ func (v *VirtualService) Update(s *Shift) error {
 		LabelSelector: StringifyLabelSelector,
 	}
 
+	// nao mandar dados direto pro metodo, aqui nao faria sentido enviar so o client do istio? tem muita informacao sendo enviada e nao utilizada
 	vss, err := GetAllVirtualServices(v, s, listOptions)
 	for _, vs := range vss.Items {
 		subsetExists := false
