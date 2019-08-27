@@ -3,6 +3,7 @@ package pkg
 import (
 	"fmt"
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+	"github.com/pismo/istiops/pkg/logger"
 	"github.com/pismo/istiops/utils"
 	"istio.io/api/networking/v1alpha3"
 	"strings"
@@ -35,7 +36,7 @@ type IstioOperationsInterface interface {
 
 // getAllVirtualServices returns all istio resources 'virtualservices'
 func getAllVirtualServices(cid string, namespace string, listOptions metav1.ListOptions) (virtualServiceList *v1alpha32.VirtualServiceList, error error) {
-	utils.Info(fmt.Sprintf("Getting all virtualservices..."), cid)
+	logger.Info(fmt.Sprintf("Getting all virtualservices..."), cid)
 	vss, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).List(listOptions)
 	if err != nil {
 		return nil, err
@@ -46,7 +47,7 @@ func getAllVirtualServices(cid string, namespace string, listOptions metav1.List
 
 // GetVirtualService returns a single virtualService object given a name & namespace
 func GetVirtualService(cid string, name string, namespace string, getOptions metav1.GetOptions) (virtualService *v1alpha32.VirtualService, error error) {
-	utils.Info(fmt.Sprintf("Getting virtualService '%s' to update...", name), cid)
+	logger.Info(fmt.Sprintf("Getting virtualService '%s' to update...", name), cid)
 	vs, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).Get(name, getOptions)
 	if err != nil {
 		return nil, err
@@ -56,7 +57,7 @@ func GetVirtualService(cid string, name string, namespace string, getOptions met
 
 // GetAllVirtualservices returns all istio resources 'virtualservices'
 func getAllDestinationRules(cid string, namespace string, listOptions metav1.ListOptions) (destinationRuleList *v1alpha32.DestinationRuleList, error error) {
-	utils.Info(fmt.Sprintf("Getting all destinationrules..."), cid)
+	logger.Info(fmt.Sprintf("Getting all destinationrules..."), cid)
 	drs, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).List(listOptions)
 	if err != nil {
 		return nil, err
@@ -67,7 +68,7 @@ func getAllDestinationRules(cid string, namespace string, listOptions metav1.Lis
 
 // GetDestinationRules returns a single destinationRule object given a name & namespace
 func GetDestinationRule(cid string, name string, namespace string, getOptions metav1.GetOptions) (destinationRule *v1alpha32.DestinationRule, error error) {
-	utils.Info(fmt.Sprintf("Getting destinationRule '%s' to update...", name), cid)
+	logger.Info(fmt.Sprintf("Getting destinationRule '%s' to update...", name), cid)
 	dr, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -77,7 +78,7 @@ func GetDestinationRule(cid string, name string, namespace string, getOptions me
 
 // UpdateVirtualService updates a specific virtualService given an updated object
 func UpdateVirtualService(cid string, namespace string, virtualService *v1alpha32.VirtualService) error {
-	utils.Info(fmt.Sprintf("Updating rule for virtualService '%s'...", virtualService.Name), cid)
+	logger.Info(fmt.Sprintf("Updating rule for virtualService '%s'...", virtualService.Name), cid)
 	_, err := istioClient.NetworkingV1alpha3().VirtualServices(namespace).Update(virtualService)
 	if err != nil {
 		return err
@@ -87,7 +88,7 @@ func UpdateVirtualService(cid string, namespace string, virtualService *v1alpha3
 
 // UpdateDestinationRule updates a specific virtualService given an updated object
 func UpdateDestinationRule(cid string, namespace string, destinationRule *v1alpha32.DestinationRule) error {
-	utils.Info(fmt.Sprintf("Updating rule for destinationRule '%s'...", destinationRule.Name), cid)
+	logger.Info(fmt.Sprintf("Updating rule for destinationRule '%s'...", destinationRule.Name), cid)
 	_, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).Update(destinationRule)
 	if err != nil {
 		return err
@@ -114,7 +115,7 @@ func GetResourcesToUpdate(cid string, v IstioValues, labelSelector map[string]st
 	}
 
 	if len(matchedDrs.Items) == 0 || len(matchedVss.Items) == 0 {
-		utils.Fatal(fmt.Sprintf("Couldn't find any istio resources based on given labelSelector '%s' to update. ", stringfiedLabelSelector), cid)
+		logger.Fatal(fmt.Sprintf("Couldn't find any istio resources based on given labelSelector '%s' to update. ", stringfiedLabelSelector), cid)
 		return nil, nil, err
 	}
 
@@ -123,7 +124,7 @@ func GetResourcesToUpdate(cid string, v IstioValues, labelSelector map[string]st
 
 // CreateNewVirtualServiceHttpRoute returns an existent VirtualService with a new basic HTTP route appended to it
 func CreateNewVirtualServiceHttpRoute(cid string, labels map[string]string, hostname string, subset string, portNumber uint32) (httpRoute *v1alpha3.HTTPRoute, error error) {
-	utils.Info(fmt.Sprintf("Creating new http route for subset '%s'...", subset), cid)
+	logger.Info(fmt.Sprintf("Creating new http route for subset '%s'...", subset), cid)
 	newMatch := &v1alpha3.HTTPMatchRequest{
 		Headers: map[string]*v1alpha3.StringMatch{},
 	}
@@ -166,7 +167,7 @@ func (v IstioValues) SetPercentage(cid string, virtualServiceName string, subset
 	for _, httpRules := range vs.Spec.Http {
 		for _, httpRoute := range httpRules.Route {
 			if httpRoute.Destination.Subset == subset {
-				utils.Info(fmt.Sprintf("Setting %d of traffic routing to subset '%s'", percentage, subset), cid)
+				logger.Info(fmt.Sprintf("Setting %d of traffic routing to subset '%s'", percentage, subset), cid)
 				httpRoute.Weight = percentage
 			}
 		}
@@ -195,14 +196,14 @@ func (v IstioValues) SetHeaders(cid string, labels map[string]string, host strin
 		for subsetKey, subset := range ds.Spec.Subsets {
 			// If an existent subsetName already exists, just update it with the given user labels otherwise create
 			if subset.Name == subsetRuleName {
-				utils.Info(fmt.Sprintf("Setting user labels to subset '%s", subset.Name), cid)
+				logger.Info(fmt.Sprintf("Setting user labels to subset '%s", subset.Name), cid)
 				ds.Spec.Subsets[subsetKey].Labels = labels
 			}
 		}
 
 		err := UpdateDestinationRule(cid, v.Namespace, &ds)
 		if err != nil {
-			utils.Fatal(fmt.Sprintf("Could not update destinationRule '%s' due to error '%s'", ds.Name, err), cid)
+			logger.Fatal(fmt.Sprintf("Could not update destinationRule '%s' due to error '%s'", ds.Name, err), cid)
 		}
 	}
 
@@ -214,7 +215,7 @@ func (v IstioValues) SetHeaders(cid string, labels map[string]string, host strin
 			for _, matchValue := range httpRules.Route {
 				// in case of a non-existent destination-subset, mark to be create it
 				if matchValue.Destination.Subset == subsetRuleName {
-					utils.Warn(fmt.Sprintf("Subset '%s' already created for vs '%s", subsetRuleName, vs.Name), cid)
+					logger.Warn(fmt.Sprintf("Subset '%s' already created for vs '%s", subsetRuleName, vs.Name), cid)
 					subsetRouteExists = true
 				}
 			}
@@ -225,12 +226,12 @@ func (v IstioValues) SetHeaders(cid string, labels map[string]string, host strin
 			// create it
 			newRoute, err := CreateNewVirtualServiceHttpRoute(cid, labels, "hostname", subsetRuleName, 8080)
 			if err != nil {
-				utils.Fatal(fmt.Sprintf("Could not create local httpRoute object for virtualservice '%s' due to error '%s'", vs.Name, err), cid)
+				logger.Fatal(fmt.Sprintf("Could not create local httpRoute object for virtualservice '%s' due to error '%s'", vs.Name, err), cid)
 			}
 			vs.Spec.Http = append(vs.Spec.Http, newRoute)
 			err = UpdateVirtualService(cid, v.Namespace, &vs)
 			if err != nil {
-				utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to error '%s'", vs.Name, err), cid)
+				logger.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to error '%s'", vs.Name, err), cid)
 				return "", err
 			}
 		}
@@ -243,7 +244,7 @@ func (v IstioValues) SetHeaders(cid string, labels map[string]string, host strin
 func (v IstioValues) SetLabelsDestinationRule(cid string, name string, labels map[string]string) error {
 	dr, err := GetDestinationRule(cid, name, v.Namespace, metav1.GetOptions{})
 	if err != nil {
-		utils.Fatal(fmt.Sprintf("Could not find destination rule '%s", name), cid)
+		logger.Fatal(fmt.Sprintf("Could not find destination rule '%s", name), cid)
 		return err
 	}
 
@@ -255,11 +256,11 @@ func (v IstioValues) SetLabelsDestinationRule(cid string, name string, labels ma
 		dr.Labels[labelKey] = labelValue
 	}
 
-	utils.Info(fmt.Sprintf("Setting labels '%s' to destination rule '%s'...", labels, dr.Name), cid)
+	logger.Info(fmt.Sprintf("Setting labels '%s' to destination rule '%s'...", labels, dr.Name), cid)
 
 	err = UpdateDestinationRule(cid, v.Namespace, dr)
 	if err != nil {
-		utils.Fatal(fmt.Sprintf("Could not update destination rule '%s", dr.Name), cid)
+		logger.Fatal(fmt.Sprintf("Could not update destination rule '%s", dr.Name), cid)
 		return err
 	}
 
@@ -270,7 +271,7 @@ func (v IstioValues) SetLabelsVirtualService(cid string, name string, labels map
 
 	vs, err := GetVirtualService(cid, name, v.Namespace, metav1.GetOptions{})
 	if err != nil {
-		utils.Fatal(fmt.Sprintf("Could not find virtualService '%s' due to error '%s'", name, err), cid)
+		logger.Fatal(fmt.Sprintf("Could not find virtualService '%s' due to error '%s'", name, err), cid)
 		return err
 	}
 
@@ -282,11 +283,11 @@ func (v IstioValues) SetLabelsVirtualService(cid string, name string, labels map
 		vs.Labels[labelKey] = labelValue
 	}
 
-	utils.Info(fmt.Sprintf("Setting labels '%s' to virtualService '%s'...", labels, vs.Name), cid)
+	logger.Info(fmt.Sprintf("Setting labels '%s' to virtualService '%s'...", labels, vs.Name), cid)
 
 	err = UpdateVirtualService(cid, v.Namespace, vs)
 	if err != nil {
-		utils.Fatal(fmt.Sprintf("Could not update virtualService '%s', due to error '%s'", vs.Name, err), cid)
+		logger.Fatal(fmt.Sprintf("Could not update virtualService '%s', due to error '%s'", vs.Name, err), cid)
 		return err
 	}
 
@@ -296,7 +297,7 @@ func (v IstioValues) SetLabelsVirtualService(cid string, name string, labels map
 func ClearRules(cid string, labels map[string]string) error {
 	stringfiedLabels, err := utils.StringfyLabelSelector(cid, labels)
 	if err != nil {
-		utils.Fatal(fmt.Sprintf("Could not get stringfied Labels from '%s", labels), cid)
+		logger.Fatal(fmt.Sprintf("Could not get stringfied Labels from '%s", labels), cid)
 		return err
 	}
 
@@ -304,7 +305,7 @@ func ClearRules(cid string, labels map[string]string) error {
 		LabelSelector: stringfiedLabels,
 	})
 	if err != nil {
-		utils.Fatal(fmt.Sprintf("Could not find destination rules that matchs given labels '%s", labels), cid)
+		logger.Fatal(fmt.Sprintf("Could not find destination rules that matchs given labels '%s", labels), cid)
 		return err
 	}
 
@@ -337,7 +338,7 @@ func (v IstioValues) ClearRules(cid string, labels map[string]string) error {
 		vs.Spec.Http = cleanedRoutes
 		err := UpdateVirtualService(cid, v.Namespace, &vs)
 		if err != nil {
-			utils.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to error '%s'", vs.Name, err), cid)
+			logger.Fatal(fmt.Sprintf("Could not update virtualService '%s' due to error '%s'", vs.Name, err), cid)
 		}
 	}
 

@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
+	"github.com/pismo/istiops/pkg/logger"
 	"github.com/pismo/istiops/pkg/operator"
 	"github.com/pismo/istiops/pkg/router"
-	"github.com/pismo/istiops/utils"
 	_ "github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -83,7 +83,7 @@ func main() {
 	//// Update a route
 	err = op.Update(shift)
 	if err != nil {
-		utils.Fatal(fmt.Sprintf("%s", err), trackingId)
+		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
 	}
 
 }

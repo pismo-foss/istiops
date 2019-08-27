@@ -1,6 +1,11 @@
 package router
 
-import v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+import (
+	"errors"
+	"fmt"
+	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+	"strings"
+)
 
 type Router interface {
 	Validate(s *Shift) error
@@ -29,4 +34,20 @@ type Selector struct {
 type IstioRouteList struct {
 	VirtualServiceList   *v1alpha32.VirtualServiceList
 	DestinationRulesList *v1alpha32.DestinationRuleList
+}
+
+// StringifyLabelSelector returns a k8s selector string based on given map. Ex: "key=value,key2=value2"
+func StringifyLabelSelector(cid string, labelSelector map[string]string) (string, error) {
+
+	var labelsPair []string
+
+	for key, value := range labelSelector {
+		labelsPair = append(labelsPair, fmt.Sprintf("%s=%s", key, value))
+	}
+
+	if len(labelsPair) == 0 {
+		return "", errors.New("got an empty labelSelector")
+	}
+
+	return strings.Join(labelsPair[:], ","), nil
 }

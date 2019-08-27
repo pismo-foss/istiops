@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"fmt"
+	"github.com/pismo/istiops/pkg/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
@@ -32,10 +33,10 @@ func CreateRouteResource(api utils.ApiValues, cid string, parentCtx context.Cont
 	}
 
 	if created {
-		utils.Info(fmt.Sprintf("Creating new destinationrule: %s", dr.Name), cid)
+		logger.Info(fmt.Sprintf("Creating new destinationrule: %s", dr.Name), cid)
 		_, err = istioClient.NetworkingV1alpha3().DestinationRules(api.Namespace).Create(dr)
 	} else {
-		utils.Info(fmt.Sprintf("Updating destinationrule: %s", dr.Name), cid)
+		logger.Info(fmt.Sprintf("Updating destinationrule: %s", dr.Name), cid)
 		_, err = istioClient.NetworkingV1alpha3().DestinationRules(api.Namespace).Update(dr)
 	}
 
@@ -49,10 +50,10 @@ func CreateRouteResource(api utils.ApiValues, cid string, parentCtx context.Cont
 		return err
 	}
 	if created {
-		utils.Info(fmt.Sprintf("Creating new virtualservice: %s", vs.Name), cid)
+		logger.Info(fmt.Sprintf("Creating new virtualservice: %s", vs.Name), cid)
 		_, err = istioClient.NetworkingV1alpha3().VirtualServices(api.Namespace).Create(vs)
 	} else {
-		utils.Info(fmt.Sprintf("Updating virtualservice: %s", vs.Name), cid)
+		logger.Info(fmt.Sprintf("Updating virtualservice: %s", vs.Name), cid)
 		_, err = istioClient.NetworkingV1alpha3().VirtualServices(api.Namespace).Update(vs)
 	}
 
@@ -68,7 +69,7 @@ func CreateRouteResource(api utils.ApiValues, cid string, parentCtx context.Cont
 func retrieveVirtualService(api utils.ApiValues, cid string, parentCtx context.Context) (virtualService *v1alpha32.VirtualService, new bool, error error) {
 	name := api.Name + VIRTUALSERVICE_RULE_SUFFIX
 	getOptions := metav1.GetOptions{}
-	utils.Info(fmt.Sprintf("Retrieving virtualservice: %s", name), cid)
+	logger.Info(fmt.Sprintf("Retrieving virtualservice: %s", name), cid)
 
 	vs, err := GetVirtualService(cid, name, api.Namespace, getOptions)
 	if err != nil {
@@ -81,7 +82,7 @@ func retrieveVirtualService(api utils.ApiValues, cid string, parentCtx context.C
 			return nil, false, err
 		}
 
-		utils.Info(fmt.Sprintf("VirtualService: %s not found, will create one now", name), cid)
+		logger.Info(fmt.Sprintf("VirtualService: %s not found, will create one now", name), cid)
 		vs := &v1alpha32.VirtualService{}
 		vs.Name = api.Name + VIRTUALSERVICE_RULE_SUFFIX
 		vs.Namespace = api.Namespace
@@ -120,7 +121,7 @@ func retrieveVirtualService(api utils.ApiValues, cid string, parentCtx context.C
 func retrieveDestinationRule(api utils.ApiValues, cid string, parentCtx context.Context) (destinationRule *v1alpha32.DestinationRule, new bool, error error) {
 	drName := api.Name + DESTINATION_RULE_SUFFIX
 	getOptions := metav1.GetOptions{}
-	utils.Info(fmt.Sprintf("Retrieving destinationrule: %s", drName), cid)
+	logger.Info(fmt.Sprintf("Retrieving destinationrule: %s", drName), cid)
 
 	dr, err := GetDestinationRule(cid, drName, api.Namespace, getOptions)
 	if err != nil {
@@ -133,7 +134,7 @@ func retrieveDestinationRule(api utils.ApiValues, cid string, parentCtx context.
 			return nil, false, err
 		}
 
-		utils.Info(fmt.Sprintf("DestinationRule: %s not found, will create one now", drName), cid)
+		logger.Info(fmt.Sprintf("DestinationRule: %s not found, will create one now", drName), cid)
 		dr := &v1alpha32.DestinationRule{}
 		dr.Name = api.Name + DESTINATION_RULE_SUFFIX
 		dr.Namespace = api.Namespace
