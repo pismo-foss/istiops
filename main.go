@@ -30,29 +30,21 @@ func main() {
 	metadataNamespace = "default"
 	build = 37
 
-	DrM := router.DrMetadata{
-		TrackingId: trackingId,
-		Name:       metadataName,
-		Namespace:  metadataNamespace,
-		Build:      build,
-	}
-
-	VsM := router.VsMetadata{
-		TrackingId: trackingId,
-		Name:       metadataName,
-		Namespace:  metadataNamespace,
-		Build:      build,
-	}
-
 	var dr router.Router
 	dr = &router.DestinationRule{
-		Metadata: DrM,
+		TrackingId: trackingId,
+		Name:       metadataName,
+		Namespace:  metadataNamespace,
+		Build:      build,
 		Istio:    istioClient,
 	}
 
 	var vs router.Router
 	vs = &router.VirtualService{
-		Metadata: VsM,
+		TrackingId: trackingId,
+		Name:       metadataName,
+		Namespace:  metadataNamespace,
+		Build:      build,
 		Istio:    istioClient,
 	}
 
