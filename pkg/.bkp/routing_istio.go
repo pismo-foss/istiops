@@ -55,7 +55,7 @@ func GetVirtualService(cid string, name string, namespace string, getOptions met
 }
 
 // GetAllVirtualservices returns all istio resources 'virtualservices'
-func GetAllDestinationRules(cid string, namespace string, listOptions metav1.ListOptions) (destinationRuleList *v1alpha32.DestinationRuleList, error error) {
+func getAllDestinationRules(cid string, namespace string, listOptions metav1.ListOptions) (destinationRuleList *v1alpha32.DestinationRuleList, error error) {
 	utils.Info(fmt.Sprintf("Getting all destinationrules..."), cid)
 	drs, err := istioClient.NetworkingV1alpha3().DestinationRules(namespace).List(listOptions)
 	if err != nil {
@@ -103,7 +103,7 @@ func GetResourcesToUpdate(cid string, v IstioValues, labelSelector map[string]st
 		LabelSelector: stringfiedLabelSelector,
 	}
 
-	matchedDrs, err := GetAllDestinationRules(cid, v.Namespace, listOptions)
+	matchedDrs, err := getAllDestinationRules(cid, v.Namespace, listOptions)
 	if err != nil {
 		return nil, nil, err
 	}

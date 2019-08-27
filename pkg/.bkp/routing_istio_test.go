@@ -108,9 +108,9 @@ func TestSanitizeVersionString(t *testing.T) {
 
 }
 
-func TestGetAllDestinationRules(t *testing.T) {
+func TestgetAllDestinationRules(t *testing.T) {
 	listOptions := metav1.ListOptions{}
-	mockedDrs, err := GetAllDestinationRules("random-cid", namespace, listOptions)
+	mockedDrs, err := getAllDestinationRules("random-cid", namespace, listOptions)
 
 	assert.NoError(t, err)
 	assert.IsType(t, v1alpha32.DestinationRuleList{}, *mockedDrs)

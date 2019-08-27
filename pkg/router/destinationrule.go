@@ -31,7 +31,7 @@ func (v *DestinationRule) Validate(s *Shift) error {
 		LabelSelector: StringifyLabelSelector,
 	}
 
-	drs, err := GetAllDestinationRules(v, listOptions)
+	drs, err := getAllDestinationRules(v, listOptions)
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func (v *DestinationRule) Update(s *Shift) error {
 		LabelSelector: StringifyLabelSelector,
 	}
 
-	drs, err := GetAllDestinationRules(v, listOptions)
+	drs, err := getAllDestinationRules(v, listOptions)
 	if err != nil {
 		fmt.Println("null drs")
 		return err
@@ -98,7 +98,7 @@ func (v *DestinationRule) Clear(s *Shift) error {
 		LabelSelector: StringifyLabelSelector,
 	}
 
-	drs, err := GetAllDestinationRules(v, listOptions)
+	drs, err := getAllDestinationRules(v, listOptions)
 	if err != nil {
 		return err
 	}
@@ -121,8 +121,8 @@ func (v *DestinationRule) Delete(s *Shift) error {
 
 }
 
-// GetAllDestinationRules returns all istio resources 'virtualservices'
-func GetAllDestinationRules(dr *DestinationRule, listOptions metav1.ListOptions) (*v1alpha32.DestinationRuleList, error) {
+// getAllDestinationRules returns all istio resources 'virtualservices'
+func getAllDestinationRules(dr *DestinationRule, listOptions metav1.ListOptions) (*v1alpha32.DestinationRuleList, error) {
 	utils.Info(fmt.Sprintf("Finding destinationRules which matches selector '%s'...", listOptions.LabelSelector), dr.TrackingId)
 	
 	drs, err := dr.Istio.NetworkingV1alpha3().DestinationRules(dr.Namespace).List(listOptions)
