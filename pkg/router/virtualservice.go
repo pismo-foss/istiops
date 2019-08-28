@@ -88,7 +88,7 @@ func (v *VirtualService) Validate(s *Shift) error {
 		return err
 	}
 
-	for _, vs := range vss.VirtualServiceList.Items {
+	for _, vs := range vss.VList.Items {
 		logger.Info(fmt.Sprintf("Validating virtualService '%s'", vs.Name), v.TrackingId)
 
 		for _, subsetValue := range vs.Spec.Http {
@@ -122,7 +122,7 @@ func (v *VirtualService) Update(s *Shift) error {
 		return err
 	}
 
-	for _, vs := range vss.VirtualServiceList.Items {
+	for _, vs := range vss.VList.Items {
 		subsetExists := false
 		for _, httpValue := range vs.Spec.Http {
 			for _, routeValue := range httpValue.Route {
@@ -170,7 +170,7 @@ func (v *VirtualService) Clear(s *Shift) error {
 		return err
 	}
 
-	for _, vs := range vss.VirtualServiceList.Items {
+	for _, vs := range vss.VList.Items {
 		var cleanedRules []*v1alpha3.HTTPRoute
 
 		for _, httpRuleValue := range vs.Spec.Http {
@@ -210,7 +210,7 @@ func (v *VirtualService) List(opts metav1.ListOptions) (*IstioRouteList, error) 
 	}
 
 	irl := &IstioRouteList{
-		VirtualServiceList: vss,
+		VList: vss,
 	}
 
 	return irl, nil

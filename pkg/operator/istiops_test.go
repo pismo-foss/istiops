@@ -1,9 +1,10 @@
 package operator
 
 import (
-	"fmt"
+	"errors"
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	versionedClientFake "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
+	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"io/ioutil"
@@ -19,6 +20,8 @@ var fClient *versionedClientFake.Clientset
 var namespace string
 var mockedDestinationRuleName string
 var mockedVirtualServiceName string
+var mockedDr router.Router
+var mockedVs router.Router
 
 func TestMain(m *testing.M) {
 	// discard stdout logs if not being run with '-v' flag
@@ -100,63 +103,6 @@ func CreateMockedVirtualService(resourceName string, resourceNamespace string) (
 	return mockedVs, err
 }
 
-func TestInterface(t *testing.T) {
-
-	mockedTrackingId := "54ec4fd3-879b-404f-9812-c6b97f663b8d"
-	mockedMetadataName := "api-xpto"
-	mockedMetadataNamespace := "default"
-	mockedBuild := uint32(35)
-
-	var mockedDr router.Router
-	var mockedVs router.Router
-
-	mockedDr = &MockedResources{
-		TrackingId: mockedTrackingId,
-		Name:       mockedMetadataName,
-		Namespace:  mockedMetadataNamespace,
-		Build:      mockedBuild,
-		Istio:      fClient,
-	}
-
-	mockedVs = &MockedResources{
-		TrackingId: mockedTrackingId,
-		Name:       mockedMetadataName,
-		Namespace:  mockedMetadataNamespace,
-		Build:      mockedBuild,
-		Istio:      fClient,
-	}
-
-	shift := &router.Shift{
-		Port:     5000,
-		Hostname: "api.domain.io",
-		Selector: &router.Selector{
-			Labels: map[string]string{"environment": "pipeline-go"},
-		},
-		Traffic: &router.Traffic{
-			//PodSelector: map[string]string{
-			//	"app":     "api",
-			//	"version": "1.3.2",
-			//	"build":   "24",
-			//},
-			RequestHeaders: map[string]string{
-				"x-version": "PR-141",
-				"x-cid":     "12312-123121-1212-1231-12131",
-			},
-			Weight: 0,
-		},
-	}
-
-	var fop Operator
-	fop = &Istiops{
-		DrRouter: mockedDr,
-		VsRouter: mockedVs,
-	}
-
-	err := fop.Update(shift)
-	t.Log(fmt.Sprintf("%s", err))
-
-}
-
 type MockedResources struct {
 	TrackingId string
 	Name       string
@@ -165,12 +111,139 @@ type MockedResources struct {
 	Istio      *versionedClientFake.Clientset
 }
 
-func (m MockedResources) Create(s *router.Shift) (*router.IstioRules, error) { return &router.IstioRules{}, nil }
+func (m MockedResources) Create(s *router.Shift) (*router.IstioRules, error) {
+	return &router.IstioRules{}, nil
+}
 
-func (m MockedResources) List(opts metav1.ListOptions) (*router.IstioRouteList, error) { return &router.IstioRouteList{}, nil }
+func (m MockedResources) List(opts metav1.ListOptions) (*router.IstioRouteList, error) {
+	return &router.IstioRouteList{}, nil
+}
 
 func (m MockedResources) Clear(s *router.Shift) error { return nil }
 
-func (m MockedResources) Validate(s *router.Shift) error { return nil }
+func (m MockedResources) Validate(s *router.Shift) error { return errors.New("a route needs to be served with a 'weight' or 'request headers', not both") }
 
 func (m MockedResources) Update(s *router.Shift) error { return nil }
+
+func TestValidate(t *testing.T) {
+
+	validateErrors := []struct {
+		fop  Operator
+		s    *router.Shift
+		want string
+	}{
+		{&Istiops{
+				DrRouter: &MockedResources{
+					TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
+					Name:       "api-xpto",
+					Namespace:  "default",
+					Build:      2,
+					Istio:      fClient,
+				},
+				VsRouter: &MockedResources{
+					TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
+					Name:       "api-xpto",
+					Namespace:  "default",
+					Build:      2,
+					Istio:      fClient,
+				},
+			}, &router.Shift{
+				Port:     5000,
+				Hostname: "api.domain.io",
+				Selector: &router.Selector{
+					//Labels: map[string]string{"environment": "pipeline-go"},
+				},
+				Traffic: &router.Traffic{
+					PodSelector: map[string]string{
+						"app":     "api",
+						"version": "1.3.2",
+						"build":   "24",
+					},
+					RequestHeaders: map[string]string{
+						"x-version": "PR-141",
+						"x-cid":     "12312-123121-1212-1231-12131",
+					},
+					Weight: 0,
+				},
+			}, "label-selector must exists in need to find resources",
+		},
+		{&Istiops{
+				DrRouter: &MockedResources{
+					TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
+					Name:       "api-xpto",
+					Namespace:  "default",
+					Build:      2,
+					Istio:      fClient,
+				},
+				VsRouter: &MockedResources{
+					TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
+					Name:       "api-xpto",
+					Namespace:  "default",
+					Build:      2,
+					Istio:      fClient,
+				},
+			},
+			&router.Shift{
+				Port:     5000,
+				Hostname: "api.domain.io",
+				Selector: &router.Selector{
+					Labels: map[string]string{"environment": "pipeline-go"},
+				},
+				Traffic: &router.Traffic{
+					//PodSelector: map[string]string{
+					//	"app":     "api",
+					//	"version": "1.3.2",
+					//	"build":   "24",
+					//},
+					RequestHeaders: map[string]string{
+						"x-version": "PR-141",
+						"x-cid":     "12312-123121-1212-1231-12131",
+					},
+					Weight: 0,
+				},
+			}, "pod-selector must exists in need to find traffic destination",
+		},
+		{&Istiops{
+			DrRouter: &MockedResources{
+				TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
+				Name:       "api-xpto",
+				Namespace:  "default",
+				Build:      2,
+				Istio:      fClient,
+			},
+			VsRouter: &MockedResources{
+				TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
+				Name:       "api-xpto",
+				Namespace:  "default",
+				Build:      2,
+				Istio:      fClient,
+			},
+		},
+			&router.Shift{
+				Port:     5000,
+				Hostname: "api.domain.io",
+				Selector: &router.Selector{
+					Labels: map[string]string{"environment": "pipeline-go"},
+				},
+				Traffic: &router.Traffic{
+					PodSelector: map[string]string{
+						"app":     "api",
+						"version": "1.3.2",
+						"build":   "24",
+					},
+					RequestHeaders: map[string]string{
+						"x-version": "PR-141",
+						"x-cid":     "12312-123121-1212-1231-12131",
+					},
+					Weight: 10,
+				},
+			}, "a route needs to be served with a 'weight' or 'request headers', not both",
+		},
+	}
+
+	for _, tCase := range validateErrors {
+		got := tCase.fop.Update(tCase.s)
+		assert.EqualError(t, got, tCase.want)
+	}
+
+}

@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: api-pipelinetest-config
-  namespace: default
-data:
-  LOGSTASH_URL: "logstash.pismolabs.io:80"
-  REDIS_HOST: "cache-qa.pismolabs.io:6379"
-  REDIS_URL: "cache-qa.pismolabs.io:6379"

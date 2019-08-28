@@ -48,7 +48,7 @@ func (d *DestinationRule) Validate(s *Shift) error {
 		return err
 	}
 
-	for _, dr := range drs.DestinationRulesList.Items {
+	for _, dr := range drs.DList.Items {
 		logger.Info(fmt.Sprintf("Validating destinationRule '%s'", dr.Name), d.TrackingId)
 		for _, subsetValue := range dr.Spec.Subsets {
 			if subsetValue.Name == newSubset {
@@ -78,7 +78,7 @@ func (d *DestinationRule) Update(s *Shift) error {
 		return err
 	}
 
-	for _, dr := range drs.DestinationRulesList.Items {
+	for _, dr := range drs.DList.Items {
 		irl, err := d.Create(s)
 		if err != nil {
 			logger.Error(fmt.Sprintf("could not create subset due to error '%s'", err), d.TrackingId)
@@ -113,7 +113,7 @@ func (d *DestinationRule) Clear(s *Shift) error {
 		return err
 	}
 
-	for _, dr := range drs.DestinationRulesList.Items {
+	for _, dr := range drs.DList.Items {
 		dr.Spec.Subsets = []*v1alpha3.Subset{}
 
 		logger.Info(fmt.Sprintf("Clearing all destinationRules subsets from '%s'...", dr.Name), d.TrackingId)
@@ -137,7 +137,7 @@ func (d *DestinationRule) List(opts metav1.ListOptions) (*IstioRouteList, error)
 	}
 
 	irl := IstioRouteList{
-		DestinationRulesList: drs,
+		DList: drs,
 	}
 
 	return &irl, nil

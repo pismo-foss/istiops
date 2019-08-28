@@ -28,11 +28,11 @@ func (ips *Istiops) Create(r *router.Shift) error {
 
 func (ips *Istiops) Update(r *router.Shift) error {
 	if len(r.Selector.Labels) == 0 {
-		return errors.New("label-selector must not be empty otherwise istiops won't be able to find any resources")
+		return errors.New("label-selector must exists in need to find resources")
 	}
 
 	if len(r.Traffic.PodSelector) == 0 {
-		return errors.New("pod-selector must no be empty otherwise istiops won't be able to know where to route traffic")
+		return errors.New("pod-selector must exists in need to find traffic destination")
 	}
 
 	DrRouter := ips.DrRouter

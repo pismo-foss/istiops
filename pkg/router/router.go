@@ -40,8 +40,8 @@ type IstioRules struct {
 }
 
 type IstioRouteList struct {
-	VirtualServiceList   *v1alpha32.VirtualServiceList
-	DestinationRulesList *v1alpha32.DestinationRuleList
+	VList *v1alpha32.VirtualServiceList
+	DList *v1alpha32.DestinationRuleList
 }
 
 // StringifyLabelSelector returns a k8s selector string based on given map. Ex: "key=value,key2=value2"

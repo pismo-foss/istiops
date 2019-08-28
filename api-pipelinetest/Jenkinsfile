@@ -1,6 +1,0 @@
-deployTargets = [:]
-deployTargets['default'] = 'k8s'
-
-env.APP_NAME = 'api-pipelinetest'
-
-pismoPipeline(deployTargets)
