@@ -4,14 +4,15 @@ import (
 	"errors"
 	"fmt"
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 )
 
 type Router interface {
 	Validate(s *Shift) error
 	Update(s *Shift) error
-	Delete(s *Shift) error
 	Clear(s *Shift) error
+	List(opts metav1.ListOptions) (*IstioRouteList, error)
 }
 
 type Shift struct {

@@ -31,22 +31,6 @@ func (ips *Istiops) Create(r *router.Shift) error {
 	return nil
 }
 
-func (ips *Istiops) Delete(r *router.Shift) error {
-	VsRouter := ips.VsRouter
-	err := VsRouter.Delete(r)
-	if err != nil {
-		return err
-	}
-
-	DrRouter := ips.DrRouter
-	err = DrRouter.Delete(r)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (ips *Istiops) Update(r *router.Shift) error {
 	if len(r.Selector.Labels) == 0 {
 		return errors.New("label-selector must not be empty otherwise istiops won't be able to find any resources")
@@ -75,13 +59,6 @@ func (ips *Istiops) Update(r *router.Shift) error {
 	err = VsRouter.Update(r)
 	if err != nil {
 		return err
-	}
-
-	if r.Traffic.Weight > 0 {
-		// update router to serve percentage
-		//if err != nil {
-		//	utils.Fatal(fmt.Sprintf("Could no create resource due to an error '%s'", err), "")
-		//}
 	}
 
 	return nil

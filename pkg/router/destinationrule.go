@@ -31,12 +31,12 @@ func (v *DestinationRule) Validate(s *Shift) error {
 		LabelSelector: StringifyLabelSelector,
 	}
 
-	drs, err := getAllDestinationRules(v, listOptions)
+	drs, err := v.List(listOptions)
 	if err != nil {
 		return err
 	}
 
-	for _, dr := range drs.Items {
+	for _, dr := range drs.DestinationRulesList.Items {
 		logger.Info(fmt.Sprintf("Validating destinationRule '%s'", dr.Name), v.TrackingId)
 		for _, subsetValue := range dr.Spec.Subsets {
 			if subsetValue.Name == newSubset {
@@ -60,13 +60,13 @@ func (v *DestinationRule) Update(s *Shift) error {
 		LabelSelector: StringifyLabelSelector,
 	}
 
-	drs, err := getAllDestinationRules(v, listOptions)
+	drs, err := v.List(listOptions)
 	if err != nil {
 		fmt.Println("null drs")
 		return err
 	}
 
-	for _, dr := range drs.Items {
+	for _, dr := range drs.DestinationRulesList.Items {
 		newSubset := &v1alpha3.Subset{
 			Name:   fmt.Sprintf("%s-%v-%s", v.Name, v.Build, v.Namespace),
 			Labels: s.Traffic.PodSelector,
@@ -98,12 +98,12 @@ func (v *DestinationRule) Clear(s *Shift) error {
 		LabelSelector: StringifyLabelSelector,
 	}
 
-	drs, err := getAllDestinationRules(v, listOptions)
+	drs, err := v.List(listOptions)
 	if err != nil {
 		return err
 	}
 
-	for _, dr := range drs.Items {
+	for _, dr := range drs.DestinationRulesList.Items {
 		dr.Spec.Subsets = []*v1alpha3.Subset{}
 
 		logger.Info(fmt.Sprintf("Clearing all destinationRules subsets from '%s'...", dr.Name), v.TrackingId)
@@ -116,26 +116,21 @@ func (v *DestinationRule) Clear(s *Shift) error {
 	return nil
 }
 
-func (v *DestinationRule) Delete(s *Shift) error {
-	return nil
-
-}
-
-// getAllDestinationRules returns all istio resources 'virtualservices'
-func getAllDestinationRules(dr *DestinationRule, listOptions metav1.ListOptions) (*v1alpha32.DestinationRuleList, error) {
-	logger.Info(fmt.Sprintf("Finding destinationRules which matches selector '%s'...", listOptions.LabelSelector), dr.TrackingId)
-	
-	drs, err := dr.Istio.NetworkingV1alpha3().DestinationRules(dr.Namespace).List(listOptions)
+func (v *DestinationRule) List(opts metav1.ListOptions) (*IstioRouteList, error) {
+	drs, err := v.Istio.NetworkingV1alpha3().DestinationRules(v.Namespace).List(opts)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(drs.Items) <= 0 {
-		return nil, errors.New("could not find any destinationRules")
+		return nil, errors.New(fmt.Sprintf("could not find any destinationRules which matched label-selector '%v'", opts.LabelSelector))
 	}
 
-	logger.Info(fmt.Sprintf("Found a total of '%d' destinationRules to work it", len(drs.Items)), dr.TrackingId)
-	return drs, nil
+	irl := IstioRouteList{
+		DestinationRulesList: drs,
+	}
+
+	return &irl, nil
 }
 
 func createSubset(dr v1alpha32.DestinationRule, newSubset *v1alpha3.Subset) (*v1alpha32.DestinationRule, error) {

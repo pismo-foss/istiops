@@ -39,8 +39,12 @@ func (v *VirtualService) Update(s *Shift) error {
 		LabelSelector: StringifyLabelSelector,
 	}
 
-	vss, err := getAllVirtualServices(v, listOptions)
-	for _, vs := range vss.Items {
+	vss, err := v.List(listOptions)
+	if err != nil {
+		return err
+	}
+
+	for _, vs := range vss.VirtualServiceList.Items {
 		subsetExists := false
 		for _, httpValue := range vs.Spec.Http {
 			for _, routeValue := range httpValue.Route {
@@ -73,11 +77,6 @@ func (v *VirtualService) Update(s *Shift) error {
 
 }
 
-func (v *VirtualService) Delete(s *Shift) error {
-	return nil
-
-}
-
 func (v *VirtualService) Clear(s *Shift) error {
 	StringifyLabelSelector, err := StringifyLabelSelector(v.TrackingId, s.Selector.Labels)
 	if err != nil {
@@ -88,17 +87,18 @@ func (v *VirtualService) Clear(s *Shift) error {
 		LabelSelector: StringifyLabelSelector,
 	}
 
-	vss, err := getAllVirtualServices(v, listOptions)
+	vss, err := v.List(listOptions)
 	if err != nil {
 		return err
 	}
 
-	for _, vs := range vss.Items {
-		for httpRuleKey, httpRuleValue := range vs.Spec.Http {
+	for _, vs := range vss.VirtualServiceList.Items {
+		cleanedRules := vs.Spec.Http
+		for httpRuleKey, httpRuleValue := range cleanedRules {
 			for _, httpRoute := range httpRuleValue.Route {
 				if httpRoute.Weight <= 0 {
 					logger.Info(fmt.Sprintf("The subset '%s' will be removed due to a non-active weight rule attached", httpRoute.Destination.Subset), v.TrackingId)
-					vs.Spec.Http = append(vs.Spec.Http[:httpRuleKey], vs.Spec.Http[httpRuleKey+1:]...)
+					vs.Spec.Http = append(cleanedRules[:httpRuleKey], cleanedRules[httpRuleKey+1:]...)
 				}
 			}
 		}
@@ -107,6 +107,8 @@ func (v *VirtualService) Clear(s *Shift) error {
 		if len(vs.Spec.Http) == 0 {
 			return errors.New(fmt.Sprintf("the clear command will result in a resource '%s' without any rules which is not accepted by istio", vs.Name))
 		}
+
+		vs.Spec.Http = cleanedRules
 
 		logger.Info(fmt.Sprintf("Clearing all virtualService routes from '%s' except the URI or Weighted ones...", vs.Name), v.TrackingId)
 		err := UpdateVirtualService(v, &vs)
@@ -119,16 +121,21 @@ func (v *VirtualService) Clear(s *Shift) error {
 
 }
 
-// getAllVirtualServices returns all istio resources 'virtualservices'
-func getAllVirtualServices(vsRoute *VirtualService, listOptions metav1.ListOptions) (*v1alpha32.VirtualServiceList, error) {
-	logger.Info(fmt.Sprintf("Getting all virtualservices..."), vsRoute.TrackingId)
-
-	vss, err := vsRoute.Istio.NetworkingV1alpha3().VirtualServices(vsRoute.Namespace).List(listOptions)
+func (v *VirtualService) List(opts metav1.ListOptions) (*IstioRouteList, error) {
+	vss, err := v.Istio.NetworkingV1alpha3().VirtualServices(v.Namespace).List(opts)
 	if err != nil {
 		return nil, err
 	}
 
-	return vss, nil
+	if len(vss.Items) <= 0 {
+		return nil, errors.New(fmt.Sprintf("could not find any virtualServices which matched label-selector '%v'", opts.LabelSelector))
+	}
+
+	irl := IstioRouteList{
+		VirtualServiceList: vss,
+	}
+
+	return &irl, nil
 }
 
 func CreateNewRoute(subsetName string, vsRoute *VirtualService, s *Shift) (*v1alpha3.HTTPRoute, error) {
