@@ -1,10 +1,10 @@
 package operator
 
 import (
+	"fmt"
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	versionedClientFake "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"io/ioutil"
 	"istio.io/api/networking/v1alpha3"
@@ -107,24 +107,23 @@ func TestInterface(t *testing.T) {
 	mockedMetadataNamespace := "default"
 	mockedBuild := uint32(35)
 
-	m := MockedMetadata{
-		TrackingId: mockedTrackingId,
-		Name:       mockedMetadataName,
-		Namespace:  mockedMetadataNamespace,
-		Build:      mockedBuild,
-	}
-
 	var mockedDr router.Router
 	var mockedVs router.Router
 
 	mockedDr = &MockedResources{
-		Metadata: m,
-		Istio:    fClient,
+		TrackingId: mockedTrackingId,
+		Name:       mockedMetadataName,
+		Namespace:  mockedMetadataNamespace,
+		Build:      mockedBuild,
+		Istio:      fClient,
 	}
 
 	mockedVs = &MockedResources{
-		Metadata: m,
-		Istio:    fClient,
+		TrackingId: mockedTrackingId,
+		Name:       mockedMetadataName,
+		Namespace:  mockedMetadataNamespace,
+		Build:      mockedBuild,
+		Istio:      fClient,
 	}
 
 	shift := &router.Shift{
@@ -134,11 +133,11 @@ func TestInterface(t *testing.T) {
 			Labels: map[string]string{"environment": "pipeline-go"},
 		},
 		Traffic: &router.Traffic{
-			PodSelector: map[string]string{
-				"app":     "api",
-				"version": "1.3.2",
-				"build":   "24",
-			},
+			//PodSelector: map[string]string{
+			//	"app":     "api",
+			//	"version": "1.3.2",
+			//	"build":   "24",
+			//},
 			RequestHeaders: map[string]string{
 				"x-version": "PR-141",
 				"x-cid":     "12312-123121-1212-1231-12131",
@@ -153,31 +152,25 @@ func TestInterface(t *testing.T) {
 		VsRouter: mockedVs,
 	}
 
-	assert.Error(t, fop.Clear(shift))
-	assert.Error(t, fop.Update(shift))
-	assert.Error(t, fop.Create(shift))
-	assert.Error(t, fop.Delete(shift))
+	err := fop.Update(shift)
+	t.Log(fmt.Sprintf("%s", err))
 
 }
 
 type MockedResources struct {
-	Metadata MockedMetadata
-	Istio    *versionedClientFake.Clientset
-}
-
-type MockedMetadata struct {
 	TrackingId string
 	Name       string
 	Namespace  string
 	Build      uint32
+	Istio      *versionedClientFake.Clientset
 }
 
-func (m MockedResources) Clear(s *router.Shift) error { return errors.New("mocked router.Clear()") }
+func (m MockedResources) Create(s *router.Shift) (*router.IstioRules, error) { return &router.IstioRules{}, nil }
 
-func (m MockedResources) Validate(s *router.Shift) error {
-	return errors.New("mocked from router.Validate()")
-}
+func (m MockedResources) List(opts metav1.ListOptions) (*router.IstioRouteList, error) { return &router.IstioRouteList{}, nil }
 
-func (m MockedResources) Delete(s *router.Shift) error { return errors.New("mocked router.Delete()") }
+func (m MockedResources) Clear(s *router.Shift) error { return nil }
 
-func (m MockedResources) Update(s *router.Shift) error { return errors.New("mocked router.Update()") }
+func (m MockedResources) Validate(s *router.Shift) error { return nil }
+
+func (m MockedResources) Update(s *router.Shift) error { return nil }

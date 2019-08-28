@@ -10,12 +10,7 @@ type Istiops struct {
 	VsRouter router.Router
 }
 
-func (ips *Istiops) Get(r *router.Shift) error {
-	return nil
-}
-
 func (ips *Istiops) Create(r *router.Shift) error {
-
 	VsRouter := ips.VsRouter
 	err := VsRouter.Validate(r)
 	if err != nil {
