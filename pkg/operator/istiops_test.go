@@ -2,13 +2,11 @@ package operator
 
 import (
 	"errors"
-	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	versionedClientFake "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"io/ioutil"
-	"istio.io/api/networking/v1alpha3"
 	"log"
 	"os"
 	"testing"
@@ -17,11 +15,6 @@ import (
 )
 
 var fClient *versionedClientFake.Clientset
-var namespace string
-var mockedDestinationRuleName string
-var mockedVirtualServiceName string
-var mockedDr router.Router
-var mockedVs router.Router
 
 func TestMain(m *testing.M) {
 	// discard stdout logs if not being run with '-v' flag
@@ -34,73 +27,6 @@ func TestMain(m *testing.M) {
 
 func TearUp() {
 	fClient = versionedClientFake.NewSimpleClientset()
-	namespace = "test-namespace"
-	mockedDestinationRuleName = "api-unit-test-destinationrule"
-	mockedVirtualServiceName = "api-unit-test-virtualservice"
-
-	var err error
-
-	_, err = CreateMockedDestinationRule(
-		mockedDestinationRuleName,
-		namespace,
-		map[string]string{
-			"app":     "api-xpto",
-			"version": "2.1.3",
-		})
-	if err != nil {
-		log.Fatal("Could not create mocked DestinationRule")
-	}
-
-	_, err = CreateMockedVirtualService(mockedVirtualServiceName, namespace)
-	if err != nil {
-		log.Fatal("Could not create mocked VirtualService")
-	}
-}
-
-func CreateMockedDestinationRule(resourceName string, resourceNamespace string, subsetLabels map[string]string) (mockedDestinationRule *v1alpha32.DestinationRule, error error) {
-	mockedDr := &v1alpha32.DestinationRule{}
-	mockedDr.Name = resourceName
-	mockedDr.Namespace = resourceNamespace
-	mockedDr.Labels = map[string]string{
-		"app":     "api-xpto",
-		"version": "2.1.3",
-	}
-
-	mockedDr.Spec.Subsets = append(mockedDr.Spec.Subsets, &v1alpha3.Subset{
-		Name:   "subset-test",
-		Labels: subsetLabels,
-	})
-
-	_, err := fClient.NetworkingV1alpha3().DestinationRules(resourceNamespace).Create(mockedDr)
-
-	return mockedDr, err
-}
-
-func CreateMockedVirtualService(resourceName string, resourceNamespace string) (mockedVirtualService *v1alpha32.VirtualService, error error) {
-	mockedVs := &v1alpha32.VirtualService{}
-	mockedVs.Name = resourceName
-	mockedVs.Namespace = resourceNamespace
-	mockedVs.Labels = map[string]string{
-		"app":     "api-xpto",
-		"version": "2.1.3",
-	}
-
-	mockedVs.Spec.Hosts = []string{"api-unit-test.domain.io"}
-	mockedVs.Spec.Gateways = []string{"unit-test-gateway"}
-
-	mockedVs.Spec.Http = append(mockedVs.Spec.Http, &v1alpha3.HTTPRoute{})
-
-	defaultMatch := &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}}
-	defaultDestination := &v1alpha3.HTTPRouteDestination{Destination: &v1alpha3.Destination{Host: "api-xpto", Subset: "subset-test", Port: &v1alpha3.PortSelector{Port: &v1alpha3.PortSelector_Number{Number: 8080}}}}
-	defaultRoute := &v1alpha3.HTTPRoute{}
-	defaultRoute.Match = append(defaultRoute.Match, defaultMatch)
-	defaultRoute.Route = append(defaultRoute.Route, defaultDestination)
-
-	mockedVs.Spec.Http = append(mockedVs.Spec.Http, defaultRoute)
-
-	_, err := fClient.NetworkingV1alpha3().VirtualServices(resourceNamespace).Create(mockedVs)
-
-	return mockedVs, err
 }
 
 type MockedResources struct {
