@@ -28,7 +28,7 @@ func main() {
 	trackingId = "54ec4fd3-879b-404f-9812-c6b97f663b8d"
 	metadataName = "api-xpto"
 	metadataNamespace = "default"
-	build = 37
+	build = 45
 
 	var dr router.Router
 	dr = &router.DestinationRule{
@@ -36,7 +36,7 @@ func main() {
 		Name:       metadataName,
 		Namespace:  metadataNamespace,
 		Build:      build,
-		Istio:    istioClient,
+		Istio:      istioClient,
 	}
 
 	var vs router.Router
@@ -45,7 +45,7 @@ func main() {
 		Name:       metadataName,
 		Namespace:  metadataNamespace,
 		Build:      build,
-		Istio:    istioClient,
+		Istio:      istioClient,
 	}
 
 	shift := &router.Shift{
@@ -61,10 +61,10 @@ func main() {
 				"build":   "24",
 			},
 			//RequestHeaders: map[string]string{
-			//	"x-version": "PR-141",
-			//	"x-cid":     "12312-123121-1212-1231-12131",
+			//	"x-version":    "PR-141",
+			//	"x-account-id": "233",
 			//},
-			Weight: 0,
+			Weight: 10,
 		},
 	}
 
@@ -75,10 +75,10 @@ func main() {
 	}
 
 	// clear all routes + subsets
-	err = op.Clear(shift)
-	if err != nil {
-		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
-	}
+	//err = op.Clear(shift)
+	//if err != nil {
+	//	logger.Fatal(fmt.Sprintf("%s", err), trackingId)
+	//}
 
 	//// Update a route
 	err = op.Update(shift)

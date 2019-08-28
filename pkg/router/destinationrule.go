@@ -16,13 +16,25 @@ type DestinationRule struct {
 	Name       string
 	Namespace  string
 	Build      uint32
-	Istio    *versioned.Clientset
+	Istio      *versioned.Clientset
 }
 
-func (v *DestinationRule) Validate(s *Shift) error {
-	newSubset := fmt.Sprintf("%s-%v-%s", v.Name, v.Build, v.Namespace)
+func (d *DestinationRule) Create(s *Shift) (*IstioRules, error) {
+	newSubset := &v1alpha3.Subset{
+		Name:   fmt.Sprintf("%s-%v-%s", d.Name, d.Build, d.Namespace),
+		Labels: s.Traffic.PodSelector,
+	}
 
-	StringifyLabelSelector, err := StringifyLabelSelector(v.TrackingId, s.Selector.Labels)
+	irl := &IstioRules{
+		Subset: newSubset,
+	}
+	return irl, nil
+}
+
+func (d *DestinationRule) Validate(s *Shift) error {
+	newSubset := fmt.Sprintf("%s-%v-%s", d.Name, d.Build, d.Namespace)
+
+	StringifyLabelSelector, err := StringifyLabelSelector(d.TrackingId, s.Selector.Labels)
 	if err != nil {
 		return err
 	}
@@ -31,13 +43,13 @@ func (v *DestinationRule) Validate(s *Shift) error {
 		LabelSelector: StringifyLabelSelector,
 	}
 
-	drs, err := v.List(listOptions)
+	drs, err := d.List(listOptions)
 	if err != nil {
 		return err
 	}
 
 	for _, dr := range drs.DestinationRulesList.Items {
-		logger.Info(fmt.Sprintf("Validating destinationRule '%s'", dr.Name), v.TrackingId)
+		logger.Info(fmt.Sprintf("Validating destinationRule '%s'", dr.Name), d.TrackingId)
 		for _, subsetValue := range dr.Spec.Subsets {
 			if subsetValue.Name == newSubset {
 				// remove item from slice
@@ -50,8 +62,8 @@ func (v *DestinationRule) Validate(s *Shift) error {
 
 }
 
-func (v *DestinationRule) Update(s *Shift) error {
-	StringifyLabelSelector, err := StringifyLabelSelector(v.TrackingId, s.Selector.Labels)
+func (d *DestinationRule) Update(s *Shift) error {
+	StringifyLabelSelector, err := StringifyLabelSelector(d.TrackingId, s.Selector.Labels)
 	if err != nil {
 		return err
 	}
@@ -60,26 +72,24 @@ func (v *DestinationRule) Update(s *Shift) error {
 		LabelSelector: StringifyLabelSelector,
 	}
 
-	drs, err := v.List(listOptions)
+	drs, err := d.List(listOptions)
 	if err != nil {
 		fmt.Println("null drs")
 		return err
 	}
 
 	for _, dr := range drs.DestinationRulesList.Items {
-		newSubset := &v1alpha3.Subset{
-			Name:   fmt.Sprintf("%s-%v-%s", v.Name, v.Build, v.Namespace),
-			Labels: s.Traffic.PodSelector,
-		}
-		updatedDr, err := createSubset(dr, newSubset)
+		irl, err := d.Create(s)
 		if err != nil {
-			logger.Error(fmt.Sprintf("could not create subset due to error '%s'", err), v.TrackingId)
+			logger.Error(fmt.Sprintf("could not create subset due to error '%s'", err), d.TrackingId)
 			return err
 		}
 
-		err = UpdateDestinationRule(v, updatedDr)
+		dr.Spec.Subsets = append(dr.Spec.Subsets, irl.Subset)
+
+		err = UpdateDestinationRule(d, &dr)
 		if err != nil {
-			logger.Error(fmt.Sprintf("could not update destinationRule '%s' due to error '%s'", updatedDr.Name, err), v.TrackingId)
+			logger.Error(fmt.Sprintf("could not update destinationRule '%s' due to error '%s'", dr.Name, err), d.TrackingId)
 			return err
 		}
 
@@ -88,8 +98,8 @@ func (v *DestinationRule) Update(s *Shift) error {
 
 }
 
-func (v *DestinationRule) Clear(s *Shift) error {
-	StringifyLabelSelector, err := StringifyLabelSelector(v.TrackingId, s.Selector.Labels)
+func (d *DestinationRule) Clear(s *Shift) error {
+	StringifyLabelSelector, err := StringifyLabelSelector(d.TrackingId, s.Selector.Labels)
 	if err != nil {
 		return err
 	}
@@ -98,7 +108,7 @@ func (v *DestinationRule) Clear(s *Shift) error {
 		LabelSelector: StringifyLabelSelector,
 	}
 
-	drs, err := v.List(listOptions)
+	drs, err := d.List(listOptions)
 	if err != nil {
 		return err
 	}
@@ -106,8 +116,8 @@ func (v *DestinationRule) Clear(s *Shift) error {
 	for _, dr := range drs.DestinationRulesList.Items {
 		dr.Spec.Subsets = []*v1alpha3.Subset{}
 
-		logger.Info(fmt.Sprintf("Clearing all destinationRules subsets from '%s'...", dr.Name), v.TrackingId)
-		err := UpdateDestinationRule(v, &dr)
+		logger.Info(fmt.Sprintf("Clearing all destinationRules subsets from '%s'...", dr.Name), d.TrackingId)
+		err := UpdateDestinationRule(d, &dr)
 		if err != nil {
 			return err
 		}
@@ -116,8 +126,8 @@ func (v *DestinationRule) Clear(s *Shift) error {
 	return nil
 }
 
-func (v *DestinationRule) List(opts metav1.ListOptions) (*IstioRouteList, error) {
-	drs, err := v.Istio.NetworkingV1alpha3().DestinationRules(v.Namespace).List(opts)
+func (d *DestinationRule) List(opts metav1.ListOptions) (*IstioRouteList, error) {
+	drs, err := d.Istio.NetworkingV1alpha3().DestinationRules(d.Namespace).List(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -133,17 +143,10 @@ func (v *DestinationRule) List(opts metav1.ListOptions) (*IstioRouteList, error)
 	return &irl, nil
 }
 
-func createSubset(dr v1alpha32.DestinationRule, newSubset *v1alpha3.Subset) (*v1alpha32.DestinationRule, error) {
-
-	dr.Spec.Subsets = append(dr.Spec.Subsets, newSubset)
-
-	return &dr, nil
-}
-
 // UpdateDestinationRule updates a specific virtualService given an updated object
-func UpdateDestinationRule(dr *DestinationRule, destinationRule *v1alpha32.DestinationRule) error {
-	logger.Info(fmt.Sprintf("Updating rule for destinationRule '%s'...", destinationRule.Name), dr.TrackingId)
-	_, err := dr.Istio.NetworkingV1alpha3().DestinationRules(dr.Namespace).Update(destinationRule)
+func UpdateDestinationRule(d *DestinationRule, destinationRule *v1alpha32.DestinationRule) error {
+	logger.Info(fmt.Sprintf("Updating rule for destinationRule '%s'...", destinationRule.Name), d.TrackingId)
+	_, err := d.Istio.NetworkingV1alpha3().DestinationRules(d.Namespace).Update(destinationRule)
 	if err != nil {
 		return err
 	}

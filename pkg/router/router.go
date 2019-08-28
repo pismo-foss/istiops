@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+	"istio.io/api/networking/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 )
 
 type Router interface {
+	Create(s *Shift) (*IstioRules, error)
 	Validate(s *Shift) error
 	Update(s *Shift) error
 	Clear(s *Shift) error
@@ -30,6 +32,11 @@ type Traffic struct {
 
 type Selector struct {
 	Labels map[string]string
+}
+
+type IstioRules struct {
+	MatchDestination *v1alpha3.HTTPRoute
+	Subset           *v1alpha3.Subset
 }
 
 type IstioRouteList struct {

@@ -15,12 +15,90 @@ type VirtualService struct {
 	Name       string
 	Namespace  string
 	Build      uint32
-	Istio    *versioned.Clientset
+	Istio      *versioned.Clientset
+}
+
+func (v *VirtualService) Create(s *Shift) (*IstioRules, error) {
+	subsetName := fmt.Sprintf("%s-%v-%s", v.Name, v.Build, v.Namespace)
+
+	logger.Info(fmt.Sprintf("Creating new http route for subset '%s'...", subsetName), v.TrackingId)
+	newMatch := &v1alpha3.HTTPMatchRequest{
+		Headers: map[string]*v1alpha3.StringMatch{},
+	}
+
+	// append user labels to exact match
+	for headerKey, headerValue := range s.Traffic.RequestHeaders {
+		newMatch.Headers[headerKey] = &v1alpha3.StringMatch{
+			MatchType: &v1alpha3.StringMatch_Exact{
+				Exact: headerValue,
+			},
+		}
+	}
+
+	defaultDestination := &v1alpha3.HTTPRouteDestination{
+		Destination: &v1alpha3.Destination{
+			Host:   s.Hostname,
+			Subset: subsetName,
+			Port: &v1alpha3.PortSelector{
+				Port: &v1alpha3.PortSelector_Number{
+					Number: s.Port,
+				},
+			},
+		},
+	}
+
+	newRoute := &v1alpha3.HTTPRoute{}
+
+	if len(s.Traffic.RequestHeaders) > 0 {
+		logger.Info(fmt.Sprintf("Setting request header's match rule '%s' for '%s'...", s.Traffic.RequestHeaders, subsetName), v.TrackingId)
+		newRoute.Match = append(newRoute.Match, newMatch)
+	}
+
+	if s.Traffic.Weight != 0 {
+		logger.Info(fmt.Sprintf("Setting weight '%v%%' for '%s' ...", s.Traffic.Weight, subsetName), v.TrackingId)
+		defaultDestination.Weight = s.Traffic.Weight
+	}
+
+	newRoute.Route = append(newRoute.Route, defaultDestination)
+
+	ir := IstioRules{
+		MatchDestination: newRoute,
+	}
+	return &ir, nil
 }
 
 func (v *VirtualService) Validate(s *Shift) error {
-	if s.Traffic.Weight != 0 && len(s.Traffic.RequestHeaders) >= 0 {
+	newSubset := fmt.Sprintf("%s-%v-%s", v.Name, v.Build, v.Namespace)
+
+	if s.Traffic.Weight != 0 && len(s.Traffic.RequestHeaders) > 0 {
 		return errors.New("a route needs to be served with a 'weight' or 'request headers', not both")
+	}
+
+	StringifyLabelSelector, err := StringifyLabelSelector(v.TrackingId, s.Selector.Labels)
+	if err != nil {
+		return err
+	}
+
+	listOptions := metav1.ListOptions{
+		LabelSelector: StringifyLabelSelector,
+	}
+
+	vss, err := v.List(listOptions)
+	if err != nil {
+		return err
+	}
+
+	for _, vs := range vss.VirtualServiceList.Items {
+		logger.Info(fmt.Sprintf("Validating virtualService '%s'", vs.Name), v.TrackingId)
+
+		for _, subsetValue := range vs.Spec.Http {
+			for _, httpValue := range subsetValue.Route {
+				if s.Traffic.Weight == 0 && httpValue.Destination.Subset == newSubset {
+					return errors.New(fmt.Sprintf("is not possible create an already existent subset '%s' for '%s'", httpValue.Destination.Subset, vs.Name))
+
+				}
+			}
+		}
 	}
 
 	return nil
@@ -58,12 +136,12 @@ func (v *VirtualService) Update(s *Shift) error {
 
 		if !subsetExists {
 			// create new subset
-			newHttpRoute, err := CreateNewRoute(subsetName, v, s)
+			newHttpRoute, err := v.Create(s)
 			if err != nil {
 				return err
 			}
 
-			vs.Spec.Http = append(vs.Spec.Http, newHttpRoute)
+			vs.Spec.Http = append(vs.Spec.Http, newHttpRoute.MatchDestination)
 		}
 
 		err := UpdateVirtualService(v, &vs)
@@ -93,12 +171,12 @@ func (v *VirtualService) Clear(s *Shift) error {
 	}
 
 	for _, vs := range vss.VirtualServiceList.Items {
-		cleanedRules := vs.Spec.Http
-		for httpRuleKey, httpRuleValue := range cleanedRules {
+		var cleanedRules []*v1alpha3.HTTPRoute
+
+		for _, httpRuleValue := range vs.Spec.Http {
 			for _, httpRoute := range httpRuleValue.Route {
 				if httpRoute.Weight <= 0 {
 					logger.Info(fmt.Sprintf("The subset '%s' will be removed due to a non-active weight rule attached", httpRoute.Destination.Subset), v.TrackingId)
-					vs.Spec.Http = append(cleanedRules[:httpRuleKey], cleanedRules[httpRuleKey+1:]...)
 				}
 			}
 		}
@@ -131,50 +209,11 @@ func (v *VirtualService) List(opts metav1.ListOptions) (*IstioRouteList, error) 
 		return nil, errors.New(fmt.Sprintf("could not find any virtualServices which matched label-selector '%v'", opts.LabelSelector))
 	}
 
-	irl := IstioRouteList{
+	irl := &IstioRouteList{
 		VirtualServiceList: vss,
 	}
 
-	return &irl, nil
-}
-
-func CreateNewRoute(subsetName string, vsRoute *VirtualService, s *Shift) (*v1alpha3.HTTPRoute, error) {
-	logger.Info(fmt.Sprintf("Creating new http route for subset '%s'...", subsetName), vsRoute.TrackingId)
-	newMatch := &v1alpha3.HTTPMatchRequest{
-		Headers: map[string]*v1alpha3.StringMatch{},
-	}
-
-	// append user labels to exact match
-	for headerKey, headerValue := range s.Traffic.RequestHeaders {
-		newMatch.Headers[headerKey] = &v1alpha3.StringMatch{
-			MatchType: &v1alpha3.StringMatch_Exact{
-				Exact: headerValue,
-			},
-		}
-	}
-
-	defaultDestination := &v1alpha3.HTTPRouteDestination{
-		Destination: &v1alpha3.Destination{
-			Host:   s.Hostname,
-			Subset: subsetName,
-			Port: &v1alpha3.PortSelector{
-				Port: &v1alpha3.PortSelector_Number{
-					Number: s.Port,
-				},
-			},
-		},
-	}
-
-	newRoute := &v1alpha3.HTTPRoute{}
-
-	if len(s.Traffic.RequestHeaders) > 0 {
-		logger.Info(fmt.Sprintf("Setting request header's match rule '%s' for '%s'...", s.Traffic.RequestHeaders, subsetName), vsRoute.TrackingId)
-		newRoute.Match = append(newRoute.Match, newMatch)
-	}
-
-	newRoute.Route = append(newRoute.Route, defaultDestination)
-
-	return newRoute, nil
+	return irl, nil
 }
 
 // UpdateDestinationRule updates a specific virtualService given an updated object
