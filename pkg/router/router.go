@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
+	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
 	"istio.io/api/networking/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
@@ -15,6 +17,11 @@ type Router interface {
 	Update(s *Shift) error
 	Clear(s *Shift) error
 	List(opts metav1.ListOptions) (*IstioRouteList, error)
+}
+
+type Client struct {
+	Versioned *versioned.Clientset
+	Fake *fake.Clientset
 }
 
 type Shift struct {

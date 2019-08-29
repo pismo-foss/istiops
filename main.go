@@ -30,13 +30,17 @@ func main() {
 	metadataNamespace = "default"
 	build = 45
 
+	ic := router.Client{
+		Versioned: istioClient,
+	}
+
 	var dr router.Router
 	dr = &router.DestinationRule{
 		TrackingId: trackingId,
 		Name:       metadataName,
 		Namespace:  metadataNamespace,
 		Build:      build,
-		Istio:      istioClient,
+		Istio:      ic,
 	}
 
 	var vs router.Router
@@ -45,7 +49,7 @@ func main() {
 		Name:       metadataName,
 		Namespace:  metadataNamespace,
 		Build:      build,
-		Istio:      istioClient,
+		Istio:      ic,
 	}
 
 	shift := &router.Shift{

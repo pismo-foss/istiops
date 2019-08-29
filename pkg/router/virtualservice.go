@@ -3,7 +3,6 @@ package router
 import (
 	"fmt"
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
-	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	"github.com/pismo/istiops/pkg/logger"
 	"github.com/pkg/errors"
 	"istio.io/api/networking/v1alpha3"
@@ -15,7 +14,7 @@ type VirtualService struct {
 	Name       string
 	Namespace  string
 	Build      uint32
-	Istio      *versioned.Clientset
+	Istio      Client
 }
 
 func (v *VirtualService) Create(s *Shift) (*IstioRules, error) {
@@ -200,7 +199,7 @@ func (v *VirtualService) Clear(s *Shift) error {
 }
 
 func (v *VirtualService) List(opts metav1.ListOptions) (*IstioRouteList, error) {
-	vss, err := v.Istio.NetworkingV1alpha3().VirtualServices(v.Namespace).List(opts)
+	vss, err := v.Istio.Versioned.NetworkingV1alpha3().VirtualServices(v.Namespace).List(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +218,7 @@ func (v *VirtualService) List(opts metav1.ListOptions) (*IstioRouteList, error) 
 // UpdateDestinationRule updates a specific virtualService given an updated object
 func UpdateVirtualService(vs *VirtualService, virtualService *v1alpha32.VirtualService) error {
 	logger.Info(fmt.Sprintf("Updating route for virtualService '%s'...", virtualService.Name), vs.TrackingId)
-	_, err := vs.Istio.NetworkingV1alpha3().VirtualServices(vs.Namespace).Update(virtualService)
+	_, err := vs.Istio.Versioned.NetworkingV1alpha3().VirtualServices(vs.Namespace).Update(virtualService)
 	if err != nil {
 		return err
 	}

@@ -6,7 +6,6 @@ import (
 	"github.com/pismo/istiops/pkg/logger"
 
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
-	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	"istio.io/api/networking/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -16,7 +15,7 @@ type DestinationRule struct {
 	Name       string
 	Namespace  string
 	Build      uint32
-	Istio      *versioned.Clientset
+	Istio      Client
 }
 
 func (d *DestinationRule) Create(s *Shift) (*IstioRules, error) {
@@ -127,7 +126,7 @@ func (d *DestinationRule) Clear(s *Shift) error {
 }
 
 func (d *DestinationRule) List(opts metav1.ListOptions) (*IstioRouteList, error) {
-	drs, err := d.Istio.NetworkingV1alpha3().DestinationRules(d.Namespace).List(opts)
+	drs, err := d.Istio.Versioned.NetworkingV1alpha3().DestinationRules(d.Namespace).List(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +145,7 @@ func (d *DestinationRule) List(opts metav1.ListOptions) (*IstioRouteList, error)
 // UpdateDestinationRule updates a specific virtualService given an updated object
 func UpdateDestinationRule(d *DestinationRule, destinationRule *v1alpha32.DestinationRule) error {
 	logger.Info(fmt.Sprintf("Updating rule for destinationRule '%s'...", destinationRule.Name), d.TrackingId)
-	_, err := d.Istio.NetworkingV1alpha3().DestinationRules(d.Namespace).Update(destinationRule)
+	_, err := d.Istio.Versioned.NetworkingV1alpha3().DestinationRules(d.Namespace).Update(destinationRule)
 	if err != nil {
 		return err
 	}
