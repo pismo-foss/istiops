@@ -34,7 +34,6 @@ func TearUp() {
 	}
 }
 
-
 func TestCreate(t *testing.T) {
 	successCases := []struct {
 		dr     *DestinationRule

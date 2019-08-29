@@ -1,4 +1,4 @@
-package main
+package examples
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	"github.com/pismo/istiops/pkg/logger"
 	"github.com/pismo/istiops/pkg/operator"
 	"github.com/pismo/istiops/pkg/router"
-	_ "github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
@@ -79,10 +78,10 @@ func main() {
 	}
 
 	// clear all routes + subsets
-	//err = op.Clear(shift)
-	//if err != nil {
-	//	logger.Fatal(fmt.Sprintf("%s", err), trackingId)
-	//}
+	err = op.Clear(shift)
+	if err != nil {
+		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
+	}
 
 	// Update a route
 	err = op.Update(shift)
@@ -91,3 +90,4 @@ func main() {
 	}
 
 }
+

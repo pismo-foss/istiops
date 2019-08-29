@@ -56,6 +56,9 @@ func (v *VirtualService) Create(s *Shift) (*IstioRules, error) {
 	if s.Traffic.Weight != 0 {
 		logger.Info(fmt.Sprintf("Setting weight '%v%%' for '%s' ...", s.Traffic.Weight, subsetName), v.TrackingId)
 		defaultDestination.Weight = s.Traffic.Weight
+
+		// set counter-weight
+
 	}
 
 	newRoute.Route = append(newRoute.Route, defaultDestination)
@@ -122,22 +125,34 @@ func (v *VirtualService) Update(s *Shift) error {
 	}
 
 	for _, vs := range vss.VList.Items {
-		subsetExists := false
+		routeExists := false
 		for _, httpValue := range vs.Spec.Http {
 			for _, routeValue := range httpValue.Route {
 				// if subset already exists
-				if routeValue.Destination.Host == subsetName {
-					subsetExists = true
-					return err
+				if routeValue.Destination.Subset == subsetName {
+					routeExists = true
+					logger.Info("Found existent rule created for virtualService, skipping creation", v.TrackingId)
 				}
 			}
 		}
 
-		if !subsetExists {
-			// create new subset
+		if !routeExists {
+			// create new route
 			newHttpRoute, err := v.Create(s)
 			if err != nil {
 				return err
+			}
+
+			// set counter weight if percentage is not 100
+			if s.Traffic.Weight != 100 {
+				for _, httpValue := range vs.Spec.Http {
+					for _, routeValue := range httpValue.Route {
+						// if we find any weight other than the needed one. Remove it
+						if routeValue.Weight != 0 {
+							routeValue.Weight = 0
+						}
+					}
+				}
 			}
 
 			vs.Spec.Http = append(vs.Spec.Http, newHttpRoute.MatchDestination)
