@@ -31,6 +31,12 @@ func (d *DestinationRule) Create(s *Shift) (*IstioRules, error) {
 }
 
 func (d *DestinationRule) Validate(s *Shift) error {
+
+	return nil
+
+}
+
+func (d *DestinationRule) Update(s *Shift) error {
 	newSubset := fmt.Sprintf("%s-%v-%s", d.Name, d.Build, d.Namespace)
 
 	StringifyLabelSelector, err := StringifyLabelSelector(d.TrackingId, s.Selector.Labels)
@@ -48,53 +54,34 @@ func (d *DestinationRule) Validate(s *Shift) error {
 	}
 
 	for _, dr := range drs.DList.Items {
-		logger.Info(fmt.Sprintf("Validating destinationRule '%s'", dr.Name), d.TrackingId)
+		subsetExists := false
 		for _, subsetValue := range dr.Spec.Subsets {
 			if subsetValue.Name == newSubset {
 				// remove item from slice
-				return errors.New(fmt.Sprintf("Found already existent subset '%s', refusing to update", subsetValue.Name))
+				subsetExists = true
 			}
 		}
+
+		if !subsetExists {
+			irl, err := d.Create(s)
+			if err != nil {
+				logger.Error(fmt.Sprintf("could not create subset due to error '%s'", err), d.TrackingId)
+				return err
+			}
+
+			dr.Spec.Subsets = append(dr.Spec.Subsets, irl.Subset)
+
+			err = UpdateDestinationRule(d, &dr)
+			if err != nil {
+				logger.Error(fmt.Sprintf("could not update destinationRule '%s' due to error '%s'", dr.Name, err), d.TrackingId)
+				return err
+			}
+		} else {
+			logger.Info(fmt.Sprintf("subset '%s'already created", newSubset), d.TrackingId)
+		}
 	}
 
 	return nil
-
-}
-
-func (d *DestinationRule) Update(s *Shift) error {
-	StringifyLabelSelector, err := StringifyLabelSelector(d.TrackingId, s.Selector.Labels)
-	if err != nil {
-		return err
-	}
-
-	listOptions := metav1.ListOptions{
-		LabelSelector: StringifyLabelSelector,
-	}
-
-	drs, err := d.List(listOptions)
-	if err != nil {
-		fmt.Println("null drs")
-		return err
-	}
-
-	for _, dr := range drs.DList.Items {
-		irl, err := d.Create(s)
-		if err != nil {
-			logger.Error(fmt.Sprintf("could not create subset due to error '%s'", err), d.TrackingId)
-			return err
-		}
-
-		dr.Spec.Subsets = append(dr.Spec.Subsets, irl.Subset)
-
-		err = UpdateDestinationRule(d, &dr)
-		if err != nil {
-			logger.Error(fmt.Sprintf("could not update destinationRule '%s' due to error '%s'", dr.Name, err), d.TrackingId)
-			return err
-		}
-
-	}
-	return nil
-
 }
 
 func (d *DestinationRule) Clear(s *Shift) error {
