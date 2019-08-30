@@ -99,7 +99,6 @@ func (v *VirtualService) Update(s *Shift) error {
 				// if subset already exists
 				if routeValue.Destination.Subset == subsetName {
 					routeExists = true
-					logger.Info("Found existent rule created for virtualService, skipping creation", v.TrackingId)
 				}
 			}
 		}
@@ -115,12 +114,15 @@ func (v *VirtualService) Update(s *Shift) error {
 		}
 
 		if routeExists {
+			logger.Info("Found existent rule created for virtualService, skipping creation", v.TrackingId)
+
 			if s.Traffic.Weight > 0 && s.Traffic.Weight < 100 {
-				fmt.Println("It's time to balance traffic")
-				err := percentage(vs, subsetName, s)
+				httpRoutes, err := percentage(v.TrackingId, subsetName, vs.Spec.Http, s)
 				if err != nil {
 					return err
 				}
+
+				vs.Spec.Http = httpRoutes
 			}
 
 			// set default rule to 100%
@@ -137,78 +139,6 @@ func (v *VirtualService) Update(s *Shift) error {
 
 	return nil
 
-}
-
-func percentage(vs v1alpha32.VirtualService, subset string, s *Shift) error {
-	// Finding master route (URI match)
-	masterRouteCounter := 0
-	for httpKey, httpValue := range vs.Spec.Http {
-		for _, matchValue := range httpValue.Match {
-
-			// reconstruct master route to attend a balanced traffic between versions
-			if matchValue.Uri.GetRegex() == ".+" {
-				masterRouteCounter += 1
-
-				fmt.Println(matchValue.Uri.GetRegex())
-				fmt.Println(vs.Spec.Http[httpKey])
-				fmt.Println(vs.Spec.Http[httpKey].Route)
-
-				currentWeight := s.Traffic.Weight - 100
-				fmt.Println(s.Traffic.Weight)
-
-				currentDestination := &v1alpha3.HTTPRouteDestination{
-					Weight: currentWeight,
-					Destination: &v1alpha3.Destination{
-						Host:   s.Hostname,
-						Subset: subset,
-						Port: &v1alpha3.PortSelector{
-							Port: &v1alpha3.PortSelector_Number{
-								Number: s.Port,
-							},
-						},
-					},
-				}
-
-				newDestination := &v1alpha3.HTTPRouteDestination{
-					Weight: s.Traffic.Weight,
-					Destination: &v1alpha3.Destination{
-						Host:   s.Hostname,
-						Subset: subset,
-						Port: &v1alpha3.PortSelector{
-							Port: &v1alpha3.PortSelector_Number{
-								Number: s.Port,
-							},
-						},
-					},
-				}
-
-				vs.Spec.Http[httpKey].Route = []*v1alpha3.HTTPRouteDestination{}
-				vs.Spec.Http[httpKey].Route = append(vs.Spec.Http[httpKey].Route, currentDestination)
-				vs.Spec.Http[httpKey].Route = append(vs.Spec.Http[httpKey].Route, newDestination)
-				fmt.Println(vs.Spec.Http[httpKey].Route)
-
-				if len(vs.Spec.Http[httpKey].Route) != 2 {
-					return errors.New("more than 2 destination for route")
-				}
-			}
-		}
-
-	}
-
-	if masterRouteCounter != 1 {
-		return errors.New("multiple master routes (URI: .+)")
-	}
-
-	// create a master route rule if
-	if masterRouteCounter == 0 {
-
-	}
-
-	return nil
-}
-
-func master(vs v1alpha32.VirtualService, s *Shift) error {
-	return nil
 }
 
 func (v *VirtualService) List(opts metav1.ListOptions) (*IstioRouteList, error) {
@@ -236,4 +166,119 @@ func UpdateVirtualService(vs *VirtualService, virtualService *v1alpha32.VirtualS
 		return err
 	}
 	return nil
+}
+
+// balance returns a RouteDestination with balanced weight
+func balance(subset string, s *Shift) ([]*v1alpha3.HTTPRouteDestination, error) {
+	var routeBalanced []*v1alpha3.HTTPRouteDestination
+
+	currentWeight := 100 - s.Traffic.Weight
+
+	currentDestination := &v1alpha3.HTTPRouteDestination{
+		Weight: currentWeight,
+		Destination: &v1alpha3.Destination{
+			Host:   s.Hostname,
+			Subset: subset,
+			Port: &v1alpha3.PortSelector{
+				Port: &v1alpha3.PortSelector_Number{
+					Number: s.Port,
+				},
+			},
+		},
+	}
+
+	newDestination := &v1alpha3.HTTPRouteDestination{
+		Weight: s.Traffic.Weight,
+		Destination: &v1alpha3.Destination{
+			Host:   s.Hostname,
+			Subset: subset,
+			Port: &v1alpha3.PortSelector{
+				Port: &v1alpha3.PortSelector_Number{
+					Number: s.Port,
+				},
+			},
+		},
+	}
+
+	routeBalanced = []*v1alpha3.HTTPRouteDestination{}
+	routeBalanced = append(routeBalanced, currentDestination)
+	routeBalanced = append(routeBalanced, newDestination)
+
+	return routeBalanced, nil
+}
+
+func remove(slice []*v1alpha3.HTTPRoute, index int) []*v1alpha3.HTTPRoute {
+	return append(slice[:index], slice[index+1:]...)
+}
+
+
+// percentage set weight routing to a set of (or unique) virtualServices
+func percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRoute, s *Shift) ([]*v1alpha3.HTTPRoute, error) {
+	// Finding master route (URI match)
+	var masterRouteCounter int
+	var masterIndex int
+
+	// work with the need of cleaning old headers for the same subset
+
+	// destroy any header rule already created
+
+	// work with percentage rules
+	for httpKey, httpValue := range httpRoute {
+		for _, matchValue := range httpValue.Match {
+
+			// reconstruct master route to attend a balanced traffic between versions
+			if matchValue.Uri.GetRegex() == ".+" {
+				logger.Info(fmt.Sprintf("Updating master route to balance canary traffic"), trackingId)
+
+				masterRouteCounter += 1
+				masterIndex = httpKey
+
+				balancedRoute, err := balance(subset, s)
+				if err != nil {
+					return nil, err
+				}
+
+				httpRoute[httpKey].Route = balancedRoute
+
+				if len(httpRoute[httpKey].Route) != 2 {
+					return nil, errors.New("more than 2 destination for route")
+				}
+			}
+		}
+	}
+
+	// setting URI Master route to the last element of []*Routes due to istio's traffic rule precedence
+	tempMasterRoute := httpRoute[masterIndex]
+	httpRoute = remove(httpRoute, masterIndex)
+	httpRoute = append(httpRoute, tempMasterRoute)
+
+	if masterRouteCounter > 1 {
+		return nil, errors.New("multiple master routes (URI: .+)")
+	}
+
+	// create a master route rule if does not exists
+	if masterRouteCounter == 0 {
+		logger.Info(fmt.Sprintf("Could not find a master route 'Regex: .+', creating it..."), trackingId)
+		routeMaster := &v1alpha3.HTTPRoute{}
+		routeMasterMatch :=  &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}}
+
+		routeMasterDestination := &v1alpha3.HTTPRouteDestination{
+			Destination: &v1alpha3.Destination{
+				Host:   s.Hostname,
+				Subset: subset,
+				Port: &v1alpha3.PortSelector{
+					Port: &v1alpha3.PortSelector_Number{
+						Number: s.Port,
+					},
+				},
+			},
+		}
+
+		routeMaster.Match = append(routeMaster.Match, routeMasterMatch)
+		routeMaster.Route = append(routeMaster.Route, routeMasterDestination)
+		httpRoute = append(httpRoute, routeMaster)
+		fmt.Println(routeMaster)
+	}
+
+	return httpRoute, nil
 }
