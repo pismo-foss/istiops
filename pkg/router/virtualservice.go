@@ -207,6 +207,8 @@ func balance(subset string, s *Shift) ([]*v1alpha3.HTTPRouteDestination, error) 
 	return routeBalanced, nil
 }
 
+
+// remove will return a slice without an element given an index
 func remove(slice []*v1alpha3.HTTPRoute, index int) []*v1alpha3.HTTPRoute {
 	return append(slice[:index], slice[index+1:]...)
 }
