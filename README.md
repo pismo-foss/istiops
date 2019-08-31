@@ -18,6 +18,18 @@ To use istiops binary you can just `go build` it. It will generate a command lin
 
 You can then run it as: `./build/istiops version`
 
+## Prerequesites
+
+A kubernetes config at `~/.kube/config` which allows the binary to GET, UPDATE and LIST resources: `virtualservices` & `destinationrules`.
+ If you are running the binary with a custom kubernetes' service account you can use this RBAC template to append to your roles:
+
+```
+- apiGroups: ["networking.istio.io"]
+  resources: ["virtualservices", "destinationrules"]
+  verbs: ["get", "list", "patch","update"]
+  ````
+
+
 ## Commands on traffic shifting
 
 ### Each operation creates or removes items from both the VirtualService and DestinationRule

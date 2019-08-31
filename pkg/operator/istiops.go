@@ -76,7 +76,5 @@ func (ips *Istiops) Clear(s *router.Shift) error {
 		return err
 	}
 
-	// Clean dr rules ?
-
 	return nil
 }
