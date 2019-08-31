@@ -31,13 +31,13 @@ A kubernetes config at `~/.kube/config` which allows the binary to GET, UPDATE a
 
 ## How it works ?
 
-1) Find the needed kubernetes' resources based on given `labels-selector`
+1. Find the needed kubernetes' resources based on given `labels-selector`
 
-2) Create associate route rules based on `pod-selector` (to match which pods the routing will be served) & destination information (such as `hostname` and `port`)
+2. Create associate route rules based on `pod-selector` (to match which pods the routing will be served) & destination information (such as `hostname` and `port`)
 
-3) Attach to an existent route rule a `request-headers` match if given
+3. Attach to an existent route rule a `request-headers` match if given
 
-4) Attach to an existent route rule a `weight` if given
+4. Attach to an existent route rule a `weight` if given
 
 
 ## Commands on traffic shifting
