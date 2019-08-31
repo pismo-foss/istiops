@@ -1,10 +1,18 @@
-# Pipeline 3.0
+# Istio Operator
+
+Istio Operator (a.k.a `istiops`) is a tool to manage traffic for microservices deployed via [Istio](https://istio.io/). It simplifies deployment strategies such as bluegreen or canary releases with no need of messing around with tons of `yamls` from kubernetes' resources.
+
+## Architecture
+
+<img src="https://github.com/pismo/istiops/blob/master/imgs/overview.png">
 
 ## Running tests
 
 `$ go test ./... -v`
 
-## Building
+## Building the CLI
+
+To use istiops binary you can just `go build` it. It will generate a command line interface tool to work with.
 
 `./run` or `go build -o build/istiops main.go`
 
@@ -29,3 +37,7 @@ You can then run it as: `./build/istiops version`
 4. Removes all traffic (rollback), headers and percentage, for pods with labels: app=api-gateway,version:1.0.0
 
 `istiops traffic rollback --label-selector --pod-selector app=api-gateway,version:1.0.0`
+
+## Importing as a package
+
+You can assemble `istiops` as interface for your own Golang code, to do it you just have to instanciate the needed struct-dependencies and call the interface directly. You can see examples at `./examples`
