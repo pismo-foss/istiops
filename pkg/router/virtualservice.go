@@ -78,13 +78,13 @@ func (v *VirtualService) Validate(s *Shift) error {
 func (v *VirtualService) Update(s *Shift) error {
 	subsetName := fmt.Sprintf("%s-%v-%s", v.Name, v.Build, v.Namespace)
 
-	StringifyLabelSelector, err := StringifyLabelSelector(v.TrackingId, s.Selector.Labels)
+	Stringified, err := Stringify(v.TrackingId, s.Selector.Labels)
 	if err != nil {
 		return err
 	}
 
 	listOptions := metav1.ListOptions{
-		LabelSelector: StringifyLabelSelector,
+		LabelSelector: Stringified,
 	}
 
 	vss, err := v.List(listOptions)

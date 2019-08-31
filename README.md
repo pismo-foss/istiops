@@ -29,6 +29,16 @@ A kubernetes config at `~/.kube/config` which allows the binary to GET, UPDATE a
   verbs: ["get", "list", "patch","update"]
   ````
 
+## How it works ?
+
+1) Find the needed kubernetes' resources based on given `labels-selector`
+<img>
+2) Create associate route rules based on `pod-selector` (to match which pods the routing will be served) & destination information (such as `hostname` and `port`)
+<img>
+3) Attach to an existent route rule a `request-headers` match if given
+<img>
+4) Attach to an existent route rule a `weight` if given
+<img>
 
 ## Commands on traffic shifting
 
