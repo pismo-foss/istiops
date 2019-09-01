@@ -39,13 +39,13 @@ func (d *DestinationRule) Validate(s *Shift) error {
 func (d *DestinationRule) Update(s *Shift) error {
 	newSubset := fmt.Sprintf("%s-%v-%s", d.Name, d.Build, d.Namespace)
 
-	Stringified, err := Stringify(d.TrackingId, s.Selector.Labels)
+	stringified, err := Stringify(d.TrackingId, s.Selector.Labels)
 	if err != nil {
 		return err
 	}
 
 	listOptions := metav1.ListOptions{
-		LabelSelector: Stringified,
+		LabelSelector: stringified,
 	}
 
 	drs, err := d.List(listOptions)
@@ -85,13 +85,13 @@ func (d *DestinationRule) Update(s *Shift) error {
 }
 
 func (d *DestinationRule) Clear(s *Shift) error {
-	Stringified, err := Stringify(d.TrackingId, s.Selector.Labels)
+	stringified, err := Stringify(d.TrackingId, s.Selector.Labels)
 	if err != nil {
 		return err
 	}
 
 	listOptions := metav1.ListOptions{
-		LabelSelector: Stringified,
+		LabelSelector: stringified,
 	}
 
 	drs, err := d.List(listOptions)
