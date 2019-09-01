@@ -35,6 +35,7 @@ Istiops creates routing rules into virtualservices & destination rules in order 
 
 <img src="https://github.com/pismo/istiops/blob/master/imgs/howitworks1.png">
 
+We call this `'.+'` as **master-route**, which it will be served as default routing rule
 
 1. Find the needed kubernetes' resources based on given `labels-selector`
 
