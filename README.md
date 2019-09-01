@@ -31,6 +31,11 @@ A kubernetes config at `~/.kube/config` which allows the binary to GET, UPDATE a
 
 ## How it works ?
 
+Istiops creates routing rules into virtualservices & destination rules in order to manage traffic correctly. This is an example of a routing being managed by Istio, using as default routing rule any HTTP request which matches as URI the regular expression: `'.+'`:
+
+<img src="https://github.com/pismo/istiops/blob/master/imgs/howitworks1.png">
+
+
 1. Find the needed kubernetes' resources based on given `labels-selector`
 
 2. Create associate route rules based on `pod-selector` (to match which pods the routing will be served) & destination information (such as `hostname` and `port`)

@@ -61,14 +61,14 @@ func main() {
 		Traffic: &router.Traffic{
 			PodSelector: map[string]string{
 				"app":     "api",
-				"version": "1.3.2",
+				"version": "1.3.3",
 				"build":   "24",
 			},
 			//RequestHeaders: map[string]string{
 			//	"x-version":    "PR-141",
 			//	"x-account-id": "233",
 			//},
-			Weight: 20,
+			Weight: 100,
 		},
 	}
 
