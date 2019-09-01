@@ -174,7 +174,6 @@ func TestCreate(t *testing.T) {
 		assert.EqualError(t, got, tCase.want)
 	}
 
-
 }
 
 func TestUpdate(t *testing.T) {

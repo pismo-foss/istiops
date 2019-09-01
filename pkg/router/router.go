@@ -21,7 +21,7 @@ type Router interface {
 
 type Client struct {
 	Versioned *versioned.Clientset
-	Fake *fake.Clientset
+	Fake      *fake.Clientset
 }
 
 type Shift struct {

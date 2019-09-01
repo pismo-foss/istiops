@@ -40,7 +40,7 @@ We call this `'.+'` rule as **master-route**, which it will be served as the def
 
 ### Operator traffic steps
 
-A more deep in the details
+A deeper in the details
 
 1. Find the needed kubernetes' resources based on given `labels-selector`
 

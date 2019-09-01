@@ -12,11 +12,11 @@ import (
 var mockedRouter Router
 var fClient Client
 
-type MockedDestinationRule struct{
+type MockedDestinationRule struct {
 	TrackingId string
-	Name string
-	Build string
-	Istio Client
+	Name       string
+	Build      string
+	Istio      Client
 }
 
 func TestMain(m *testing.M) {
@@ -36,12 +36,12 @@ func TearUp() {
 
 func TestCreate(t *testing.T) {
 	successCases := []struct {
-		dr     *DestinationRule
-		shift  Shift
-		want map[string]string
+		dr    *DestinationRule
+		shift Shift
+		want  map[string]string
 	}{
 		{
-			&DestinationRule{ Istio: fClient },
+			&DestinationRule{Istio: fClient},
 			Shift{
 				Port:     5000,
 				Hostname: "api.domain.io",

@@ -28,7 +28,7 @@ func main() {
 	trackingId = "54ec4fd3-879b-404f-9812-c6b97f663b8d"
 	metadataName = "api-xpto"
 	metadataNamespace = "default"
-	build = 9
+	build = 12
 
 	ic := router.Client{
 		Versioned: istioClient,
@@ -64,11 +64,11 @@ func main() {
 				"version": "1.3.3",
 				"build":   "24",
 			},
-			//RequestHeaders: map[string]string{
-			//	"x-version":    "PR-141",
-			//	"x-account-id": "233",
-			//},
-			Weight: 100,
+			RequestHeaders: map[string]string{
+				"x-version":    "PR-141",
+				"x-account-id": "233",
+			},
+			Weight: 0,
 		},
 	}
 

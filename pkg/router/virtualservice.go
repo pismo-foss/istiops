@@ -116,7 +116,7 @@ func (v *VirtualService) Update(s *Shift) error {
 		if routeExists {
 			logger.Info("Found existent rule created for virtualService, skipping creation", v.TrackingId)
 
-			if s.Traffic.Weight > 0 && s.Traffic.Weight < 100 {
+			if s.Traffic.Weight > 0 {
 				httpRoutes, err := percentage(v.TrackingId, subsetName, vs.Spec.Http, s)
 				if err != nil {
 					return err
@@ -125,10 +125,6 @@ func (v *VirtualService) Update(s *Shift) error {
 				vs.Spec.Http = httpRoutes
 			}
 
-			// set default rule to 100%
-			if s.Traffic.Weight == 100 {
-				fmt.Println("it's time to set 100% traffic")
-			}
 		}
 
 		err := UpdateVirtualService(v, &vs)
@@ -169,29 +165,36 @@ func UpdateVirtualService(vs *VirtualService, virtualService *v1alpha32.VirtualS
 }
 
 // balance returns a RouteDestination with balanced weight
-func balance(subset string, s *Shift) ([]*v1alpha3.HTTPRouteDestination, error) {
+func balance(currentSubset string, newSubset string, s *Shift) ([]*v1alpha3.HTTPRouteDestination, error) {
 	var routeBalanced []*v1alpha3.HTTPRouteDestination
 
-	currentWeight := 100 - s.Traffic.Weight
+	routeBalanced = []*v1alpha3.HTTPRouteDestination{}
 
-	currentDestination := &v1alpha3.HTTPRouteDestination{
-		Weight: currentWeight,
-		Destination: &v1alpha3.Destination{
-			Host:   s.Hostname,
-			Subset: subset,
-			Port: &v1alpha3.PortSelector{
-				Port: &v1alpha3.PortSelector_Number{
-					Number: s.Port,
+	// if weight must be balanced between two subsets
+	if s.Traffic.Weight < 100 {
+		currentWeight := 100 - s.Traffic.Weight
+
+		currentDestination := &v1alpha3.HTTPRouteDestination{
+			Weight: currentWeight,
+			Destination: &v1alpha3.Destination{
+				Host:   s.Hostname,
+				Subset: currentSubset,
+				Port: &v1alpha3.PortSelector{
+					Port: &v1alpha3.PortSelector_Number{
+						Number: s.Port,
+					},
 				},
 			},
-		},
+		}
+
+		routeBalanced = append(routeBalanced, currentDestination)
 	}
 
 	newDestination := &v1alpha3.HTTPRouteDestination{
 		Weight: s.Traffic.Weight,
 		Destination: &v1alpha3.Destination{
 			Host:   s.Hostname,
-			Subset: subset,
+			Subset: newSubset,
 			Port: &v1alpha3.PortSelector{
 				Port: &v1alpha3.PortSelector_Number{
 					Number: s.Port,
@@ -200,19 +203,15 @@ func balance(subset string, s *Shift) ([]*v1alpha3.HTTPRouteDestination, error) 
 		},
 	}
 
-	routeBalanced = []*v1alpha3.HTTPRouteDestination{}
-	routeBalanced = append(routeBalanced, currentDestination)
 	routeBalanced = append(routeBalanced, newDestination)
 
 	return routeBalanced, nil
 }
 
-
 // remove will return a slice without an element given an index
 func remove(slice []*v1alpha3.HTTPRoute, index int) []*v1alpha3.HTTPRoute {
 	return append(slice[:index], slice[index+1:]...)
 }
-
 
 // percentage set weight routing to a set of (or unique) virtualServices
 func percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRoute, s *Shift) ([]*v1alpha3.HTTPRoute, error) {
@@ -235,14 +234,14 @@ func percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRout
 				masterRouteCounter += 1
 				masterIndex = httpKey
 
-				balancedRoute, err := balance(subset, s)
+				balancedRoute, err := balance(httpValue.Route[0].Destination.Subset, subset, s)
 				if err != nil {
 					return nil, err
 				}
 
 				httpRoute[httpKey].Route = balancedRoute
 
-				if len(httpRoute[httpKey].Route) != 2 {
+				if len(httpRoute[httpKey].Route) > 2 {
 					return nil, errors.New("more than 2 destination for route")
 				}
 			}
@@ -255,14 +254,14 @@ func percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRout
 	httpRoute = append(httpRoute, tempMasterRoute)
 
 	if masterRouteCounter > 1 {
-		return nil, errors.New("multiple master routes (URI: .+)")
+		return nil, errors.New("multiple master routes (URI: .+) found")
 	}
 
 	// create a master route rule if does not exists
 	if masterRouteCounter == 0 {
 		logger.Info(fmt.Sprintf("Could not find a master route 'Regex: .+', creating it..."), trackingId)
 		routeMaster := &v1alpha3.HTTPRoute{}
-		routeMasterMatch :=  &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}}
+		routeMasterMatch := &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}}
 
 		routeMasterDestination := &v1alpha3.HTTPRouteDestination{
 			Destination: &v1alpha3.Destination{
