@@ -55,37 +55,38 @@ A more deep in the details
 
 ### Each operation creates or removes items from both the VirtualService and DestinationRule
 
-1. Clear all traffic rules, except for **master-route** (default), from service api-gateway
+1. Clear all traffic rules, except for **master-route** (default), from service api-domain
 
-`istiops traffic clear --label-selector app=api-gateway`
+`istiops traffic clear --label-selector app=api-domain`
 
-2. Send requests with HTTP header `"x-cid: seu_madruga"` to pods with labels `app=api-accounts,build=PR-10`
+2. Send requests with HTTP header `"x-cid: seu_madruga"` to pods with labels `app=api-domain,build=PR-10`
 
 ```
 $ istiops traffic headers \
     --namespace "default" \
     --hostname "api.domain.io" \
-    --port 8080 \
-    --label-selector "app=api-accounts" \
-    --pod-selector "app=api-accounts,build=PR-10" \
+    --port 5000 \
+    --label-selector "app=api-domain" \
+    --pod-selector "app=api-domain,build=PR-10" \
     --headers "x-cid=seu_madruga" \
 ```
 
-3. Send 20% of traffic to pods with labels `app=api-gateway,build=PR-10`
+3. Send 20% of traffic to pods with labels `app=api-domain,build=PR-10`
 
 ```
 $ istiops traffic weight \
     --namespace "default" \
     --hostname "api.domain.io" \
-    --port 8080 \
-    --label-selector "app=api-accounts" \
-    --pod-selector "app=api-accounts,build=PR-10" \
+    --port 5000 \
+    --label-selector "app=api-domain" \
+    --pod-selector "app=api-domain,build=PR-10" \
     --weight 20 \
 ```
+
 4. Removes all traffic (rollback), headers and percentage, for pods with labels: app=api-gateway,version:1.0.0
 
-`istiops traffic rollback --label-selector --pod-selector app=api-gateway,version:1.0.0`
+`istiops traffic rollback --label-selector --pod-selector app=api-domain,version:1.0.0`
 
 ## Importing as a package
 
-You can assemble `istiops` as interface for your own Golang code, to do it you just have to instanciate the needed struct-dependencies and call the interface directly. You can see examples at `./examples`
+You can assemble `istiops` as interface for your own Golang code, to do it you just have to initialize the needed struct-dependencies and call the interface directly. You can see examples at `./examples`
