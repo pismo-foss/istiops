@@ -67,7 +67,7 @@ func main() {
 				"x-version":    "PR-141",
 				"x-account-id": "233",
 			},
-			Weight: 40,
+			Weight: 0,
 		},
 	}
 
