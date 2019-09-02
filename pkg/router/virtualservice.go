@@ -18,7 +18,7 @@ type VirtualService struct {
 }
 
 func (v *VirtualService) Clear(s Shift) error {
-	vss, err := v.List(s)
+	vss, err := v.List(s.Selector)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func (v *VirtualService) Validate(s Shift) error {
 func (v *VirtualService) Update(s Shift) error {
 	subsetName := fmt.Sprintf("%s-%v-%s", v.Name, v.Build, v.Namespace)
 
-	vss, err := v.List(s)
+	vss, err := v.List(s.Selector)
 	if err != nil {
 		return err
 	}
@@ -167,8 +167,9 @@ func (v *VirtualService) Update(s Shift) error {
 
 }
 
-func (v *VirtualService) List(s Shift) (*IstioRouteList, error) {
-	stringified, err := Stringify(v.TrackingId, s.Selector.Labels)
+func (v *VirtualService) List(s Selector) (*IstioRouteList, error) {
+	logger.Info(fmt.Sprintf("Getting virtualServices which matches label-selector '%s'", s.Labels), v.TrackingId)
+	stringified, err := Stringify(v.TrackingId, s.Labels)
 	if err != nil {
 		return &IstioRouteList{}, err
 	}

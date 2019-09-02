@@ -13,6 +13,7 @@ require (
 	github.com/golang/glog v0.0.0-20141105023935-44145f04b68c
 	github.com/golang/protobuf v0.0.0-20171021043952-1643683e1b54
 	github.com/google/gofuzz v0.0.0-20161122191042-44d81051d367
+	github.com/google/uuid v1.1.1
 	github.com/googleapis/gnostic v0.0.0-20170729233727-0c5108395e2d
 	github.com/gophercloud/gophercloud v0.0.0-20180210024343-6da026c32e2d
 	github.com/howeyc/gopass v0.0.0-20170109162249-bf9dde6d0d2c

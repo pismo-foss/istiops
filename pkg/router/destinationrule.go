@@ -39,7 +39,7 @@ func (d *DestinationRule) Validate(s Shift) error {
 func (d *DestinationRule) Update(s Shift) error {
 	newSubset := fmt.Sprintf("%s-%v-%s", d.Name, d.Build, d.Namespace)
 
-	drs, err := d.List(s)
+	drs, err := d.List(s.Selector)
 	if err != nil {
 		return err
 	}
@@ -80,8 +80,10 @@ func (d *DestinationRule) Clear(s Shift) error {
 	return nil
 }
 
-func (d *DestinationRule) List(s Shift) (*IstioRouteList, error) {
-	stringified, err := Stringify(d.TrackingId, s.Selector.Labels)
+func (d *DestinationRule) List(s Selector) (*IstioRouteList, error) {
+	logger.Info(fmt.Sprintf("Getting destinationRules which matches label-selector '%s'", s.Labels), d.TrackingId)
+
+	stringified, err := Stringify(d.TrackingId, s.Labels)
 	if err != nil {
 		return &IstioRouteList{}, err
 	}

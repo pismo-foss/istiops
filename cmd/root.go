@@ -17,13 +17,96 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
+	"github.com/google/uuid"
+	"github.com/pismo/istiops/pkg/operator"
+	"github.com/pismo/istiops/pkg/router"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 	"os"
+)
+
+var (
+	op                  operator.Operator
+	build               uint32
+	trackingId          string
+	metadataName        string
+	namespace           string
+	labelSelector       string
+	mappedLabelSelector map[string]string
+	shift               router.Shift
 )
 
 func init() {
 	rootCmd.AddCommand(trafficCmd)
 	rootCmd.AddCommand(versionCmd)
+	setup()
+}
+
+func setup() {
+	kubeConfigPath := homedir.HomeDir() + "/.kube/config"
+	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
+	istioClient, err := versioned.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	// generate random uuid
+	uuid, err := uuid.NewUUID()
+	if err != nil {
+		panic(err.Error())
+	}
+
+	trackingId = uuid.String()
+
+	ic := router.Client{
+		Versioned: istioClient,
+	}
+
+	var dr operator.Router
+	dr = &router.DestinationRule{
+		TrackingId: trackingId,
+		Name:       metadataName,
+		Namespace:  namespace,
+		Build:      build,
+		Istio:      ic,
+	}
+
+	var vs operator.Router
+
+	vs = &router.VirtualService{
+		TrackingId: trackingId,
+		Name:       metadataName,
+		Namespace:  namespace,
+		Build:      build,
+		Istio:      ic,
+	}
+
+	shift = router.Shift{
+		Port:     5000,
+		Hostname: "api.domain.io",
+		Selector: router.Selector{
+			Labels: mappedLabelSelector,
+		},
+		Traffic: router.Traffic{
+			PodSelector: map[string]string{
+				"app":     "api",
+				"version": "1.3.3",
+				"build":   "24",
+			},
+			RequestHeaders: map[string]string{
+				"x-version":    "PR-142",
+				"x-account-id": "233",
+			},
+			Weight: 0,
+		},
+	}
+
+	op = &operator.Istiops{
+		DrRouter: dr,
+		VsRouter: vs,
+	}
 }
 
 var rootCmd = &cobra.Command{

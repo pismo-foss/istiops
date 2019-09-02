@@ -18,8 +18,8 @@ type Client struct {
 type Shift struct {
 	Port     uint32
 	Hostname string
-	Selector *Selector
-	Traffic  *Traffic
+	Selector Selector
+	Traffic  Traffic
 }
 
 type Traffic struct {
@@ -56,4 +56,24 @@ func Stringify(cid string, labelSelector map[string]string) (string, error) {
 	}
 
 	return strings.Join(labelsPair[:], ","), nil
+}
+
+func Mapify(cid string, labelSelector string) (map[string]string, error) {
+	mapLabels := map[string]string{}
+
+	if !strings.Contains(labelSelector, "=") {
+		return nil, errors.New("missing '=' operator for labelSelector")
+	}
+
+	splitedLabels := strings.Split(labelSelector, ",")
+	for _, value := range splitedLabels {
+		parsedLabels := strings.Split(value, "=")
+		mapLabels[parsedLabels[0]] = parsedLabels[1]
+	}
+
+	if len(mapLabels) == 0 {
+		return nil, errors.New("empty label selector")
+	}
+
+	return mapLabels, nil
 }

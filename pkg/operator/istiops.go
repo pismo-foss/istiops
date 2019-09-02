@@ -13,7 +13,7 @@ type Istiops struct {
 
 func (ips *Istiops) Get(r router.Shift) ([]v1alpha32.VirtualService, error) {
 	VsRouter := ips.VsRouter
-	ivl, err := VsRouter.List(r)
+	ivl, err := VsRouter.List(r.Selector)
 	if err != nil {
 		return []v1alpha32.VirtualService{}, err
 	}

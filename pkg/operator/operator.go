@@ -15,5 +15,5 @@ type Router interface {
 	Validate(s router.Shift) error
 	Update(s router.Shift) error
 	Clear(s router.Shift) error
-	List(s router.Shift) (*router.IstioRouteList, error)
+	List(s router.Selector) (*router.IstioRouteList, error)
 }
