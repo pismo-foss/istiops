@@ -20,7 +20,7 @@ You can then run it as: `./build/istiops version`
 
 ## Prerequisites
 
-A kubernetes config at `~/.kube/config` which allows the binary to GET, UPDATE and LIST resources: `virtualservices` & `destinationrules`.
+A kubernetes config at `~/.kube/config` which allows the binary to `GET`, `PATCH`, `UPDATE` and `LIST` resources: `virtualservices` & `destinationrules`.
  If you are running the binary with a custom kubernetes' service account you can use this RBAC template to append to your roles:
 
 ```
@@ -53,7 +53,7 @@ A deeper in the details
 
 ## Commands on traffic shifting
 
-### Each operation creates or removes items from both the VirtualService and DestinationRule
+### Each operation list, creates or removes items from both the VirtualService and DestinationRule
 
 1. Get all current traffic rules for resources which matches `label-selector`
 
