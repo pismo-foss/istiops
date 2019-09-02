@@ -10,14 +10,6 @@ import (
 	"strings"
 )
 
-type Router interface {
-	Create(s *Shift) (*IstioRules, error)
-	Validate(s *Shift) error
-	Update(s *Shift) error
-	Clear(s *Shift) error
-	List(s *Shift) (*IstioRouteList, error)
-}
-
 type Client struct {
 	Versioned *versioned.Clientset
 	Fake      *fake.Clientset

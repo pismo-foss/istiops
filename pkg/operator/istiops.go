@@ -1,33 +1,27 @@
 package operator
 
 import (
-	"fmt"
-	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
+	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/pismo/istiops/pkg/router"
 	"github.com/pkg/errors"
 )
 
 type Istiops struct {
-	DrRouter router.Router
-	VsRouter router.Router
+	DrRouter Router
+	VsRouter Router
 }
 
-func (ips *Istiops) Get(r *router.Shift) ([]v1alpha3.DestinationRule, []v1alpha3.VirtualService, error) {
+func (ips *Istiops) Get(r *router.Shift) ([]v1alpha32.VirtualService, error) {
 	VsRouter := ips.VsRouter
 	ivl, err := VsRouter.List(r)
 	if err != nil {
-		return []v1alpha3.DestinationRule{}, []v1alpha3.VirtualService{}, err
+		return []v1alpha32.VirtualService{}, err
 	}
 
-	DrRouter := ips.DrRouter
-	idl, err := DrRouter.List(r)
-	if err != nil {
-		return []v1alpha3.DestinationRule{}, []v1alpha3.VirtualService{}, err
+	if len(ivl.VList.Items) == 0 {
+		return []v1alpha32.VirtualService{}, errors.New("empty virtualServices")
 	}
-
-	fmt.Println("", idl, ivl)
-
-	return idl.DList.Items, ivl.VList.Items, nil
+	return ivl.VList.Items, nil
 }
 
 func (ips *Istiops) Update(r *router.Shift) error {

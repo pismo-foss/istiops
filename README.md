@@ -55,11 +55,15 @@ A deeper in the details
 
 ### Each operation creates or removes items from both the VirtualService and DestinationRule
 
-1. Clear all traffic rules, except for **master-route** (default), from service api-domain
+1. Get all current traffic rules for resources which matches `label-selector`
+
+`istiops traffic show --label-selector app=api-domain`
+
+2. Clear all traffic rules, except for **master-route** (default), from service api-domain
 
 `istiops traffic clear --label-selector app=api-domain`
 
-2. Send requests with HTTP header `"x-cid: seu_madruga"` to pods with labels `app=api-domain,build=PR-10`
+3. Send requests with HTTP header `"x-cid: seu_madruga"` to pods with labels `app=api-domain,build=PR-10`
 
 ```
 $ istiops traffic headers \
@@ -71,7 +75,7 @@ $ istiops traffic headers \
     --headers "x-cid=seu_madruga" \
 ```
 
-3. Send 20% of traffic to pods with labels `app=api-domain,build=PR-10`
+4. Send 20% of traffic to pods with labels `app=api-domain,build=PR-10`
 
 ```
 $ istiops traffic weight \
@@ -83,7 +87,7 @@ $ istiops traffic weight \
     --weight 20 \
 ```
 
-4. Removes all traffic (rollback), headers and percentage, for pods with labels: app=api-gateway,version:1.0.0
+5. Removes all traffic (rollback), headers and percentage, for pods with labels: app=api-gateway,version:1.0.0
 
 `istiops traffic rollback --label-selector --pod-selector app=api-domain,version:1.0.0`
 

@@ -34,7 +34,7 @@ func main() {
 		Versioned: istioClient,
 	}
 
-	var dr router.Router
+	var dr operator.Router
 	dr = &router.DestinationRule{
 		TrackingId: trackingId,
 		Name:       metadataName,
@@ -43,7 +43,7 @@ func main() {
 		Istio:      ic,
 	}
 
-	var vs router.Router
+	var vs operator.Router
 	vs = &router.VirtualService{
 		TrackingId: trackingId,
 		Name:       metadataName,
@@ -79,10 +79,10 @@ func main() {
 	}
 
 	// get current route-rules
-	//err = op.Get(shift)
-	//if err != nil {
-	//	logger.Fatal(fmt.Sprintf("%s", err), trackingId)
-	//}
+	_, err = op.Get(shift)
+	if err != nil {
+		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
+	}
 
 	// clear all routes + subsets
 	//err = op.Clear(shift)
