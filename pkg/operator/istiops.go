@@ -11,7 +11,7 @@ type Istiops struct {
 	VsRouter Router
 }
 
-func (ips *Istiops) Get(r *router.Shift) ([]v1alpha32.VirtualService, error) {
+func (ips *Istiops) Get(r router.Shift) ([]v1alpha32.VirtualService, error) {
 	VsRouter := ips.VsRouter
 	ivl, err := VsRouter.List(r)
 	if err != nil {
@@ -24,7 +24,7 @@ func (ips *Istiops) Get(r *router.Shift) ([]v1alpha32.VirtualService, error) {
 	return ivl.VList.Items, nil
 }
 
-func (ips *Istiops) Update(r *router.Shift) error {
+func (ips *Istiops) Update(r router.Shift) error {
 	if len(r.Selector.Labels) == 0 {
 		return errors.New("label-selector must exists in need to find resources")
 	}
@@ -59,7 +59,7 @@ func (ips *Istiops) Update(r *router.Shift) error {
 
 // ClearRules will remove any destination & virtualService rules except the main one (provided by client).
 // Ex: URI or Prefix
-func (ips *Istiops) Clear(s *router.Shift) error {
+func (ips *Istiops) Clear(s router.Shift) error {
 	DrRouter := ips.DrRouter
 	VsRouter := ips.VsRouter
 	var err error

@@ -17,7 +17,7 @@ type VirtualService struct {
 	Istio      Client
 }
 
-func (v *VirtualService) Clear(s *Shift) error {
+func (v *VirtualService) Clear(s Shift) error {
 	vss, err := v.List(s)
 	if err != nil {
 		return err
@@ -52,7 +52,7 @@ func (v *VirtualService) Clear(s *Shift) error {
 	return nil
 }
 
-func (v *VirtualService) Create(s *Shift) (*IstioRules, error) {
+func (v *VirtualService) Create(s Shift) (*IstioRules, error) {
 	subsetName := fmt.Sprintf("%s-%v-%s", v.Name, v.Build, v.Namespace)
 
 	logger.Info(fmt.Sprintf("Creating new http route for subset '%s'...", subsetName), v.TrackingId)
@@ -97,7 +97,7 @@ func (v *VirtualService) Create(s *Shift) (*IstioRules, error) {
 	return &ir, nil
 }
 
-func (v *VirtualService) Validate(s *Shift) error {
+func (v *VirtualService) Validate(s Shift) error {
 	if s.Traffic.Weight != 0 && len(s.Traffic.RequestHeaders) > 0 {
 		return errors.New("a route needs to be served with a 'weight' or 'request headers', not both")
 	}
@@ -106,13 +106,16 @@ func (v *VirtualService) Validate(s *Shift) error {
 
 }
 
-func (v *VirtualService) Update(s *Shift) error {
+func (v *VirtualService) Update(s Shift) error {
 	subsetName := fmt.Sprintf("%s-%v-%s", v.Name, v.Build, v.Namespace)
 
 	vss, err := v.List(s)
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("==")
+	fmt.Println(len(vss.VList.Items[0].Spec.Http))
 
 	for _, vs := range vss.VList.Items {
 		routeExists := false
@@ -132,7 +135,17 @@ func (v *VirtualService) Update(s *Shift) error {
 				return err
 			}
 
-			vs.Spec.Http = append(vs.Spec.Http, newHttpRoute.MatchDestination)
+			// ensure that http headers match will be the first element of vs.Spec.Http due to istio's rules precedence
+			var auxHttp []*v1alpha3.HTTPRoute
+			auxHttp = []*v1alpha3.HTTPRoute{}
+			auxHttp = append(auxHttp, newHttpRoute.MatchDestination)
+			for _, httpValue := range vs.Spec.Http {
+				auxHttp = append(auxHttp, httpValue)
+			}
+
+			fmt.Println(vs.Spec.Http)
+			fmt.Println(auxHttp)
+			vs.Spec.Http = auxHttp
 		}
 
 		if routeExists {
@@ -159,7 +172,7 @@ func (v *VirtualService) Update(s *Shift) error {
 
 }
 
-func (v *VirtualService) List(s *Shift) (*IstioRouteList, error) {
+func (v *VirtualService) List(s Shift) (*IstioRouteList, error) {
 	stringified, err := Stringify(v.TrackingId, s.Selector.Labels)
 	if err != nil {
 		return &IstioRouteList{}, err
@@ -196,7 +209,7 @@ func UpdateVirtualService(vs *VirtualService, virtualService *v1alpha32.VirtualS
 }
 
 // balance returns a RouteDestination with balanced weight
-func balance(currentSubset string, newSubset string, s *Shift) ([]*v1alpha3.HTTPRouteDestination, error) {
+func balance(currentSubset string, newSubset string, s Shift) ([]*v1alpha3.HTTPRouteDestination, error) {
 	var routeBalanced []*v1alpha3.HTTPRouteDestination
 
 	routeBalanced = []*v1alpha3.HTTPRouteDestination{}
@@ -245,7 +258,7 @@ func remove(slice []*v1alpha3.HTTPRoute, index int) []*v1alpha3.HTTPRoute {
 }
 
 // percentage set weight routing to a set of (or unique) virtualServices
-func percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRoute, s *Shift) ([]*v1alpha3.HTTPRoute, error) {
+func percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRoute, s Shift) ([]*v1alpha3.HTTPRoute, error) {
 	// Finding master route (URI match)
 	var masterRouteCounter int
 	var masterIndex int

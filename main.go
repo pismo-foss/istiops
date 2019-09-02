@@ -28,7 +28,7 @@ func main() {
 	trackingId = "54ec4fd3-879b-404f-9812-c6b97f663b8d"
 	metadataName = "api-xpto"
 	metadataNamespace = "default"
-	build = 12
+	build = 19
 
 	ic := router.Client{
 		Versioned: istioClient,
@@ -52,7 +52,7 @@ func main() {
 		Istio:      ic,
 	}
 
-	shift := &router.Shift{
+	shift := router.Shift{
 		Port:     5000,
 		Hostname: "api.domain.io",
 		Selector: &router.Selector{
@@ -85,10 +85,10 @@ func main() {
 	}
 
 	// clear all routes + subsets
-	//err = op.Clear(shift)
-	//if err != nil {
-	//	logger.Fatal(fmt.Sprintf("%s", err), trackingId)
-	//}
+	err = op.Clear(shift)
+	if err != nil {
+		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
+	}
 
 	// Update a route
 	err = op.Update(shift)

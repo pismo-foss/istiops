@@ -18,7 +18,7 @@ type DestinationRule struct {
 	Istio      Client
 }
 
-func (d *DestinationRule) Create(s *Shift) (*IstioRules, error) {
+func (d *DestinationRule) Create(s Shift) (*IstioRules, error) {
 	newSubset := &v1alpha3.Subset{
 		Name:   fmt.Sprintf("%s-%v-%s", d.Name, d.Build, d.Namespace),
 		Labels: s.Traffic.PodSelector,
@@ -30,13 +30,13 @@ func (d *DestinationRule) Create(s *Shift) (*IstioRules, error) {
 	return irl, nil
 }
 
-func (d *DestinationRule) Validate(s *Shift) error {
+func (d *DestinationRule) Validate(s Shift) error {
 
 	return nil
 
 }
 
-func (d *DestinationRule) Update(s *Shift) error {
+func (d *DestinationRule) Update(s Shift) error {
 	newSubset := fmt.Sprintf("%s-%v-%s", d.Name, d.Build, d.Namespace)
 
 	drs, err := d.List(s)
@@ -75,12 +75,12 @@ func (d *DestinationRule) Update(s *Shift) error {
 	return nil
 }
 
-func (d *DestinationRule) Clear(s *Shift) error {
+func (d *DestinationRule) Clear(s Shift) error {
 
 	return nil
 }
 
-func (d *DestinationRule) List(s *Shift) (*IstioRouteList, error) {
+func (d *DestinationRule) List(s Shift) (*IstioRouteList, error) {
 	stringified, err := Stringify(d.TrackingId, s.Selector.Labels)
 	if err != nil {
 		return &IstioRouteList{}, err
