@@ -18,6 +18,45 @@ type VirtualService struct {
 }
 
 func (v *VirtualService) Clear(s *Shift) error {
+	stringified, err := Stringify(v.TrackingId, s.Selector.Labels)
+	if err != nil {
+		return err
+	}
+
+	listOptions := metav1.ListOptions{
+		LabelSelector: stringified,
+	}
+
+	vss, err := v.List(listOptions)
+	if err != nil {
+		return err
+	}
+
+	// generating a cleaned list of routes with only route-master (URI: .+) included
+	for _, vs := range vss.VList.Items {
+		var cleanedRules []*v1alpha3.HTTPRoute
+		cleanedRules = []*v1alpha3.HTTPRoute{}
+		for httpKey, httpValue := range vs.Spec.Http {
+			for _, matchValue := range httpValue.Match {
+				if matchValue.Uri.GetRegex() == ".+" {
+					fmt.Println("found master-route to be kept")
+					cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
+				}
+			}
+		}
+
+		if len(cleanedRules) == 0 {
+			return errors.New("empty routes when cleaning virtualService's rules")
+		}
+
+		vs.Spec.Http = cleanedRules
+
+		err := UpdateVirtualService(v, &vs)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

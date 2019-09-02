@@ -85,29 +85,6 @@ func (d *DestinationRule) Update(s *Shift) error {
 }
 
 func (d *DestinationRule) Clear(s *Shift) error {
-	stringified, err := Stringify(d.TrackingId, s.Selector.Labels)
-	if err != nil {
-		return err
-	}
-
-	listOptions := metav1.ListOptions{
-		LabelSelector: stringified,
-	}
-
-	drs, err := d.List(listOptions)
-	if err != nil {
-		return err
-	}
-
-	for _, dr := range drs.DList.Items {
-		dr.Spec.Subsets = []*v1alpha3.Subset{}
-
-		logger.Info(fmt.Sprintf("Clearing all destinationRules subsets from '%s'...", dr.Name), d.TrackingId)
-		err := UpdateDestinationRule(d, &dr)
-		if err != nil {
-			return err
-		}
-	}
 
 	return nil
 }
