@@ -93,4 +93,4 @@ $ istiops traffic weight \
 
 ## Importing as a package
 
-You can assemble `istiops` as interface for your own Golang code, to do it you just have to initialize the needed struct-dependencies and call the interface directly. You can see examples at `./examples`
+You can assemble `istiops` as an interface for your own Golang code, to do it you just have to initialize the needed struct-dependencies and call the interface directly. You can see proper examples at `./examples`
