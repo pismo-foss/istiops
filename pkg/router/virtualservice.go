@@ -36,10 +36,11 @@ func (v *VirtualService) Clear(s *Shift) error {
 	for _, vs := range vss.VList.Items {
 		var cleanedRules []*v1alpha3.HTTPRoute
 		cleanedRules = []*v1alpha3.HTTPRoute{}
+
+		logger.Info(fmt.Sprintf("removing all virtualservice '%s' rules except the master-route one (Regex: .+)", vs.Name), v.TrackingId)
 		for httpKey, httpValue := range vs.Spec.Http {
 			for _, matchValue := range httpValue.Match {
 				if matchValue.Uri.GetRegex() == ".+" {
-					fmt.Println("found master-route to be kept")
 					cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
 				}
 			}
