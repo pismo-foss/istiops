@@ -114,9 +114,6 @@ func (v *VirtualService) Update(s Shift) error {
 		return err
 	}
 
-	fmt.Println("==")
-	fmt.Println(len(vss.VList.Items[0].Spec.Http))
-
 	for _, vs := range vss.VList.Items {
 		routeExists := false
 		for _, httpValue := range vs.Spec.Http {
@@ -143,8 +140,6 @@ func (v *VirtualService) Update(s Shift) error {
 				auxHttp = append(auxHttp, httpValue)
 			}
 
-			fmt.Println(vs.Spec.Http)
-			fmt.Println(auxHttp)
 			vs.Spec.Http = auxHttp
 		}
 
