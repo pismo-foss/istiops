@@ -39,16 +39,7 @@ func (d *DestinationRule) Validate(s *Shift) error {
 func (d *DestinationRule) Update(s *Shift) error {
 	newSubset := fmt.Sprintf("%s-%v-%s", d.Name, d.Build, d.Namespace)
 
-	stringified, err := Stringify(d.TrackingId, s.Selector.Labels)
-	if err != nil {
-		return err
-	}
-
-	listOptions := metav1.ListOptions{
-		LabelSelector: stringified,
-	}
-
-	drs, err := d.List(listOptions)
+	drs, err := d.List(s)
 	if err != nil {
 		return err
 	}
@@ -89,14 +80,23 @@ func (d *DestinationRule) Clear(s *Shift) error {
 	return nil
 }
 
-func (d *DestinationRule) List(opts metav1.ListOptions) (*IstioRouteList, error) {
-	drs, err := d.Istio.Versioned.NetworkingV1alpha3().DestinationRules(d.Namespace).List(opts)
+func (d *DestinationRule) List(s *Shift) (*IstioRouteList, error) {
+	stringified, err := Stringify(d.TrackingId, s.Selector.Labels)
+	if err != nil {
+		return &IstioRouteList{}, err
+	}
+
+	listOptions := metav1.ListOptions{
+		LabelSelector: stringified,
+	}
+
+	drs, err := d.Istio.Versioned.NetworkingV1alpha3().DestinationRules(d.Namespace).List(listOptions)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(drs.Items) <= 0 {
-		return nil, errors.New(fmt.Sprintf("could not find any destinationRules which matched label-selector '%v'", opts.LabelSelector))
+		return nil, errors.New(fmt.Sprintf("could not find any destinationRules which matched label-selector '%v'", listOptions.LabelSelector))
 	}
 
 	irl := IstioRouteList{

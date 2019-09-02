@@ -7,7 +7,6 @@ import (
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
 	"istio.io/api/networking/v1alpha3"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 )
 
@@ -16,7 +15,7 @@ type Router interface {
 	Validate(s *Shift) error
 	Update(s *Shift) error
 	Clear(s *Shift) error
-	List(opts metav1.ListOptions) (*IstioRouteList, error)
+	List(s *Shift) (*IstioRouteList, error)
 }
 
 type Client struct {

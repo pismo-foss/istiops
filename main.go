@@ -65,7 +65,7 @@ func main() {
 				"build":   "24",
 			},
 			RequestHeaders: map[string]string{
-				"x-version":    "PR-141",
+				"x-version":    "PR-142",
 				"x-account-id": "233",
 			},
 			Weight: 0,
@@ -78,16 +78,22 @@ func main() {
 		VsRouter: vs,
 	}
 
-	// clear all routes + subsets
-	err = op.Clear(shift)
-	if err != nil {
-		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
-	}
-
-	// Update a route
-	//err = op.Update(shift)
+	// get current route-rules
+	//err = op.Get(shift)
 	//if err != nil {
 	//	logger.Fatal(fmt.Sprintf("%s", err), trackingId)
 	//}
+
+	// clear all routes + subsets
+	//err = op.Clear(shift)
+	//if err != nil {
+	//	logger.Fatal(fmt.Sprintf("%s", err), trackingId)
+	//}
+
+	// Update a route
+	err = op.Update(shift)
+	if err != nil {
+		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
+	}
 
 }

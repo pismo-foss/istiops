@@ -18,16 +18,7 @@ type VirtualService struct {
 }
 
 func (v *VirtualService) Clear(s *Shift) error {
-	stringified, err := Stringify(v.TrackingId, s.Selector.Labels)
-	if err != nil {
-		return err
-	}
-
-	listOptions := metav1.ListOptions{
-		LabelSelector: stringified,
-	}
-
-	vss, err := v.List(listOptions)
+	vss, err := v.List(s)
 	if err != nil {
 		return err
 	}
@@ -118,16 +109,7 @@ func (v *VirtualService) Validate(s *Shift) error {
 func (v *VirtualService) Update(s *Shift) error {
 	subsetName := fmt.Sprintf("%s-%v-%s", v.Name, v.Build, v.Namespace)
 
-	stringified, err := Stringify(v.TrackingId, s.Selector.Labels)
-	if err != nil {
-		return err
-	}
-
-	listOptions := metav1.ListOptions{
-		LabelSelector: stringified,
-	}
-
-	vss, err := v.List(listOptions)
+	vss, err := v.List(s)
 	if err != nil {
 		return err
 	}
@@ -177,14 +159,23 @@ func (v *VirtualService) Update(s *Shift) error {
 
 }
 
-func (v *VirtualService) List(opts metav1.ListOptions) (*IstioRouteList, error) {
-	vss, err := v.Istio.Versioned.NetworkingV1alpha3().VirtualServices(v.Namespace).List(opts)
+func (v *VirtualService) List(s *Shift) (*IstioRouteList, error) {
+	stringified, err := Stringify(v.TrackingId, s.Selector.Labels)
+	if err != nil {
+		return &IstioRouteList{}, err
+	}
+
+	listOptions := metav1.ListOptions{
+		LabelSelector: stringified,
+	}
+
+	vss, err := v.Istio.Versioned.NetworkingV1alpha3().VirtualServices(v.Namespace).List(listOptions)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(vss.Items) <= 0 {
-		return nil, errors.New(fmt.Sprintf("could not find any virtualServices which matched label-selector '%v'", opts.LabelSelector))
+		return nil, errors.New(fmt.Sprintf("could not find any virtualServices which matched label-selector '%v'", listOptions.LabelSelector))
 	}
 
 	irl := &IstioRouteList{

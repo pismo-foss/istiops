@@ -1,6 +1,8 @@
 package operator
 
 import (
+	"fmt"
+	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/pismo/istiops/pkg/router"
 	"github.com/pkg/errors"
 )
@@ -10,20 +12,22 @@ type Istiops struct {
 	VsRouter router.Router
 }
 
-func (ips *Istiops) Create(r *router.Shift) error {
+func (ips *Istiops) Get(r *router.Shift) ([]v1alpha3.DestinationRule, []v1alpha3.VirtualService, error) {
 	VsRouter := ips.VsRouter
-	err := VsRouter.Validate(r)
+	ivl, err := VsRouter.List(r)
 	if err != nil {
-		return err
+		return []v1alpha3.DestinationRule{}, []v1alpha3.VirtualService{}, err
 	}
 
 	DrRouter := ips.DrRouter
-	err = DrRouter.Validate(r)
+	idl, err := DrRouter.List(r)
 	if err != nil {
-		return err
+		return []v1alpha3.DestinationRule{}, []v1alpha3.VirtualService{}, err
 	}
 
-	return nil
+	fmt.Println("", idl, ivl)
+
+	return idl.DList.Items, ivl.VList.Items, nil
 }
 
 func (ips *Istiops) Update(r *router.Shift) error {
