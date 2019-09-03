@@ -2,6 +2,16 @@
 
 Istio Operator (a.k.a `istiops`) is a tool to manage traffic for microservices deployed via [Istio](https://istio.io/). It simplifies deployment strategies such as bluegreen or canary releases with no need of messing around with tons of `yamls` from kubernetes' resources.
 
+
+* [Architecture](#architecure)
+* [Running tests](#running-tests)
+* [Building the CLI](#building-the-cli)
+* [Prerequisites](#prerequisites)
+* [How it works ?](#how-it-works-?)
+    - [Traffic Shifting](#traffic-shifting)
+* [Using CLI](#using-cli)
+* [Importing as a package](#importing-as-a-package)
+
 ## Architecture
 
 <img src="https://github.com/pismo/istiops/blob/master/imgs/overview.png">
@@ -38,7 +48,7 @@ Istiops creates routing rules into virtualservices & destination rules in order 
 We call this `'.+'` rule as **master-route**, which it will be served as the default routing rule.
 
 
-### Operator traffic steps
+### Traffic Shifting
 
 A deeper in the details
 
@@ -54,7 +64,7 @@ A deeper in the details
 
 <img src="https://github.com/pismo/istiops/blob/master/imgs/howitworks3.png">
 
-## Commands on traffic shifting
+## Using CLI
 
 ### Each operation list, creates or removes items from both the VirtualService and DestinationRule
 
