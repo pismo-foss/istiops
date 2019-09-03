@@ -48,8 +48,11 @@ A deeper in the details
 
 3. Attach to an existent route rule a `request-headers` match if given
 
-4. Attach to an existent route rule a `weight` if given
+<img src="https://github.com/pismo/istiops/blob/master/imgs/howitworks2.png">
 
+4. Attach to an existent route rule a `weight` if given. In case of a `weight: 100` the balance-routing will be skipped.
+
+<img src="https://github.com/pismo/istiops/blob/master/imgs/howitworks3.png">
 
 ## Commands on traffic shifting
 
