@@ -83,11 +83,12 @@ func (v *VirtualService) Create(s Shift) (*IstioRules, error) {
 
 	newRoute := &v1alpha3.HTTPRoute{}
 
-	if len(s.Traffic.RequestHeaders) > 0 {
-		logger.Info(fmt.Sprintf("Setting request header's match rule '%s' for '%s'...", s.Traffic.RequestHeaders, subsetName), v.TrackingId)
-		newRoute.Match = append(newRoute.Match, newMatch)
+	if len(s.Traffic.RequestHeaders) == 0 {
+		return &IstioRules{}, errors.New("can't create a new route without header's match")
 	}
 
+	logger.Info(fmt.Sprintf("Setting request header's match rule '%s' for '%s'...", s.Traffic.RequestHeaders, subsetName), v.TrackingId)
+	newRoute.Match = append(newRoute.Match, newMatch)
 	newRoute.Route = append(newRoute.Route, defaultDestination)
 
 	ir := IstioRules{
@@ -274,7 +275,9 @@ func percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRout
 				masterRouteCounter += 1
 				masterIndex = httpKey
 
-				balancedRoute, err := balance(httpValue.Route[0].Destination.Subset, subset, s)
+				newSubset := httpValue.Route[0].Destination.Subset
+
+				balancedRoute, err := balance(newSubset, subset, s)
 				if err != nil {
 					return nil, err
 				}
@@ -299,7 +302,7 @@ func percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRout
 
 	// create a master route rule if does not exists
 	if masterRouteCounter == 0 {
-		logger.Info(fmt.Sprintf("Could not find a master route 'Regex: .+', creating it..."), trackingId)
+		logger.Info(fmt.Sprintf("Could not find a master route 'Regex: .+', creating with 100%% of weight..."), trackingId)
 		routeMaster := &v1alpha3.HTTPRoute{}
 		routeMasterMatch := &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}}
 
@@ -318,7 +321,6 @@ func percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRout
 		routeMaster.Match = append(routeMaster.Match, routeMasterMatch)
 		routeMaster.Route = append(routeMaster.Route, routeMasterDestination)
 		httpRoute = append(httpRoute, routeMaster)
-		fmt.Println(routeMaster)
 	}
 
 	return httpRoute, nil
