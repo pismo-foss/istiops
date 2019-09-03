@@ -168,9 +168,9 @@ func (v *VirtualService) Update(s Shift) error {
 
 }
 
-func (v *VirtualService) List(s Selector) (*IstioRouteList, error) {
-	logger.Info(fmt.Sprintf("Getting virtualServices which matches label-selector '%s'", s.Labels), v.TrackingId)
-	stringified, err := Stringify(v.TrackingId, s.Labels)
+func (v *VirtualService) List(selector map[string]string) (*IstioRouteList, error) {
+	logger.Info(fmt.Sprintf("Getting virtualServices which matches label-selector '%s'", selector), v.TrackingId)
+	stringified, err := Stringify(v.TrackingId, selector)
 	if err != nil {
 		return &IstioRouteList{}, err
 	}

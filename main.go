@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
+	"github.com/google/uuid"
 	"github.com/pismo/istiops/pkg/logger"
 	"github.com/pismo/istiops/pkg/operator"
 	"github.com/pismo/istiops/pkg/router"
@@ -25,7 +26,14 @@ func main() {
 	var metadataName string
 	var metadataNamespace string
 
-	trackingId = "54ec4fd3-879b-404f-9812-c6b97f663b8d"
+	// generate random uuid
+	uuid, err := uuid.NewUUID()
+	if err != nil {
+		panic(err.Error())
+	}
+
+	trackingId = uuid.String()
+
 	metadataName = "api-xpto"
 	metadataNamespace = "default"
 	build = 2
@@ -55,9 +63,7 @@ func main() {
 	shift := router.Shift{
 		Port:     5000,
 		Hostname: "api.domain.io",
-		Selector: router.Selector{
-			Labels: map[string]string{"environment": "pipeline-go"},
-		},
+		Selector: map[string]string{"environment": "pipeline-go"},
 		Traffic: router.Traffic{
 			PodSelector: map[string]string{
 				"app":     "api",

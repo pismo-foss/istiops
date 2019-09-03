@@ -80,10 +80,10 @@ func (d *DestinationRule) Clear(s Shift) error {
 	return nil
 }
 
-func (d *DestinationRule) List(s Selector) (*IstioRouteList, error) {
-	logger.Info(fmt.Sprintf("Getting destinationRules which matches label-selector '%s'", s.Labels), d.TrackingId)
+func (d *DestinationRule) List(selector map[string]string) (*IstioRouteList, error) {
+	logger.Info(fmt.Sprintf("Getting destinationRules which matches label-selector '%s'", selector), d.TrackingId)
 
-	stringified, err := Stringify(d.TrackingId, s.Labels)
+	stringified, err := Stringify(d.TrackingId, selector)
 	if err != nil {
 		return &IstioRouteList{}, err
 	}

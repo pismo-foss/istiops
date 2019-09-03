@@ -6,6 +6,14 @@ import (
 	"github.com/pkg/errors"
 )
 
+type Router interface {
+	Create(s router.Shift) (*router.IstioRules, error)
+	Validate(s router.Shift) error
+	Update(s router.Shift) error
+	Clear(s router.Shift) error
+	List(s map[string]string) (*router.IstioRouteList, error)
+}
+
 type Istiops struct {
 	DrRouter Router
 	VsRouter Router
@@ -25,7 +33,7 @@ func (ips *Istiops) Get(r router.Shift) ([]v1alpha32.VirtualService, error) {
 }
 
 func (ips *Istiops) Update(r router.Shift) error {
-	if len(r.Selector.Labels) == 0 {
+	if len(r.Selector) == 0 {
 		return errors.New("label-selector must exists in need to find resources")
 	}
 

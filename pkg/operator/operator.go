@@ -10,10 +10,3 @@ type Operator interface {
 	Update(s router.Shift) error
 	Clear(s router.Shift) error
 }
-type Router interface {
-	Create(s router.Shift) (*router.IstioRules, error)
-	Validate(s router.Shift) error
-	Update(s router.Shift) error
-	Clear(s router.Shift) error
-	List(s router.Selector) (*router.IstioRouteList, error)
-}

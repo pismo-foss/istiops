@@ -18,7 +18,7 @@ type Client struct {
 type Shift struct {
 	Port     uint32
 	Hostname string
-	Selector Selector
+	Selector map[string]string
 	Traffic  Traffic
 }
 

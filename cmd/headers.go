@@ -1,8 +1,8 @@
 package cmd
 
 import (
-"fmt"
-"github.com/spf13/cobra"
+	"fmt"
+	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -30,4 +30,3 @@ var headersCmd = &cobra.Command{
 		//os.Exit(1)
 	},
 }
-
