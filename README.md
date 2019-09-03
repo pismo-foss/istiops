@@ -31,7 +31,7 @@ You can then run it as: `./build/istiops version`
 
 ## Prerequisites
 
-- `go` version `1.12`+
+- `go` version `1.12.9`+
 - A kubernetes config at `~/.kube/config` which allows the binary to `GET`, `PATCH`, `UPDATE` and `LIST` resources: `virtualservices` & `destinationrules`.
  If you are running the binary with a custom kubernetes' service account you can use this RBAC template to append to your roles:
 
