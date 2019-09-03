@@ -25,13 +25,14 @@ Istio Operator (a.k.a `istiops`) is a tool to manage traffic for microservices d
 
 To use istiops binary you can just `go build` it. It will generate a command line interface tool to work with.
 
-`./run` or `go build -o build/istiops main.go`
+`./run` or `go get && build -o build/istiops main.go`
 
 You can then run it as: `./build/istiops version`
 
 ## Prerequisites
 
-A kubernetes config at `~/.kube/config` which allows the binary to `GET`, `PATCH`, `UPDATE` and `LIST` resources: `virtualservices` & `destinationrules`.
+- `go` version `1.12`+
+- A kubernetes config at `~/.kube/config` which allows the binary to `GET`, `PATCH`, `UPDATE` and `LIST` resources: `virtualservices` & `destinationrules`.
  If you are running the binary with a custom kubernetes' service account you can use this RBAC template to append to your roles:
 
 ```

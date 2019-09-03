@@ -4,5 +4,6 @@ if [[ ! -d build ]]; then
     mkdir build
 fi
 
+go get
 ENV=dev SYSTEM=Jenkins SYSTEM_VERSION=0.1.0 go build -o build/istiops main.go
 build/istiops version
