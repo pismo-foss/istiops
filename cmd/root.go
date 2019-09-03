@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	"github.com/google/uuid"
-	"github.com/pismo/istiops/pkg/operator"
+	istiOperator "github.com/pismo/istiops/pkg/operator"
 	"github.com/pismo/istiops/pkg/router"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
@@ -28,18 +28,18 @@ import (
 )
 
 var (
-	op                  operator.Operator
-	build               uint32
-	trackingId          string
-	metadataName        string
-	namespace           string
-	labelSelector       string
-	mappedLabelSelector map[string]string
-	shift               router.Shift
+	trackingId   string
+	dr           *router.DestinationRule
+	vs           *router.VirtualService
+	metadataName string
+	namespace    string
+	build        uint32
+	client       router.Client
 )
 
 func init() {
-	rootCmd.AddCommand(trafficCmd)
+	rootCmd.AddCommand(showCmd)
+	rootCmd.AddCommand(shiftCmd)
 	rootCmd.AddCommand(versionCmd)
 	setup()
 }
@@ -53,60 +53,28 @@ func setup() {
 	}
 
 	// generate random uuid
-	uuid, err := uuid.NewUUID()
+	tracking, err := uuid.NewUUID()
 	if err != nil {
 		panic(err.Error())
 	}
 
-	trackingId = uuid.String()
+	trackingId = tracking.String()
 
-	ic := router.Client{
+	client = router.Client{
 		Versioned: istioClient,
 	}
+}
 
-	var dr operator.Router
-	dr = &router.DestinationRule{
-		TrackingId: trackingId,
-		Name:       metadataName,
-		Namespace:  namespace,
-		Build:      build,
-		Istio:      ic,
+func operator(dr *router.DestinationRule, vs *router.VirtualService) istiOperator.Operator {
+	drR := dr
+	vsR := vs
+
+	op := &istiOperator.Istiops{
+		DrRouter: drR,
+		VsRouter: vsR,
 	}
 
-	var vs operator.Router
-
-	vs = &router.VirtualService{
-		TrackingId: trackingId,
-		Name:       metadataName,
-		Namespace:  namespace,
-		Build:      build,
-		Istio:      ic,
-	}
-
-	shift = router.Shift{
-		Port:     5000,
-		Hostname: "api.domain.io",
-		Selector: router.Selector{
-			Labels: mappedLabelSelector,
-		},
-		Traffic: router.Traffic{
-			PodSelector: map[string]string{
-				"app":     "api",
-				"version": "1.3.3",
-				"build":   "24",
-			},
-			RequestHeaders: map[string]string{
-				"x-version":    "PR-142",
-				"x-account-id": "233",
-			},
-			Weight: 0,
-		},
-	}
-
-	op = &operator.Istiops{
-		DrRouter: dr,
-		VsRouter: vs,
-	}
+	return op
 }
 
 var rootCmd = &cobra.Command{

@@ -72,11 +72,11 @@ A deeper in the details
 
 1. Get all current traffic rules for resources which matches `label-selector`
 
-`istiops traffic show --label-selector app=api-domain`
+`istiops traffic show -l app=api-domain`
 
 2. Clear all traffic rules, except for **master-route** (default), from service api-domain
 
-`istiops traffic clear --label-selector app=api-domain`
+`istiops traffic clear -l app=api-domain`
 
 3. Send requests with HTTP header `"x-cid: seu_madruga"` to pods with labels `app=api-domain,build=PR-10`
 

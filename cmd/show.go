@@ -14,12 +14,9 @@ func init() {
 
 var showCmd = &cobra.Command{
 	Use:   "show",
-	Short: "Show istio's traffic rules",
+	Short: "Show currentistio's traffic rules",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println(">")
 		fmt.Println(cmd.Flag("namespace").Value)
-
-		//_ = cmd.Usage()
-		//os.Exit(1)
 	},
 }
