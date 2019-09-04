@@ -83,7 +83,7 @@ A deeper in the details
 Get all current traffic rules (respecting routes order) for resources which matches `label-selector`
 
 ```bash
-istiops traffic show \
+$ istiops traffic show \
     --label-selector environment=pipeline-go \
     --namespace default \
     --output beautified
@@ -93,28 +93,35 @@ Ex.
 
 ```bash
 >
-api-domain-virtualservice
-Hosts:  [api.domain.io]
-* Match
+client -> request to ->  [api.domain.io]
   \_ Headers
       - x-email: contact@domain.io
       - x-version: PR-142
-      \_ Destination
-         - api-xpto-4-default
-* Match
-  \_ regex:".+" 
-      \_ Destination
-         - api-xpto-1-default
-             \_ 90 % of requests
-         - api-xpto-2-default
-             \_ 10 % of requests
+      \_ Destination [k8s service]
+         - api-domain:5000
+
+  \_ regex:".+"
+      \_ Destination [k8s service]
+         - api.domain.io:5000
+           \_ 90 % of requests
+               \_ pods with labels
+                  - build: 24
+                  - version: 1.3.3
+                  - app: api
+                ---
+         - api.domain.io:5000
+           \_ 10 % of requests
+               \_ pods with labels
+                  - version: 1.3.3
+                  - app: api
+                  - build: 24
 ```
 
 ### Clear all routes
 
 2. Clear all traffic rules, except for **master-route** (default), from service api-domain
 
-`istiops traffic clear -l app=api-domain`
+`$ istiops traffic clear -l app=api-domain`
 
 ### Shift to request-headers routing
 

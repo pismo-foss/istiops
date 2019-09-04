@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/pismo/istiops/pkg/logger"
 	"github.com/pismo/istiops/pkg/router"
 	"github.com/spf13/cobra"
@@ -17,20 +16,22 @@ func init() {
 	_ = showCmd.MarkPersistentFlagRequired("output")
 }
 
-func beautified(vss []v1alpha32.VirtualService) {
-	for _, vs := range vss {
+func beautified(irl router.IstioRouteList) {
+	// filtering virtualServices
+	for _, vs := range irl.VList.Items {
 		fmt.Println("--")
-		fmt.Println(vs.Name)
-		fmt.Println("Hosts: ", vs.Spec.Hosts)
+		fmt.Println("Resource: ", vs.Name)
+		fmt.Println("")
+		fmt.Println("client -> request to -> ", vs.Spec.Hosts)
 		for _, httpValue := range vs.Spec.Http {
 			for _, httpMatch := range httpValue.Match {
 				if httpMatch.Uri != nil {
-					fmt.Println("* Match")
+					//fmt.Println("* Match")
 					fmt.Println("  \\_", httpMatch.Uri)
 				}
 
 				if len(httpMatch.Headers) > 0 {
-					fmt.Println("* Match")
+					//fmt.Println("* Match")
 					fmt.Println("  \\_ Headers")
 					for headerKey, headerValue := range httpMatch.Headers {
 						fmt.Println(fmt.Sprintf("      - %s: %s", headerKey, headerValue.GetExact()))
@@ -38,19 +39,32 @@ func beautified(vss []v1alpha32.VirtualService) {
 				}
 			}
 
-			fmt.Println("      \\_ Destination")
+			fmt.Println("      \\_ Destination [k8s service]")
 			for _, httpRoute := range httpValue.Route {
-				fmt.Println("         -", httpRoute.Destination.Subset)
+				fmt.Println(fmt.Sprintf("         - %s:%d", httpRoute.Destination.Host, httpRoute.Destination.Port.GetNumber()))
+
 				if httpRoute.Weight != 0 {
-					fmt.Println(fmt.Sprintf("             \\_ %d %% of requests", httpRoute.Weight))
+					fmt.Println(fmt.Sprintf("           \\_ %d %% of requests", httpRoute.Weight))
+					for _, dr := range irl.DList.Items {
+						for _, subset := range dr.Spec.Subsets {
+							if subset.Name == httpRoute.Destination.Subset {
+								fmt.Println(fmt.Sprintf("               \\_ pods with labels"))
+								for labelKey, labelValue := range subset.Labels {
+									fmt.Println(fmt.Sprintf("                  - %s: %s", labelKey, labelValue))
+								}
+							}
+						}
+					}
+					fmt.Println("                ---")
 				}
 			}
+			fmt.Println("")
 		}
 	}
 }
 
-func summarized(vss []v1alpha32.VirtualService) {
-	for _, vs := range vss {
+func summarized(irl router.IstioRouteList) {
+	for _, vs := range irl.VList.Items {
 		fmt.Println(vs.Name, vs.Spec.Http)
 	}
 }
@@ -88,17 +102,17 @@ var showCmd = &cobra.Command{
 		}
 
 		op := operator(drR, vsR)
-		vss, err := op.Get(shift.Selector)
+		irl, err := op.Get(shift.Selector)
 		if err != nil {
 			logger.Fatal(fmt.Sprintf("%s", err), trackingId)
 		}
 
 		if output == "beautified" {
-			beautified(vss)
+			beautified(irl)
 		}
 
 		if output == "summarized" {
-			summarized(vss)
+			summarized(irl)
 		}
 	},
 }
