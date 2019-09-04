@@ -103,18 +103,18 @@ client -> request to ->  [api.domain.io]
   \_ regex:".+"
       \_ Destination [k8s service]
          - api.domain.io:5000
-           \_ 90 % of requests
-               \_ pods with labels
-                  - build: 24
-                  - version: 1.3.3
-                  - app: api
+           \_ 90 % of requests for pods with labels
+               |- app: api
+               |- build: 24
+               |- version: 1.3.3
+
                 ---
          - api.domain.io:5000
-           \_ 10 % of requests
-               \_ pods with labels
-                  - version: 1.3.3
-                  - app: api
-                  - build: 24
+           \_ 10 % of requests for pods with labels
+               |- app: api
+               |- build: 25
+               |- version: 1.3.4
+
 ```
 
 ### Clear all routes

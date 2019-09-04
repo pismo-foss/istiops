@@ -44,13 +44,12 @@ func beautified(irl router.IstioRouteList) {
 				fmt.Println(fmt.Sprintf("         - %s:%d", httpRoute.Destination.Host, httpRoute.Destination.Port.GetNumber()))
 
 				if httpRoute.Weight != 0 {
-					fmt.Println(fmt.Sprintf("           \\_ %d %% of requests", httpRoute.Weight))
+					fmt.Println(fmt.Sprintf("           \\_ %d %% of requests for pods with labels", httpRoute.Weight))
 					for _, dr := range irl.DList.Items {
 						for _, subset := range dr.Spec.Subsets {
 							if subset.Name == httpRoute.Destination.Subset {
-								fmt.Println(fmt.Sprintf("               \\_ pods with labels"))
 								for labelKey, labelValue := range subset.Labels {
-									fmt.Println(fmt.Sprintf("                  - %s: %s", labelKey, labelValue))
+									fmt.Println(fmt.Sprintf("               |- %s: %s", labelKey, labelValue))
 								}
 							}
 						}
