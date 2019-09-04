@@ -1,7 +1,6 @@
 # Istio Operator
 
-[![asciicast](https://asciinema.org/a/OHOd98DRgrBCAib8mUwWQptwh.png)](https://asciinema.org/a/OHOd98DRgrBCAib8mUwWQptwh)
-
+<a href="https://asciinema.org/a/OHOd98DRgrBCAib8mUwWQptwh?autoplay=1"><img src="https://asciinema.org/a/OHOd98DRgrBCAib8mUwWQptwh.png" width="836"/></a>
 
 Istio Process Status (a.k.a `istiops`) is a tool to manage traffic for microservices deployed via [Istio](https://istio.io/). It simplifies deployment strategies such as bluegreen or canary releases with no need of messing around with tons of `yamls` from kubernetes' resources.
 
