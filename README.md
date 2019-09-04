@@ -35,7 +35,7 @@ You can then run it as: `./build/istiops version`
 - A kubernetes config at `~/.kube/config` which allows the binary to `GET`, `PATCH`, `UPDATE` and `LIST` resources: `virtualservices` & `destinationrules`.
  If you are running the binary with a custom kubernetes' service account you can use this RBAC template to append to your roles:
 
-```
+```sh
 - apiGroups: ["networking.istio.io"]
   resources: ["virtualservices", "destinationrules"]
   verbs: ["get", "list", "patch","update"]
@@ -74,7 +74,7 @@ A deeper in the details
 
 Get all current traffic rules for resources which matches `label-selector`
 
-```shell script
+```sh
 istiops traffic show \
     --label-selector environment=pipeline-go \
     --namespace default \
@@ -83,7 +83,7 @@ istiops traffic show \
 
 Ex.
 
-```
+```sh
 >
 api-domain-virtualservice
 Hosts:  [api.domain.io]
@@ -108,7 +108,7 @@ Hosts:  [api.domain.io]
 
 3. Send requests with HTTP header `"x-cid: seu_madruga"` to pods with labels `app=api-domain,build=PR-10`
 
-```
+```sh
 $ istiops traffic shift \
     --namespace "default" \
     --hostname "api.domain.io" \
@@ -120,7 +120,7 @@ $ istiops traffic shift \
 
 4. Send 20% of traffic to pods with labels `app=api-domain,build=PR-10`
 
-```
+```sh
 $ istiops traffic shift \
     --namespace "default" \
     --hostname "api.domain.io" \
@@ -129,10 +129,6 @@ $ istiops traffic shift \
     --pod-selector "app=api-domain,build=PR-10" \
     --weight 20 \
 ```
-
-5. Removes all traffic (rollback), headers and percentage, for pods with labels: app=api-gateway,version:1.0.0
-
-`istiops traffic rollback --label-selector --pod-selector app=api-domain,version:1.0.0`
 
 ## Importing as a package
 
