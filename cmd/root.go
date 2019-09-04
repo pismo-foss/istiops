@@ -28,13 +28,8 @@ import (
 )
 
 var (
-	trackingId   string
-	drR          *router.DestinationRule
-	vsR          *router.VirtualService
-	metadataName string
-	namespace    string
-	build        uint32
-	client       router.Client
+	trackingId string
+	client     router.Client
 )
 
 func init() {
@@ -65,12 +60,9 @@ func setup() {
 }
 
 func operator(dr *router.DestinationRule, vs *router.VirtualService) istiOperator.Operator {
-	drR := dr
-	vsR := vs
-
 	op := &istiOperator.Istiops{
-		DrRouter: drR,
-		VsRouter: vsR,
+		DrRouter: dr,
+		VsRouter: vs,
 	}
 
 	return op

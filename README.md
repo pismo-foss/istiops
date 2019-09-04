@@ -57,7 +57,6 @@ Istiops creates routing rules into virtualservices & destination rules in order 
 
 We call this `'.+'` rule as **master-route**, which it will be served as the default routing rule.
 
-
 ### Traffic Shifting
 
 A deeper in the details
@@ -131,6 +130,7 @@ client -> request to ->  [api.domain.io]
 $ istiops traffic shift \
     --namespace "default" \
     --hostname "api.domain.io" \
+    --build 3 \
     --port 5000 \
     --label-selector "app=api-domain" \
     --pod-selector "app=api-domain,build=PR-10" \
@@ -144,6 +144,7 @@ $ istiops traffic shift \
 $ istiops traffic shift \
     --namespace "default" \
     --hostname "api.domain.io" \
+    --build 3 \
     --port 5000 \
     --label-selector "app=api-domain" \
     --pod-selector "app=api-domain,build=PR-10" \

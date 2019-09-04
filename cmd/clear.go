@@ -18,19 +18,26 @@ var rulesClearCmd = &cobra.Command{
 	Use:   "clear",
 	Short: "Removes all rules & routes",
 	Run: func(cmd *cobra.Command, args []string) {
-		namespace = fmt.Sprintf("%s", cmd.Flag("namespace").Value)
+
+		namespace := cmd.Flag("namespace").Value.String()
+		if namespace == "" {
+			namespace = "default"
+		} else {
+			namespace = cmd.Flag("namespace").Value.String()
+		}
+
 		mappedLabelSelector, err := router.Mapify(trackingId, fmt.Sprintf("%s", cmd.Flag("label-selector").Value))
 		if err != nil {
 			fmt.Println(err)
 		}
 
-		drR = &router.DestinationRule{
+		drR := &router.DestinationRule{
 			TrackingId: trackingId,
 			Namespace:  namespace,
 			Istio:      client,
 		}
 
-		vsR = &router.VirtualService{
+		vsR := &router.VirtualService{
 			TrackingId: trackingId,
 			Namespace:  namespace,
 			Istio:      client,

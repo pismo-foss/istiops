@@ -28,7 +28,7 @@ func beautified(irl router.IstioRouteList) {
 			for _, httpMatch := range httpValue.Match {
 				if httpMatch.Uri != nil {
 					//fmt.Println("* Match")
-					fmt.Println("  \\_", httpMatch.Uri)
+					color.Green.Println("  \\_", httpMatch.Uri)
 				}
 
 				if len(httpMatch.Headers) > 0 {
@@ -51,14 +51,14 @@ func beautified(irl router.IstioRouteList) {
 					currentWeight = httpRoute.Weight
 				}
 
-				fmt.Println(fmt.Sprintf("            \\_ %d %% of requests for pods with labels", currentWeight))
+				fmt.Println(color.Green.Sprintf("            \\_ %d %% of requests for pods with labels", currentWeight))
 				subsetExists := false
 				for _, dr := range irl.DList.Items {
 					for _, subset := range dr.Spec.Subsets {
 						if subset.Name == httpRoute.Destination.Subset {
 							subsetExists = true
 							for labelKey, labelValue := range subset.Labels {
-								fmt.Println(fmt.Sprintf("               |- %s: %s", labelKey, labelValue))
+								fmt.Println(color.Green.Sprintf("               |- %s: %s", labelKey, labelValue))
 							}
 						}
 					}
@@ -69,7 +69,7 @@ func beautified(irl router.IstioRouteList) {
 				}
 				fmt.Println("")
 			}
-			fmt.Println("         ---")
+			fmt.Println("")
 		}
 	}
 }
@@ -84,7 +84,14 @@ var showCmd = &cobra.Command{
 	Use:   "show",
 	Short: "Show current istio's traffic rules",
 	Run: func(cmd *cobra.Command, args []string) {
-		namespace = fmt.Sprintf("%s", cmd.Flag("namespace").Value)
+
+		namespace := cmd.Flag("namespace").Value.String()
+		if namespace == "" {
+			namespace = "default"
+		} else {
+			namespace = cmd.Flag("namespace").Value.String()
+		}
+
 		output := fmt.Sprintf("%s", cmd.Flag("output").Value)
 
 		if output != "summarized" && output != "beautified" {
@@ -96,13 +103,13 @@ var showCmd = &cobra.Command{
 			fmt.Println(err)
 		}
 
-		drR = &router.DestinationRule{
+		drR := &router.DestinationRule{
 			TrackingId: trackingId,
 			Namespace:  namespace,
 			Istio:      client,
 		}
 
-		vsR = &router.VirtualService{
+		vsR := &router.VirtualService{
 			TrackingId: trackingId,
 			Namespace:  namespace,
 			Istio:      client,

@@ -36,7 +36,7 @@ func main() {
 
 	metadataName = "api-xpto"
 	metadataNamespace = "default"
-	build = 3
+	build = 27
 
 	ic := router.Client{
 		Versioned: istioClient,
@@ -70,10 +70,10 @@ func main() {
 				"version": "1.3.3",
 				"build":   "24",
 			},
-			RequestHeaders: map[string]string{
-				"x-version":    "PR-142",
-				"x-account-id": "233",
-			},
+			//RequestHeaders: map[string]string{
+			//	"x-version":    "PR-142",
+			//	"x-account-id": "233",
+			//},
 			//Weight: 10,
 		},
 	}
