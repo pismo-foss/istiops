@@ -90,30 +90,31 @@ $ istiops traffic show \
 
 Ex.
 
-```bash
->
+```
+Resource:  api-domain-virtualservice
+
 client -> request to ->  [api.domain.io]
   \_ Headers
-      |- x-email: contact@domain.io
-      |- x-version: PR-142
+      |- x-account-id: 3
+      |- x-cid: seu_madruga
        \_ Destination [k8s service]
-          - api-domain:5000
+         - api-domain:5000
+            \_ 100 % of requests for pods with labels
+               |- app: api-domain
+               |- build: PR-10
+
 
   \_ regex:".+"
        \_ Destination [k8s service]
-          - api.domain.io:5000
-           \_ 90 % of requests for pods with labels
-               |- app: api
-               |- build: 24
-               |- version: 1.3.3
+         - api-domain:5000
+            \_ 90 % of requests for pods with labels
+               |- build: PR-10
+               |- app: api-domain
 
-                ---
-          - api.domain.io:5000
-           \_ 10 % of requests for pods with labels
-               |- app: api
-               |- build: 25
-               |- version: 1.3.4
-
+         - api-domain:5000
+            \_ 10 % of requests for pods with labels
+               |- app: api-domain
+               |- build: PR-10
 ```
 
 ### Clear all routes
