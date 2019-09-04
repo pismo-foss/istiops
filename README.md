@@ -129,9 +129,8 @@ client -> request to ->  [api.domain.io]
 ```bash
 $ istiops traffic shift \
     --namespace "default" \
-    --hostname "api.domain.io" \
+    --destination "api-domain:5000" \
     --build 3 \
-    --port 5000 \
     --label-selector "app=api-domain" \
     --pod-selector "app=api-domain,build=PR-10" \
     --headers "x-cid=seu_madruga"
@@ -143,9 +142,8 @@ $ istiops traffic shift \
 ```bash
 $ istiops traffic shift \
     --namespace "default" \
-    --hostname "api.domain.io" \
+    --destination "api-domain:5000" \
     --build 3 \
-    --port 5000 \
     --label-selector "app=api-domain" \
     --pod-selector "app=api-domain,build=PR-10" \
     --weight 20

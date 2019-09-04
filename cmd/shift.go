@@ -5,16 +5,16 @@ import (
 	"github.com/pismo/istiops/pkg/router"
 	"github.com/spf13/cobra"
 	"strconv"
+	"strings"
 )
 
 func init() {
 	shiftCmd.PersistentFlags().StringP("namespace", "n", "default", "kubernetes' cluster namespace")
-	shiftCmd.PersistentFlags().StringP("destination", "d", "", "* destination's hostname ('api.domain.io' or 'k8s-service')")
-	shiftCmd.PersistentFlags().Uint32P("port", "p", 0, "* destination's port")
+	shiftCmd.PersistentFlags().StringP("destination", "d", "", "* destination's hostname with port ('api.domain.io:8080' or 'k8s-service:8080')")
 	shiftCmd.PersistentFlags().Uint32P("build", "b", 0, "* build")
 	shiftCmd.PersistentFlags().StringP("label-selector", "l", "", "* labels selector to filter istio' resources")
 	shiftCmd.PersistentFlags().StringP("headers", "H", "", "headers")
-	shiftCmd.PersistentFlags().StringP("pod-selector", "P", "", "* pod")
+	shiftCmd.PersistentFlags().StringP("pod-selector", "p", "", "* pod")
 	shiftCmd.PersistentFlags().Uint32P("weight", "w", 0, "* weight (percentage) of routing")
 
 	_ = shiftCmd.MarkPersistentFlagRequired("destination")
@@ -36,9 +36,13 @@ var shiftCmd = &cobra.Command{
 		}
 
 		destination := cmd.Flag("destination").Value.String()
+		destinationSplitted := strings.Split(destination, ":")
+		if len(destinationSplitted) != 2 {
+			panic(fmt.Sprintf("destination '%s' does not follow the format 'destination:port'", destination))
+		}
 
 		var portUint uint64
-		portUint, err := strconv.ParseUint(cmd.Flag("port").Value.String(), 10, 32)
+		portUint, err := strconv.ParseUint(destinationSplitted[1], 10, 32)
 		if err != nil {
 			panic(err)
 		}
@@ -83,7 +87,7 @@ var shiftCmd = &cobra.Command{
 
 		drR := router.DestinationRule{
 			TrackingId: trackingId,
-			Name:       destination,
+			Name:       destinationSplitted[0],
 			Namespace:  namespace,
 			Build:      uint32(buildInt),
 			Istio:      client,
@@ -91,7 +95,7 @@ var shiftCmd = &cobra.Command{
 
 		vsR := router.VirtualService{
 			TrackingId: trackingId,
-			Name:       destination,
+			Name:       destinationSplitted[0],
 			Namespace:  namespace,
 			Build:      uint32(buildInt),
 			Istio:      client,
@@ -99,7 +103,7 @@ var shiftCmd = &cobra.Command{
 
 		shift := router.Shift{
 			Selector: mappedLabelSelector,
-			Hostname: destination,
+			Hostname: destinationSplitted[0],
 			Port:     uint32(portUint),
 			Traffic: router.Traffic{
 				PodSelector:    mappedPodSelector,

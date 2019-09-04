@@ -33,9 +33,9 @@ func beautified(irl router.IstioRouteList) {
 
 				if len(httpMatch.Headers) > 0 {
 					//fmt.Println("* Match")
-					fmt.Println("  \\_ Headers")
+					color.Cyan.Println("  \\_ Headers")
 					for headerKey, headerValue := range httpMatch.Headers {
-						fmt.Println(fmt.Sprintf("      |- %s: %s", headerKey, headerValue.GetExact()))
+						fmt.Println(color.Cyan.Sprintf("      |- %s: %s", headerKey, headerValue.GetExact()))
 					}
 				}
 			}
@@ -51,14 +51,14 @@ func beautified(irl router.IstioRouteList) {
 					currentWeight = httpRoute.Weight
 				}
 
-				fmt.Println(color.Green.Sprintf("            \\_ %d %% of requests for pods with labels", currentWeight))
+				fmt.Println(fmt.Sprintf("            \\_ %d %% of requests for pods with labels", currentWeight))
 				subsetExists := false
 				for _, dr := range irl.DList.Items {
 					for _, subset := range dr.Spec.Subsets {
 						if subset.Name == httpRoute.Destination.Subset {
 							subsetExists = true
 							for labelKey, labelValue := range subset.Labels {
-								fmt.Println(color.Green.Sprintf("               |- %s: %s", labelKey, labelValue))
+								fmt.Println(fmt.Sprintf("               |- %s: %s", labelKey, labelValue))
 							}
 						}
 					}
