@@ -127,7 +127,7 @@ $ istiops traffic shift \
     --port 5000 \
     --label-selector "app=api-domain" \
     --pod-selector "app=api-domain,build=PR-10" \
-    --headers "x-cid=seu_madruga" \
+    --headers "x-cid=seu_madruga"
 ```
 
 ### Shift to weight routing
@@ -140,7 +140,7 @@ $ istiops traffic shift \
     --port 5000 \
     --label-selector "app=api-domain" \
     --pod-selector "app=api-domain,build=PR-10" \
-    --weight 20 \
+    --weight 20
 ```
 
 ## Importing as a package

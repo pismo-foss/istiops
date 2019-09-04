@@ -51,7 +51,6 @@ func beautified(vss []v1alpha32.VirtualService) {
 
 func summarized(vss []v1alpha32.VirtualService) {
 	for _, vs := range vss {
-		fmt.Println("--")
 		fmt.Println(vs.Name, vs.Spec.Http)
 	}
 }
