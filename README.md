@@ -95,21 +95,21 @@ Ex.
 >
 client -> request to ->  [api.domain.io]
   \_ Headers
-      - x-email: contact@domain.io
-      - x-version: PR-142
-      \_ Destination [k8s service]
-         - api-domain:5000
+      |- x-email: contact@domain.io
+      |- x-version: PR-142
+       \_ Destination [k8s service]
+          - api-domain:5000
 
   \_ regex:".+"
-      \_ Destination [k8s service]
-         - api.domain.io:5000
+       \_ Destination [k8s service]
+          - api.domain.io:5000
            \_ 90 % of requests for pods with labels
                |- app: api
                |- build: 24
                |- version: 1.3.3
 
                 ---
-         - api.domain.io:5000
+          - api.domain.io:5000
            \_ 10 % of requests for pods with labels
                |- app: api
                |- build: 25

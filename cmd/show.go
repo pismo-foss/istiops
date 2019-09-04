@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/gookit/color"
 	"github.com/pismo/istiops/pkg/logger"
 	"github.com/pismo/istiops/pkg/router"
 	"github.com/spf13/cobra"
@@ -34,30 +35,41 @@ func beautified(irl router.IstioRouteList) {
 					//fmt.Println("* Match")
 					fmt.Println("  \\_ Headers")
 					for headerKey, headerValue := range httpMatch.Headers {
-						fmt.Println(fmt.Sprintf("      - %s: %s", headerKey, headerValue.GetExact()))
+						fmt.Println(fmt.Sprintf("      |- %s: %s", headerKey, headerValue.GetExact()))
 					}
 				}
 			}
 
-			fmt.Println("      \\_ Destination [k8s service]")
+			fmt.Println("       \\_ Destination [k8s service]")
+			var currentWeight int32
 			for _, httpRoute := range httpValue.Route {
 				fmt.Println(fmt.Sprintf("         - %s:%d", httpRoute.Destination.Host, httpRoute.Destination.Port.GetNumber()))
 
-				if httpRoute.Weight != 0 {
-					fmt.Println(fmt.Sprintf("           \\_ %d %% of requests for pods with labels", httpRoute.Weight))
-					for _, dr := range irl.DList.Items {
-						for _, subset := range dr.Spec.Subsets {
-							if subset.Name == httpRoute.Destination.Subset {
-								for labelKey, labelValue := range subset.Labels {
-									fmt.Println(fmt.Sprintf("               |- %s: %s", labelKey, labelValue))
-								}
+				if httpRoute.Weight == 0 {
+					currentWeight = 100
+				} else {
+					currentWeight = httpRoute.Weight
+				}
+
+				fmt.Println(fmt.Sprintf("            \\_ %d %% of requests for pods with labels", currentWeight))
+				subsetExists := false
+				for _, dr := range irl.DList.Items {
+					for _, subset := range dr.Spec.Subsets {
+						if subset.Name == httpRoute.Destination.Subset {
+							subsetExists = true
+							for labelKey, labelValue := range subset.Labels {
+								fmt.Println(fmt.Sprintf("               |- %s: %s", labelKey, labelValue))
 							}
 						}
 					}
-					fmt.Println("                ---")
+
+					if !subsetExists {
+						color.Red.Printf("               |- NON-EXISTENT SUBSET '%s'", httpRoute.Destination.Subset)
+					}
 				}
+				fmt.Println("")
 			}
-			fmt.Println("")
+			fmt.Println("         ---")
 		}
 	}
 }
@@ -106,6 +118,7 @@ var showCmd = &cobra.Command{
 			logger.Fatal(fmt.Sprintf("%s", err), trackingId)
 		}
 
+		logger.Info("Listing all current active routing rules", trackingId)
 		if output == "beautified" {
 			beautified(irl)
 		}
