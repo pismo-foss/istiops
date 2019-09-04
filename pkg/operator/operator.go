@@ -6,7 +6,7 @@ import (
 )
 
 type Operator interface {
-	Get(s router.Shift) ([]v1alpha32.VirtualService, error)
-	Update(s router.Shift) error
-	Clear(s router.Shift) error
+	Get(selector map[string]string) ([]v1alpha32.VirtualService, error)
+	Update(shift router.Shift) error
+	Clear(shift router.Shift) error
 }

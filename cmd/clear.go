@@ -24,13 +24,13 @@ var rulesClearCmd = &cobra.Command{
 			fmt.Println(err)
 		}
 
-		dr = &router.DestinationRule{
+		drR = &router.DestinationRule{
 			TrackingId: trackingId,
 			Namespace:  namespace,
 			Istio:      client,
 		}
 
-		vs = &router.VirtualService{
+		vsR = &router.VirtualService{
 			TrackingId: trackingId,
 			Namespace:  namespace,
 			Istio:      client,
@@ -40,7 +40,7 @@ var rulesClearCmd = &cobra.Command{
 			Selector: mappedLabelSelector,
 		}
 
-		op := operator(dr, vs)
+		op := operator(drR, vsR)
 		err = op.Clear(shift)
 		if err != nil {
 			fmt.Println(err)

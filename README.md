@@ -70,9 +70,37 @@ A deeper in the details
 
 ### Each operation list, creates or removes items from both the VirtualService and DestinationRule
 
-1. Get all current traffic rules for resources which matches `label-selector`
+### Get current routes
 
-`istiops traffic show -l app=api-domain`
+Get all current traffic rules for resources which matches `label-selector`
+
+```shell script
+istiops traffic show \
+    --label-selector environment=pipeline-go \
+    --namespace default \
+    --output beautified
+```
+
+Ex.
+
+```
+>
+api-domain-virtualservice
+Hosts:  [api.domain.io]
+* Match
+  \_ Headers
+      - x-email: contact@domain.io
+      - x-version: PR-142
+      \_ Destination
+         - api-xpto-4-default
+* Match
+  \_ regex:".+" 
+      \_ Destination
+         - api-xpto-1-default
+             \_ 90 % of requests
+         - api-xpto-2-default
+             \_ 10 % of requests
+```
 
 2. Clear all traffic rules, except for **master-route** (default), from service api-domain
 
@@ -81,7 +109,7 @@ A deeper in the details
 3. Send requests with HTTP header `"x-cid: seu_madruga"` to pods with labels `app=api-domain,build=PR-10`
 
 ```
-$ istiops traffic headers \
+$ istiops traffic shift \
     --namespace "default" \
     --hostname "api.domain.io" \
     --port 5000 \
@@ -93,7 +121,7 @@ $ istiops traffic headers \
 4. Send 20% of traffic to pods with labels `app=api-domain,build=PR-10`
 
 ```
-$ istiops traffic weight \
+$ istiops traffic shift \
     --namespace "default" \
     --hostname "api.domain.io" \
     --port 5000 \

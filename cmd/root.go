@@ -29,8 +29,8 @@ import (
 
 var (
 	trackingId   string
-	dr           *router.DestinationRule
-	vs           *router.VirtualService
+	drR          *router.DestinationRule
+	vsR          *router.VirtualService
 	metadataName string
 	namespace    string
 	build        uint32
@@ -38,10 +38,9 @@ var (
 )
 
 func init() {
-	rootCmd.AddCommand(showCmd)
-	rootCmd.AddCommand(shiftCmd)
-	rootCmd.AddCommand(versionCmd)
 	setup()
+	rootCmd.AddCommand(trafficCmd)
+	rootCmd.AddCommand(versionCmd)
 }
 
 func setup() {
