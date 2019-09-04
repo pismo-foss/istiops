@@ -76,7 +76,7 @@ A deeper in the details
 
 ### Get current routes
 
-Get all current traffic rules for resources which matches `label-selector`
+Get all current traffic rules (respecting routes order) for resources which matches `label-selector`
 
 ```bash
 istiops traffic show \
