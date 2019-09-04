@@ -11,11 +11,15 @@ Istio Process Status (a.k.a `istiops`) is a tool to manage traffic for microserv
 * [How it works ?](#how-it-works-?)
     - [Traffic Shifting](#traffic-shifting)
 * [Using CLI](#using-cli)
+    - [Get current routes](#get-current-routes)
+    - [Clear all routes](#clear-all-routes)
+    - [Headers routing](#shift-to-request-headers-routing)
+    - [Weight Routing](#shift-to-weight-routing)
 * [Importing as a package](#importing-as-a-package)
 
 ## Architecture
 
-<img src="https://github.com/pismo/istiops/blob/master/imgs/overview.png">
+<img src="https://github.com/pismo/istiops/blob/master/imgs/overview.png" alt="">
 
 ## Running tests
 
@@ -45,7 +49,7 @@ You can then run it as: `./build/istiops version`
 
 Istiops creates routing rules into virtualservices & destination rules in order to manage traffic correctly. This is an example of a routing being managed by Istio, using as default routing rule any HTTP request which matches as URI the regular expression: `'.+'`:
 
-<img src="https://github.com/pismo/istiops/blob/master/imgs/howitworks1.png">
+<img src="https://github.com/pismo/istiops/blob/master/imgs/howitworks1.png" alt="">
 
 We call this `'.+'` rule as **master-route**, which it will be served as the default routing rule.
 
@@ -60,11 +64,11 @@ A deeper in the details
 
 3. Attach to an existent route rule a `request-headers` match if given
 
-<img src="https://github.com/pismo/istiops/blob/master/imgs/howitworks2.png">
+<img src="https://github.com/pismo/istiops/blob/master/imgs/howitworks2.png" alt="">
 
 4. Attach to an existent route rule a `weight` if given. In case of a `weight: 100` the balance-routing will be skipped.
 
-<img src="https://github.com/pismo/istiops/blob/master/imgs/howitworks3.png">
+<img src="https://github.com/pismo/istiops/blob/master/imgs/howitworks3.png" alt="">
 
 ## Using CLI
 
@@ -74,7 +78,7 @@ A deeper in the details
 
 Get all current traffic rules for resources which matches `label-selector`
 
-```sh
+```bash
 istiops traffic show \
     --label-selector environment=pipeline-go \
     --namespace default \
@@ -83,7 +87,7 @@ istiops traffic show \
 
 Ex.
 
-```sh
+```bash
 >
 api-domain-virtualservice
 Hosts:  [api.domain.io]
@@ -102,13 +106,17 @@ Hosts:  [api.domain.io]
              \_ 10 % of requests
 ```
 
+### Clear all routes
+
 2. Clear all traffic rules, except for **master-route** (default), from service api-domain
 
 `istiops traffic clear -l app=api-domain`
 
+### Shift to request-headers routing
+
 3. Send requests with HTTP header `"x-cid: seu_madruga"` to pods with labels `app=api-domain,build=PR-10`
 
-```sh
+```bash
 $ istiops traffic shift \
     --namespace "default" \
     --hostname "api.domain.io" \
@@ -118,9 +126,10 @@ $ istiops traffic shift \
     --headers "x-cid=seu_madruga" \
 ```
 
+### Shift to weight routing
 4. Send 20% of traffic to pods with labels `app=api-domain,build=PR-10`
 
-```sh
+```bash
 $ istiops traffic shift \
     --namespace "default" \
     --hostname "api.domain.io" \
