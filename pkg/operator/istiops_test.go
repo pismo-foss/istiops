@@ -1,12 +1,11 @@
 package operator
 
 import (
-	"errors"
+	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	versionedClientFake "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"io/ioutil"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"log"
 	"os"
 	"testing"
@@ -37,317 +36,166 @@ type MockedResources struct {
 	Istio      *versionedClientFake.Clientset
 }
 
-func (m MockedResources) Create(s *router.Shift) (*router.IstioRules, error) {
+func (m MockedResources) Create(shift router.Shift) (*router.IstioRules, error) {
 	return &router.IstioRules{}, nil
 }
 
-func (m MockedResources) List(opts metav1.ListOptions) (*router.IstioRouteList, error) {
-	return &router.IstioRouteList{}, nil
+func (m MockedResources) List(selector map[string]string) (*router.IstioRouteList, error) {
+	return &router.IstioRouteList{
+		// initialize both Lists with an empty item, to pass in cases with "if len(list) == 0"
+		VList: &v1alpha3.VirtualServiceList{
+			TypeMeta: v1.TypeMeta{},
+			ListMeta: v1.ListMeta{},
+			Items:    []v1alpha3.VirtualService{
+				{},
+			},
+		},
+		DList: &v1alpha3.DestinationRuleList{
+			TypeMeta: v1.TypeMeta{},
+			ListMeta: v1.ListMeta{},
+			Items:    []v1alpha3.DestinationRule{
+				{},
+			},
+		},
+	}, nil
 }
 
-func (m MockedResources) Clear(s *router.Shift) error { return nil }
+func (m MockedResources) Clear(shift router.Shift) error { return nil }
 
-func (m MockedResources) Validate(s *router.Shift) error {
-	return errors.New("a route needs to be served with a 'weight' or 'request headers', not both")
+func (m MockedResources) Validate(shift router.Shift) error { return nil }
+
+func (m MockedResources) Update(shift router.Shift) error { return nil }
+
+// Tests scenarios for interface Istiops mocked
+
+// It will test the Get() interface's method in the simplest scenario
+func TestGet_Unit(t *testing.T) {
+
+	var dr Router
+	dr = &MockedResources{}
+
+	var vs Router
+	vs = &MockedResources{}
+
+	var op Operator
+	op = &Istiops{
+		DrRouter: dr,
+		VsRouter: vs,
+	}
+
+	irl, err := op.Get(map[string]string{})
+	assert.Equal(t, router.IstioRouteList{
+		VList: &v1alpha3.VirtualServiceList{
+			TypeMeta: v1.TypeMeta{},
+			ListMeta: v1.ListMeta{},
+			Items:    []v1alpha3.VirtualService{
+				{},
+			},
+		},
+		DList: &v1alpha3.DestinationRuleList{
+			TypeMeta: v1.TypeMeta{},
+			ListMeta: v1.ListMeta{},
+			Items:    []v1alpha3.DestinationRule{
+				{},
+			},
+		},
+	}, irl)
+	assert.NoError(t, err)
 }
 
-func (m MockedResources) Update(s *router.Shift) error { return nil }
+// It will test the Clear() interface's method in the simplest scenario
+func TestClear_Unit(t *testing.T) {
 
-func TestCreate(t *testing.T) {
+	var dr Router
+	dr = &MockedResources{}
 
-	createErrorCases := []struct {
-		fop  Operator
-		s    *router.Shift
-		want string
-	}{
-		{&Istiops{
-			DrRouter: &MockedResources{
-				TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-				Name:       "api-xpto",
-				Namespace:  "default",
-				Build:      2,
-				Istio:      fClient,
-			},
-			VsRouter: &MockedResources{
-				TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-				Name:       "api-xpto",
-				Namespace:  "default",
-				Build:      2,
-				Istio:      fClient,
-			},
-		}, &router.Shift{
-			Port:     5000,
-			Hostname: "api.domain.io",
-			Selector: &router.Selector{
-				//Labels: map[string]string{"environment": "pipeline-go"},
-			},
-			Traffic: &router.Traffic{
-				PodSelector: map[string]string{
-					"app":     "api",
-					"version": "1.3.2",
-					"build":   "24",
-				},
-				RequestHeaders: map[string]string{
-					"x-version": "PR-141",
-					"x-cid":     "12312-123121-1212-1231-12131",
-				},
-				Weight: 0,
-			},
-		}, "label-selector must exists in need to find resources",
-		},
-		{&Istiops{
-			DrRouter: &MockedResources{
-				TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-				Name:       "api-xpto",
-				Namespace:  "default",
-				Build:      2,
-				Istio:      fClient,
-			},
-			VsRouter: &MockedResources{
-				TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-				Name:       "api-xpto",
-				Namespace:  "default",
-				Build:      2,
-				Istio:      fClient,
-			},
-		},
-			&router.Shift{
-				Port:     5000,
-				Hostname: "api.domain.io",
-				Selector: &router.Selector{
-					Labels: map[string]string{"environment": "pipeline-go"},
-				},
-				Traffic: &router.Traffic{
-					//PodSelector: map[string]string{
-					//	"app":     "api",
-					//	"version": "1.3.2",
-					//	"build":   "24",
-					//},
-					RequestHeaders: map[string]string{
-						"x-version": "PR-141",
-						"x-cid":     "12312-123121-1212-1231-12131",
-					},
-					Weight: 0,
-				},
-			}, "pod-selector must exists in need to find traffic destination",
-		},
-		{&Istiops{
-			DrRouter: &MockedResources{
-				TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-				Name:       "api-xpto",
-				Namespace:  "default",
-				Build:      2,
-				Istio:      fClient,
-			},
-			VsRouter: &MockedResources{
-				TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-				Name:       "api-xpto",
-				Namespace:  "default",
-				Build:      2,
-				Istio:      fClient,
-			},
-		},
-			&router.Shift{
-				Port:     5000,
-				Hostname: "api.domain.io",
-				Selector: &router.Selector{
-					Labels: map[string]string{"environment": "pipeline-go"},
-				},
-				Traffic: &router.Traffic{
-					PodSelector: map[string]string{
-						"app":     "api",
-						"version": "1.3.2",
-						"build":   "24",
-					},
-					RequestHeaders: map[string]string{
-						"x-version": "PR-141",
-						"x-cid":     "12312-123121-1212-1231-12131",
-					},
-					Weight: 10,
-				},
-			}, "a route needs to be served with a 'weight' or 'request headers', not both",
-		},
+	var vs Router
+	vs = &MockedResources{}
+
+	shift := router.Shift{}
+
+	var op Operator
+	op = &Istiops{
+		DrRouter: dr,
+		VsRouter: vs,
 	}
 
-	for _, tCase := range createErrorCases {
-		got := tCase.fop.Update(tCase.s)
-		assert.EqualError(t, got, tCase.want)
-	}
-
+	err := op.Clear(shift)
+	assert.NoError(t, err)
 }
 
-func TestUpdate(t *testing.T) {
+// It will test the Update() interface's method in the simplest scenario
+func TestUpdate_Unit(t *testing.T) {
 
-	updateErrorCases := []struct {
-		fop  Operator
-		s    *router.Shift
-		want string
-	}{
-		{&Istiops{
-			DrRouter: &MockedResources{
-				TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-				Name:       "api-xpto",
-				Namespace:  "default",
-				Build:      2,
-				Istio:      fClient,
-			},
-			VsRouter: &MockedResources{
-				TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-				Name:       "api-xpto",
-				Namespace:  "default",
-				Build:      2,
-				Istio:      fClient,
-			},
-		}, &router.Shift{
-			Port:     5000,
-			Hostname: "api.domain.io",
-			Selector: &router.Selector{
-				//Labels: map[string]string{"environment": "pipeline-go"},
-			},
-			Traffic: &router.Traffic{
-				PodSelector: map[string]string{
-					"app":     "api",
-					"version": "1.3.2",
-					"build":   "24",
-				},
-				RequestHeaders: map[string]string{
-					"x-version": "PR-141",
-					"x-cid":     "12312-123121-1212-1231-12131",
-				},
-				Weight: 0,
-			},
-		}, "label-selector must exists in need to find resources",
+	var dr Router
+	dr = &MockedResources{}
+
+	var vs Router
+	vs = &MockedResources{}
+
+	shift := router.Shift{
+		Selector: map[string]string {
+			"app": "api-domain",
 		},
-		{&Istiops{
-			DrRouter: &MockedResources{
-				TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-				Name:       "api-xpto",
-				Namespace:  "default",
-				Build:      2,
-				Istio:      fClient,
+		Traffic: router.Traffic{
+			PodSelector:    map[string]string{
+				"version": "2.1.3",
 			},
-			VsRouter: &MockedResources{
-				TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-				Name:       "api-xpto",
-				Namespace:  "default",
-				Build:      2,
-				Istio:      fClient,
-			},
-		},
-			&router.Shift{
-				Port:     5000,
-				Hostname: "api.domain.io",
-				Selector: &router.Selector{
-					Labels: map[string]string{"environment": "pipeline-go"},
-				},
-				Traffic: &router.Traffic{
-					//PodSelector: map[string]string{
-					//	"app":     "api",
-					//	"version": "1.3.2",
-					//	"build":   "24",
-					//},
-					RequestHeaders: map[string]string{
-						"x-version": "PR-141",
-						"x-cid":     "12312-123121-1212-1231-12131",
-					},
-					Weight: 0,
-				},
-			}, "pod-selector must exists in need to find traffic destination",
-		},
-		{&Istiops{
-			DrRouter: &MockedResources{
-				TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-				Name:       "api-xpto",
-				Namespace:  "default",
-				Build:      2,
-				Istio:      fClient,
-			},
-			VsRouter: &MockedResources{
-				TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-				Name:       "api-xpto",
-				Namespace:  "default",
-				Build:      2,
-				Istio:      fClient,
-			},
-		},
-			&router.Shift{
-				Port:     5000,
-				Hostname: "api.domain.io",
-				Selector: &router.Selector{
-					Labels: map[string]string{"environment": "pipeline-go"},
-				},
-				Traffic: &router.Traffic{
-					PodSelector: map[string]string{
-						"app":     "api",
-						"version": "1.3.2",
-						"build":   "24",
-					},
-					RequestHeaders: map[string]string{
-						"x-version": "PR-141",
-						"x-cid":     "12312-123121-1212-1231-12131",
-					},
-					Weight: 10,
-				},
-			}, "a route needs to be served with a 'weight' or 'request headers', not both",
 		},
 	}
 
-	for _, tCase := range updateErrorCases {
-		got := tCase.fop.Update(tCase.s)
-		assert.EqualError(t, got, tCase.want)
+	var op Operator
+	op = &Istiops{
+		DrRouter: dr,
+		VsRouter: vs,
 	}
 
+	err := op.Update(shift)
+	assert.NoError(t, err)
 }
 
-func TestClear(t *testing.T) {
+// It will test the Update() interface's method in the scenario when pod-selector is empty
+func TestUpdate_Unit_EmptyPodSelector(t *testing.T) {
 
-	clearCases := []struct {
-		fop  Operator
-		s    *router.Shift
-		want error
-	}{
-		{
-			&Istiops{
-				DrRouter: &MockedResources{
-					TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-					Name:       "api-xpto",
-					Namespace:  "default",
-					Build:      2,
-					Istio:      fClient,
-				},
-				VsRouter: &MockedResources{
-					TrackingId: "54ec4fd3-879b-404f-9812-c6b97f663b8d",
-					Name:       "api-xpto",
-					Namespace:  "default",
-					Build:      2,
-					Istio:      fClient,
-				},
-			},
-			&router.Shift{
-				Port:     5000,
-				Hostname: "api.domain.io",
-				Selector: &router.Selector{
-					//Labels: map[string]string{"environment": "pipeline-go"},
-				},
-				Traffic: &router.Traffic{
-					PodSelector: map[string]string{
-						"app":     "api",
-						"version": "1.3.2",
-						"build":   "24",
-					},
-					RequestHeaders: map[string]string{
-						"x-version": "PR-141",
-						"x-cid":     "12312-123121-1212-1231-12131",
-					},
-					Weight: 0,
-				},
-			}, nil,
+	var dr Router
+	dr = &MockedResources{}
+
+	var vs Router
+	vs = &MockedResources{}
+
+	shift := router.Shift{
+		Selector: map[string]string {
+			"app": "api-domain",
 		},
 	}
 
-	for _, tCase := range clearCases {
-		got := tCase.fop.Clear(tCase.s)
-		assert.NoError(t, got, tCase.want)
+	var op Operator
+	op = &Istiops{
+		DrRouter: dr,
+		VsRouter: vs,
 	}
 
+	err := op.Update(shift)
+	assert.EqualError(t, err, "pod-selector must exists in need to find traffic destination")
+}
+
+// It will test the Update() interface's method in the scenario when label-selector is empty
+func TestUpdate_Unit_EmptyLabelSelector(t *testing.T) {
+
+	var dr Router
+	dr = &MockedResources{}
+
+	var vs Router
+	vs = &MockedResources{}
+
+	shift := router.Shift{}
+
+	var op Operator
+	op = &Istiops{
+		DrRouter: dr,
+		VsRouter: vs,
+	}
+
+	err := op.Update(shift)
+	assert.EqualError(t, err, "label-selector must exists in need to find resources")
 }

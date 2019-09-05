@@ -25,8 +25,9 @@ func (ips *Istiops) Get(selector map[string]string) (router.IstioRouteList, erro
 		return router.IstioRouteList{}, err
 	}
 
-	if len(dsl.DList.Items) == 0 {
-		return router.IstioRouteList{}, errors.New("empty destinationRules")
+	err = router.ValidateDestinationRuleList(dsl)
+	if err != nil {
+		return router.IstioRouteList{}, err
 	}
 
 	VsRouter := ips.VsRouter
@@ -35,8 +36,9 @@ func (ips *Istiops) Get(selector map[string]string) (router.IstioRouteList, erro
 		return router.IstioRouteList{}, err
 	}
 
-	if len(vsl.VList.Items) == 0 {
-		return router.IstioRouteList{}, errors.New("empty virtualServices")
+	err = router.ValidateVirtualServiceList(vsl)
+	if err != nil {
+		return router.IstioRouteList{}, err
 	}
 
 	ivl := router.IstioRouteList{}

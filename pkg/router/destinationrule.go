@@ -31,7 +31,6 @@ func (d *DestinationRule) Create(s Shift) (*IstioRules, error) {
 }
 
 func (d *DestinationRule) Validate(s Shift) error {
-
 	return nil
 
 }
@@ -115,5 +114,13 @@ func UpdateDestinationRule(d *DestinationRule, destinationRule *v1alpha32.Destin
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func ValidateDestinationRuleList(irl *IstioRouteList) error {
+	if len(irl.DList.Items) == 0 {
+		return errors.New("empty destinationRules")
+	}
+
 	return nil
 }

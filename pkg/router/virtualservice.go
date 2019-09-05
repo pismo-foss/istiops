@@ -325,3 +325,11 @@ func percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRout
 
 	return httpRoute, nil
 }
+
+func ValidateVirtualServiceList(irl *IstioRouteList) error {
+	if len(irl.VList.Items) == 0 {
+		return errors.New("empty virtualServices")
+	}
+
+	return nil
+}
