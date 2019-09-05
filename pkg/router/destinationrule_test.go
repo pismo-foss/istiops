@@ -33,3 +33,35 @@ func TestUpdateDestinationRule_Integrated(t *testing.T) {
 	err := UpdateDestinationRule(&ds, mockedDestinationRule)
 	assert.NoError(t, err)
 }
+
+func TestValidateDestinationRuleList_Unit(t *testing.T) {
+	irl := IstioRouteList{
+		VList: &v1alpha32.VirtualServiceList{
+			Items: []v1alpha32.VirtualService{
+				{},
+			},
+		},
+		DList: &v1alpha32.DestinationRuleList{
+			Items: []v1alpha32.DestinationRule{
+				{},
+			},
+		},
+	}
+
+	err := ValidateDestinationRuleList(&irl)
+	assert.NoError(t, err)
+}
+
+func TestValidateDestinationRuleList_Unit_EmptyItems(t *testing.T) {
+	irl := IstioRouteList{
+		VList: &v1alpha32.VirtualServiceList{
+			Items: nil,
+		},
+		DList: &v1alpha32.DestinationRuleList{
+			Items: nil,
+		},
+	}
+
+	err := ValidateDestinationRuleList(&irl)
+	assert.EqualError(t, err, "empty destinationRules")
+}

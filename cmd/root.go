@@ -28,8 +28,8 @@ import (
 )
 
 var (
-	trackingId string
-	istioClient     router.IstioClientInterface
+	trackingId  string
+	istioClient router.IstioClientInterface
 )
 
 func init() {
