@@ -23,9 +23,6 @@ func TestUpdateDestinationRule_Integrated(t *testing.T) {
 	fakeIstioClient = &fake.Clientset{}
 	ds := DestinationRule{
 		TrackingId: "unit-testing-tracking-id",
-		Name:       "unit-testing",
-		Namespace:  "default",
-		Build:      5,
 		Istio:      fakeIstioClient,
 	}
 
@@ -34,5 +31,5 @@ func TestUpdateDestinationRule_Integrated(t *testing.T) {
 	mockedDestinationRule.Namespace = "default"
 
 	err := UpdateDestinationRule(&ds, mockedDestinationRule)
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }
