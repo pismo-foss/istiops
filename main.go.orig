@@ -7,16 +7,17 @@ import (
 	"github.com/pismo/istiops/pkg/logger"
 	"github.com/pismo/istiops/pkg/operator"
 	"github.com/pismo/istiops/pkg/router"
-	_ "github.com/pkg/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
 
 func main() {
+	var istioClient router.IstioClientInterface
 
 	kubeConfigPath := homedir.HomeDir() + "/.kube/config"
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
-	istioClient, err := versioned.NewForConfig(config)
+	istioClient, err = versioned.NewForConfig(config)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -38,17 +39,13 @@ func main() {
 	metadataNamespace = "default"
 	build = 27
 
-	ic := router.Client{
-		Versioned: istioClient,
-	}
-
 	var dr operator.Router
 	dr = &router.DestinationRule{
 		TrackingId: trackingId,
 		Name:       metadataName,
 		Namespace:  metadataNamespace,
 		Build:      build,
-		Istio:      ic,
+		Istio:      istioClient,
 	}
 
 	var vs operator.Router
@@ -57,8 +54,19 @@ func main() {
 		Name:       metadataName,
 		Namespace:  metadataNamespace,
 		Build:      build,
-		Istio:      ic,
+		Istio:      istioClient,
 	}
+
+	vs2 := &router.VirtualService{
+		TrackingId: trackingId,
+		Name:       metadataName,
+		Namespace:  metadataNamespace,
+		Build:      build,
+		Istio:      istioClient,
+	}
+
+	vs4, _ := vs2.Istio.NetworkingV1alpha3().DestinationRules(vs2.Namespace).List(v1.ListOptions{})
+	fmt.Println(vs4)
 
 	shift := router.Shift{
 		Port:     5000,
@@ -85,10 +93,10 @@ func main() {
 	}
 
 	// get current route-rules
-	//_, err = op.Get(shift)
-	//if err != nil {
-	//	logger.Fatal(fmt.Sprintf("%s", err), trackingId)
-	//}
+	_, err = op.Get(shift)
+	if err != nil {
+		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
+	}
 
 	// clear all routes + subsets
 	//err = op.Clear(shift)
@@ -97,9 +105,9 @@ func main() {
 	//}
 
 	// Update a route
-	err = op.Update(shift)
-	if err != nil {
-		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
-	}
+	//err = op.Update(shift)
+	//if err != nil {
+	//	logger.Fatal(fmt.Sprintf("%s", err), trackingId)
+	//}
 
 }

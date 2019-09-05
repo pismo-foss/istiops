@@ -29,7 +29,7 @@ import (
 
 var (
 	trackingId string
-	client     router.Client
+	istioClient     router.IstioClientInterface
 )
 
 func init() {
@@ -41,7 +41,7 @@ func init() {
 func setup() {
 	kubeConfigPath := homedir.HomeDir() + "/.kube/config"
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
-	istioClient, err := versioned.NewForConfig(config)
+	istioClient, err = versioned.NewForConfig(config)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -53,10 +53,6 @@ func setup() {
 	}
 
 	trackingId = tracking.String()
-
-	client = router.Client{
-		Versioned: istioClient,
-	}
 }
 
 func operator(dr *router.DestinationRule, vs *router.VirtualService) istiOperator.Operator {

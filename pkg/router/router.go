@@ -4,15 +4,13 @@ import (
 	"errors"
 	"fmt"
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
-	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
-	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
+	networkingv1alpha3 "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/typed/networking/v1alpha3"
 	"istio.io/api/networking/v1alpha3"
 	"strings"
 )
 
-type Client struct {
-	Versioned *versioned.Clientset
-	Fake      *fake.Clientset
+type IstioClientInterface interface {
+	NetworkingV1alpha3() networkingv1alpha3.NetworkingV1alpha3Interface
 }
 
 type Shift struct {

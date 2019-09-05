@@ -7,21 +7,21 @@ import (
 
 func TestStringify_Unit(t *testing.T) {
 	cases := []struct {
-		mapSelector    map[string]string
-		want  string
+		mapSelector map[string]string
+		want        string
 	}{
 		{
 			map[string]string{
-				"app": "api-domain",
+				"app":  "api-domain",
 				"role": "aws/my-role",
 			},
 			"app=api-domain,role=aws/my-role",
 		},
 		{
 			map[string]string{
-				"app": "api-domain",
+				"app":     "api-domain",
 				"version": "2.1.3'",
-				"role": "aws/my-role",
+				"role":    "aws/my-role",
 			},
 			"app=api-domain,version=2.1.3',role=aws/my-role",
 		},
@@ -43,29 +43,29 @@ func TestStringify_Unit_EmptyLabelSelector(t *testing.T) {
 
 func TestMapify_Unit(t *testing.T) {
 	cases := []struct {
-		selector    string
-		want  map[string]string
+		selector string
+		want     map[string]string
 	}{
 		{
 			"app=api-domain,role=aws/my-role",
 			map[string]string{
-				"app": "api-domain",
+				"app":  "api-domain",
 				"role": "aws/my-role",
 			},
 		},
 		{
 			"role=aws/my-role,app=api-domain",
 			map[string]string{
-				"app": "api-domain",
+				"app":  "api-domain",
 				"role": "aws/my-role",
 			},
 		},
 		{
 			"app=api-domain,version=2.1.3',role=aws/my-role",
 			map[string]string{
-				"app": "api-domain",
+				"app":     "api-domain",
 				"version": "2.1.3'",
-				"role": "aws/my-role",
+				"role":    "aws/my-role",
 			},
 		},
 	}
@@ -79,11 +79,11 @@ func TestMapify_Unit(t *testing.T) {
 }
 
 func TestMapify_Unit_EmptyLabelSelector(t *testing.T) {
-	_, err := Mapify("","")
+	_, err := Mapify("", "")
 	assert.EqualError(t, err, "got an empty labelSelector string")
 }
 
 func TestMapify_Unit_MalformedLabelSelector(t *testing.T) {
-	_, err := Mapify("","app:domain")
+	_, err := Mapify("", "app:domain")
 	assert.EqualError(t, err, "missing '=' operator for labelSelector")
 }

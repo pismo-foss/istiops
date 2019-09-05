@@ -14,7 +14,7 @@ type VirtualService struct {
 	Name       string
 	Namespace  string
 	Build      uint32
-	Istio      Client
+	Istio      IstioClientInterface
 }
 
 func (v *VirtualService) Clear(s Shift) error {
@@ -179,7 +179,7 @@ func (v *VirtualService) List(selector map[string]string) (*IstioRouteList, erro
 		LabelSelector: stringified,
 	}
 
-	vss, err := v.Istio.Versioned.NetworkingV1alpha3().VirtualServices(v.Namespace).List(listOptions)
+	vss, err := v.Istio.NetworkingV1alpha3().VirtualServices(v.Namespace).List(listOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +198,7 @@ func (v *VirtualService) List(selector map[string]string) (*IstioRouteList, erro
 // UpdateDestinationRule updates a specific virtualService given an updated object
 func UpdateVirtualService(vs *VirtualService, virtualService *v1alpha32.VirtualService) error {
 	logger.Info(fmt.Sprintf("Updating route for virtualService '%s'...", virtualService.Name), vs.TrackingId)
-	_, err := vs.Istio.Versioned.NetworkingV1alpha3().VirtualServices(vs.Namespace).Update(virtualService)
+	_, err := vs.Istio.NetworkingV1alpha3().VirtualServices(vs.Namespace).Update(virtualService)
 	if err != nil {
 		return err
 	}

@@ -46,14 +46,14 @@ func (m MockedResources) List(selector map[string]string) (*router.IstioRouteLis
 		VList: &v1alpha3.VirtualServiceList{
 			TypeMeta: v1.TypeMeta{},
 			ListMeta: v1.ListMeta{},
-			Items:    []v1alpha3.VirtualService{
+			Items: []v1alpha3.VirtualService{
 				{},
 			},
 		},
 		DList: &v1alpha3.DestinationRuleList{
 			TypeMeta: v1.TypeMeta{},
 			ListMeta: v1.ListMeta{},
-			Items:    []v1alpha3.DestinationRule{
+			Items: []v1alpha3.DestinationRule{
 				{},
 			},
 		},
@@ -88,14 +88,14 @@ func TestGet_Unit(t *testing.T) {
 		VList: &v1alpha3.VirtualServiceList{
 			TypeMeta: v1.TypeMeta{},
 			ListMeta: v1.ListMeta{},
-			Items:    []v1alpha3.VirtualService{
+			Items: []v1alpha3.VirtualService{
 				{},
 			},
 		},
 		DList: &v1alpha3.DestinationRuleList{
 			TypeMeta: v1.TypeMeta{},
 			ListMeta: v1.ListMeta{},
-			Items:    []v1alpha3.DestinationRule{
+			Items: []v1alpha3.DestinationRule{
 				{},
 			},
 		},
@@ -134,11 +134,11 @@ func TestUpdate_Unit(t *testing.T) {
 	vs = &MockedResources{}
 
 	shift := router.Shift{
-		Selector: map[string]string {
+		Selector: map[string]string{
 			"app": "api-domain",
 		},
 		Traffic: router.Traffic{
-			PodSelector:    map[string]string{
+			PodSelector: map[string]string{
 				"version": "2.1.3",
 			},
 		},
@@ -164,7 +164,7 @@ func TestUpdate_Unit_EmptyPodSelector(t *testing.T) {
 	vs = &MockedResources{}
 
 	shift := router.Shift{
-		Selector: map[string]string {
+		Selector: map[string]string{
 			"app": "api-domain",
 		},
 	}

@@ -15,7 +15,7 @@ type DestinationRule struct {
 	Name       string
 	Namespace  string
 	Build      uint32
-	Istio      Client
+	Istio      IstioClientInterface
 }
 
 func (d *DestinationRule) Create(s Shift) (*IstioRules, error) {
@@ -91,7 +91,7 @@ func (d *DestinationRule) List(selector map[string]string) (*IstioRouteList, err
 		LabelSelector: stringified,
 	}
 
-	drs, err := d.Istio.Versioned.NetworkingV1alpha3().DestinationRules(d.Namespace).List(listOptions)
+	drs, err := d.Istio.NetworkingV1alpha3().DestinationRules(d.Namespace).List(listOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (d *DestinationRule) List(selector map[string]string) (*IstioRouteList, err
 // UpdateDestinationRule updates a specific virtualService given an updated object
 func UpdateDestinationRule(d *DestinationRule, destinationRule *v1alpha32.DestinationRule) error {
 	logger.Info(fmt.Sprintf("Updating rule for destinationRule '%s'...", destinationRule.Name), d.TrackingId)
-	_, err := d.Istio.Versioned.NetworkingV1alpha3().DestinationRules(d.Namespace).Update(destinationRule)
+	_, err := d.Istio.NetworkingV1alpha3().DestinationRules(d.Namespace).Update(destinationRule)
 	if err != nil {
 		return err
 	}
