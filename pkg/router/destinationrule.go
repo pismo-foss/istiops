@@ -31,6 +31,22 @@ func (d *DestinationRule) Create(s Shift) (*IstioRules, error) {
 }
 
 func (d *DestinationRule) Validate(s Shift) error {
+	if len(s.Selector) == 0 {
+		return errors.New("empty label-selector")
+	}
+
+	if s.Port == 0 {
+		return errors.New("empty port")
+	}
+
+	if s.Port < 1023 {
+		return errors.New("port not in range 1024 - 65535")
+	}
+
+	if s.Port > 65535 {
+		return errors.New("port not in range 1024 - 65535")
+	}
+
 	return nil
 
 }

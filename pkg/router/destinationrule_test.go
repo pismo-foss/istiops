@@ -21,7 +21,7 @@ func TestMain(m *testing.M) {
 
 func TestUpdateDestinationRule_Integrated(t *testing.T) {
 	fakeIstioClient = &fake.Clientset{}
-	ds := DestinationRule{
+	dr := DestinationRule{
 		TrackingId: "unit-testing-tracking-id",
 		Istio:      fakeIstioClient,
 	}
@@ -30,7 +30,7 @@ func TestUpdateDestinationRule_Integrated(t *testing.T) {
 	mockedDestinationRule.Name = "mocked-destination-rule"
 	mockedDestinationRule.Namespace = "default"
 
-	err := UpdateDestinationRule(&ds, mockedDestinationRule)
+	err := UpdateDestinationRule(&dr, mockedDestinationRule)
 	assert.NoError(t, err)
 }
 
@@ -64,4 +64,80 @@ func TestValidateDestinationRuleList_Unit_EmptyItems(t *testing.T) {
 
 	err := ValidateDestinationRuleList(&irl)
 	assert.EqualError(t, err, "empty destinationRules")
+}
+
+func TestDestinationRule_Validate(t *testing.T) {
+	fakeIstioClient = &fake.Clientset{}
+	dr := DestinationRule{
+		TrackingId: "unit-testing-tracking-id",
+		Istio:      fakeIstioClient,
+	}
+
+	cases := []struct {
+		shift Shift
+		want        string
+	}{
+		{
+			Shift{
+				Port:     8080,
+				Hostname: "api-domain",
+				Selector: nil,
+				Traffic:  Traffic{
+					PodSelector: map[string]string{"version":"1.2.3"},
+				},
+			},
+			"empty label-selector",
+		},
+		{
+			Shift{
+				Port:     0,
+				Hostname: "api-domain",
+				Selector: map[string]string{"app":"api-domain"},
+				Traffic:  Traffic{
+					PodSelector: map[string]string{"version":"1.2.3"},
+				},
+			},
+			"empty port",
+		},
+		{
+			Shift{
+				Port:     1000,
+				Hostname: "api-domain",
+				Selector: map[string]string{"app":"api-domain"},
+				Traffic:  Traffic{
+					PodSelector: map[string]string{"version":"1.2.3"},
+				},
+			},
+			"port not in range 1024 - 65535",
+		},
+		{
+			Shift{
+				Port:     66000,
+				Hostname: "api-domain",
+				Selector: map[string]string{"app":"api-domain"},
+				Traffic:  Traffic{
+					PodSelector: map[string]string{"version":"1.2.3"},
+				},
+			},
+			"port not in range 1024 - 65535",
+		},
+	}
+
+	for _, tt := range cases {
+		err := dr.Validate(tt.shift)
+		assert.EqualError(t, err, tt.want)
+	}
+}
+
+func TestDestinationRule_Clear(t *testing.T) {
+	fakeIstioClient = &fake.Clientset{}
+	dr := DestinationRule{
+		TrackingId: "unit-testing-tracking-id",
+		Istio:      fakeIstioClient,
+	}
+
+	shift := Shift{}
+
+	err := dr.Clear(shift)
+	assert.NoError(t, err)
 }

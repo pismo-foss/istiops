@@ -88,6 +88,11 @@ func (ips *Istiops) Clear(shift router.Shift) error {
 	VsRouter := ips.VsRouter
 	var err error
 
+	err = VsRouter.Validate(shift)
+	if err != nil {
+		return err
+	}
+
 	// in this scenario virtualService must be cleaned before the DestinationRule
 	err = VsRouter.Clear(shift)
 	if err != nil {
