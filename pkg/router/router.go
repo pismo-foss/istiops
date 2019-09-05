@@ -61,6 +61,10 @@ func Stringify(cid string, labelSelector map[string]string) (string, error) {
 func Mapify(cid string, labelSelector string) (map[string]string, error) {
 	mapLabels := map[string]string{}
 
+	if labelSelector == "" {
+		return nil, errors.New("got an empty labelSelector string")
+	}
+
 	if !strings.Contains(labelSelector, "=") {
 		return nil, errors.New("missing '=' operator for labelSelector")
 	}
