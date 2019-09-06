@@ -47,6 +47,10 @@ func (d *DestinationRule) Validate(s Shift) error {
 		return errors.New("port not in range 1024 - 65535")
 	}
 
+	if len(s.Traffic.PodSelector) == 0 {
+		return errors.New("empty pod selector")
+	}
+
 	return nil
 
 }

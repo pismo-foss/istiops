@@ -121,6 +121,15 @@ func TestDestinationRule_Validate(t *testing.T) {
 			},
 			"port not in range 1024 - 65535",
 		},
+		{
+			Shift{
+				Port:     8080,
+				Hostname: "api-domain",
+				Selector: map[string]string{"app":"api-domain"},
+				Traffic:  Traffic{},
+			},
+			"empty pod selector",
+		},
 	}
 
 	for _, tt := range cases {
