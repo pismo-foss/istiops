@@ -66,76 +66,195 @@ func TestValidateDestinationRuleList_Unit_EmptyItems(t *testing.T) {
 	assert.EqualError(t, err, "empty destinationRules")
 }
 
-func TestDestinationRule_Validate(t *testing.T) {
+func TestDestinationRule_Validate_Unit(t *testing.T) {
 	fakeIstioClient = &fake.Clientset{}
-	dr := DestinationRule{
-		TrackingId: "unit-testing-tracking-id",
-		Istio:      fakeIstioClient,
-	}
 
 	cases := []struct {
+		dr    DestinationRule
 		shift Shift
-		want        string
+		want  string
 	}{
-		{
+		{DestinationRule{
+			TrackingId: "unit-testing-uuid",
+			Name:       "api-testing",
+			Namespace:  "arrow",
+			Build:      1,
+			Istio:      fakeIstioClient,
+		},
 			Shift{
 				Port:     8080,
 				Hostname: "api-domain",
 				Selector: nil,
-				Traffic:  Traffic{
-					PodSelector: map[string]string{"version":"1.2.3"},
+				Traffic: Traffic{
+					PodSelector: map[string]string{"version": "1.2.3"},
 				},
 			},
 			"empty label-selector",
 		},
-		{
+		{DestinationRule{
+			TrackingId: "unit-testing-uuid",
+			Name:       "api-testing",
+			Namespace:  "arrow",
+			Build:      1,
+			Istio:      fakeIstioClient,
+		},
 			Shift{
 				Port:     0,
 				Hostname: "api-domain",
-				Selector: map[string]string{"app":"api-domain"},
-				Traffic:  Traffic{
-					PodSelector: map[string]string{"version":"1.2.3"},
+				Selector: map[string]string{"app": "api-domain"},
+				Traffic: Traffic{
+					PodSelector: map[string]string{"version": "1.2.3"},
 				},
 			},
 			"empty port",
 		},
-		{
+		{DestinationRule{
+			TrackingId: "unit-testing-uuid",
+			Name:       "api-testing",
+			Namespace:  "arrow",
+			Build:      1,
+			Istio:      fakeIstioClient,
+		},
 			Shift{
 				Port:     1000,
 				Hostname: "api-domain",
-				Selector: map[string]string{"app":"api-domain"},
-				Traffic:  Traffic{
-					PodSelector: map[string]string{"version":"1.2.3"},
+				Selector: map[string]string{"app": "api-domain"},
+				Traffic: Traffic{
+					PodSelector: map[string]string{"version": "1.2.3"},
 				},
 			},
 			"port not in range 1024 - 65535",
 		},
-		{
+		{DestinationRule{
+			TrackingId: "unit-testing-uuid",
+			Name:       "api-testing",
+			Namespace:  "arrow",
+			Build:      1,
+			Istio:      fakeIstioClient,
+		},
 			Shift{
 				Port:     66000,
 				Hostname: "api-domain",
-				Selector: map[string]string{"app":"api-domain"},
-				Traffic:  Traffic{
-					PodSelector: map[string]string{"version":"1.2.3"},
+				Selector: map[string]string{"app": "api-domain"},
+				Traffic: Traffic{
+					PodSelector: map[string]string{"version": "1.2.3"},
 				},
 			},
 			"port not in range 1024 - 65535",
 		},
-		{
+		{DestinationRule{
+			TrackingId: "unit-testing-uuid",
+			Name:       "api-testing",
+			Namespace:  "arrow",
+			Build:      1,
+			Istio:      fakeIstioClient,
+		},
 			Shift{
 				Port:     8080,
 				Hostname: "api-domain",
-				Selector: map[string]string{"app":"api-domain"},
+				Selector: map[string]string{"app": "api-domain"},
 				Traffic:  Traffic{},
 			},
 			"empty pod selector",
 		},
+		{DestinationRule{
+			TrackingId: "unit-testing-uuid",
+			Name:       "",
+			Namespace:  "arrow",
+			Build:      1,
+			Istio:      fakeIstioClient,
+		},
+			Shift{
+				Port:     8080,
+				Hostname: "api-domain",
+				Selector: map[string]string{"app": "api-domain"},
+				Traffic:  Traffic{
+					PodSelector: map[string]string{"version": "1.2.3"},
+				},
+			},
+			"empty 'name' attribute",
+		},
+		{DestinationRule{
+			TrackingId: "unit-testing-uuid",
+			Name:       "api-test",
+			Namespace:  "",
+			Build:      1,
+			Istio:      fakeIstioClient,
+		},
+			Shift{
+				Port:     8080,
+				Hostname: "api-domain",
+				Selector: map[string]string{"app": "api-domain"},
+				Traffic:  Traffic{
+					PodSelector: map[string]string{"version": "1.2.3"},
+				},
+			},
+			"empty 'namespace' attribute",
+		},
+		{DestinationRule{
+			TrackingId: "unit-testing-uuid",
+			Name:       "api-test",
+			Namespace:  "arrow",
+			Build:      0,
+			Istio:      fakeIstioClient,
+		},
+			Shift{
+				Port:     8080,
+				Hostname: "api-domain",
+				Selector: map[string]string{"app": "api-domain"},
+				Traffic:  Traffic{
+					PodSelector: map[string]string{"version": "1.2.3"},
+				},
+			},
+			"empty 'build' attribute",
+		},
+		{DestinationRule{
+			TrackingId: "unit-testing-uuid",
+			Name:       "api-test",
+			Namespace:  "arrow",
+			Build:      1,
+			Istio:      nil,
+		},
+			Shift{
+				Port:     8080,
+				Hostname: "api-domain",
+				Selector: map[string]string{"app": "api-domain"},
+				Traffic:  Traffic{
+					PodSelector: map[string]string{"version": "1.2.3"},
+				},
+			},
+			"nil istioClient object",
+		},
 	}
 
 	for _, tt := range cases {
-		err := dr.Validate(tt.shift)
+		err := tt.dr.Validate(tt.shift)
 		assert.EqualError(t, err, tt.want)
 	}
+}
+
+func TestDestinationRule_Create_Integrated(t *testing.T) {
+	dr := DestinationRule{
+		TrackingId: "unit-testing-tracking-id",
+		Name:       "api-testing",
+		Namespace:  "arrow",
+		Build:      10000,
+		Istio:      fakeIstioClient,
+	}
+
+	shift := Shift{
+		Traffic: Traffic{
+			PodSelector: map[string]string{
+				"environment": "test",
+				"app":         "api-testing",
+			},
+		},
+	}
+
+	irl, err := dr.Create(shift)
+	assert.NotNil(t, irl)
+	assert.NoError(t, err)
+	assert.Equal(t, "api-testing-10000-arrow", irl.Subset.Name)
 }
 
 func TestDestinationRule_Clear(t *testing.T) {

@@ -31,6 +31,26 @@ func (d *DestinationRule) Create(s Shift) (*IstioRules, error) {
 }
 
 func (d *DestinationRule) Validate(s Shift) error {
+	if d.Name == "" {
+		return errors.New("empty 'name' attribute")
+	}
+
+	if d.Namespace == "" {
+		return errors.New("empty 'namespace' attribute")
+	}
+
+	if d.Build == 0 {
+		return errors.New("empty 'build' attribute")
+	}
+
+	if d.TrackingId == "" {
+		return errors.New("empty 'trackingId' attribute")
+	}
+
+	if d.Istio == nil {
+		return errors.New("nil istioClient object")
+	}
+
 	if len(s.Selector) == 0 {
 		return errors.New("empty label-selector")
 	}
