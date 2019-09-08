@@ -27,7 +27,14 @@ Istio Traffic Shifter (a.k.a `istiops`) is a tool to manage traffic for microser
 
 ## Running tests
 
-`$ go test ./... -v`
+`go test ./... -v`
+
+Or you can use Docker as well to not mess with your system
+
+```shell script
+docker build . -f Dockerfile.test -t istiops-tests
+docker run -t istiops-tests
+```
 
 ## Building the CLI
 
@@ -81,8 +88,8 @@ A deeper in the details
 
 Get all current traffic rules (respecting routes order) for resources which matches `label-selector`
 
-```bash
-$ istiops traffic show \
+```shell script
+istiops traffic show \
     --label-selector environment=pipeline-go \
     --namespace default \
     --output beautified
@@ -121,14 +128,14 @@ client -> request to ->  [api.domain.io]
 
 2. Clear all traffic rules, except for **master-route** (default), from service api-domain
 
-`$ istiops traffic clear -l app=api-domain`
+`istiops traffic clear -l app=api-domain`
 
 ### Shift to request-headers routing
 
 3. Send requests with HTTP header `"x-cid: seu_madruga"` to pods with labels `app=api-domain,build=PR-10`
 
-```bash
-$ istiops traffic shift \
+```shell script
+istiops traffic shift \
     --namespace "default" \
     --destination "api-domain:5000" \
     --build 3 \
@@ -140,8 +147,8 @@ $ istiops traffic shift \
 ### Shift to weight routing
 4. Send 20% of traffic to pods with labels `app=api-domain,build=PR-10`
 
-```bash
-$ istiops traffic shift \
+```shell script
+istiops traffic shift \
     --namespace "default" \
     --destination "api-domain:5000" \
     --build 3 \
