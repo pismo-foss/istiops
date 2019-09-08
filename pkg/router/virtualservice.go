@@ -250,7 +250,7 @@ func balance(currentSubset string, newSubset string, s Shift) ([]*v1alpha3.HTTPR
 }
 
 // remove will return a slice without an element given an index
-func remove(slice []*v1alpha3.HTTPRoute, index int) []*v1alpha3.HTTPRoute {
+func removeRoute(slice []*v1alpha3.HTTPRoute, index int) []*v1alpha3.HTTPRoute {
 	return append(slice[:index], slice[index+1:]...)
 }
 
@@ -293,7 +293,7 @@ func percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRout
 
 	// setting URI Master route to the last element of []*Routes due to istio's traffic rule precedence
 	tempMasterRoute := httpRoute[masterIndex]
-	httpRoute = remove(httpRoute, masterIndex)
+	httpRoute = removeRoute(httpRoute, masterIndex)
 	httpRoute = append(httpRoute, tempMasterRoute)
 
 	if masterRouteCounter > 1 {

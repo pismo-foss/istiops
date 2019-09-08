@@ -259,20 +259,20 @@ func TestDestinationRule_Clear(t *testing.T) {
 func TestDestinationRule_Update_Integrated(t *testing.T) {
 	fakeIstioClient = fake.NewSimpleClientset()
 	dr := DestinationRule{
-		Namespace: "integration",
+		Namespace:  "integration",
 		TrackingId: "unit-testing-tracking-id",
 		Istio:      fakeIstioClient,
 	}
 
 	// create a destinationRule object in memory
 	tdr := v1alpha32.DestinationRule{
-		Spec:       v1alpha32.DestinationRuleSpec{},
+		Spec: v1alpha32.DestinationRuleSpec{},
 	}
 
 	tdr.Name = "integration-testing-dr"
 	tdr.Namespace = dr.Namespace
 	labelSelector := map[string]string{
-		"app": "api-test",
+		"app":         "api-test",
 		"environment": "integration-tests",
 	}
 	tdr.Labels = labelSelector
