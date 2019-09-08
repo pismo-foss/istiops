@@ -13,7 +13,7 @@ import (
 	"github.com/pismo/istiops/pkg/router"
 )
 
-var fClient *versionedClientFake.Clientset
+var fClient router.IstioClientInterface
 
 func TestMain(m *testing.M) {
 	// discard stdout logs if not being run with '-v' flag

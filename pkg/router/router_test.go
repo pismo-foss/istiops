@@ -73,7 +73,6 @@ func TestMapify_Unit(t *testing.T) {
 	for _, tt := range cases {
 		mapified, err := Mapify("", tt.selector)
 		assert.Equal(t, tt.want, mapified)
-		t.Log(tt.want)
 		assert.NoError(t, err)
 	}
 }

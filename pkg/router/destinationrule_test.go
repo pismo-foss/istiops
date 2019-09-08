@@ -5,6 +5,7 @@ import (
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"log"
 	"os"
 	"testing"
@@ -17,21 +18,6 @@ func TestMain(m *testing.M) {
 	log.SetOutput(ioutil.Discard)
 	result := m.Run()
 	os.Exit(result)
-}
-
-func TestUpdateDestinationRule_Integrated(t *testing.T) {
-	fakeIstioClient = &fake.Clientset{}
-	dr := DestinationRule{
-		TrackingId: "unit-testing-tracking-id",
-		Istio:      fakeIstioClient,
-	}
-
-	mockedDestinationRule := &v1alpha32.DestinationRule{}
-	mockedDestinationRule.Name = "mocked-destination-rule"
-	mockedDestinationRule.Namespace = "default"
-
-	err := UpdateDestinationRule(&dr, mockedDestinationRule)
-	assert.NoError(t, err)
 }
 
 func TestValidateDestinationRuleList_Unit(t *testing.T) {
@@ -168,7 +154,7 @@ func TestDestinationRule_Validate_Unit(t *testing.T) {
 				Port:     8080,
 				Hostname: "api-domain",
 				Selector: map[string]string{"app": "api-domain"},
-				Traffic:  Traffic{
+				Traffic: Traffic{
 					PodSelector: map[string]string{"version": "1.2.3"},
 				},
 			},
@@ -185,7 +171,7 @@ func TestDestinationRule_Validate_Unit(t *testing.T) {
 				Port:     8080,
 				Hostname: "api-domain",
 				Selector: map[string]string{"app": "api-domain"},
-				Traffic:  Traffic{
+				Traffic: Traffic{
 					PodSelector: map[string]string{"version": "1.2.3"},
 				},
 			},
@@ -202,7 +188,7 @@ func TestDestinationRule_Validate_Unit(t *testing.T) {
 				Port:     8080,
 				Hostname: "api-domain",
 				Selector: map[string]string{"app": "api-domain"},
-				Traffic:  Traffic{
+				Traffic: Traffic{
 					PodSelector: map[string]string{"version": "1.2.3"},
 				},
 			},
@@ -219,7 +205,7 @@ func TestDestinationRule_Validate_Unit(t *testing.T) {
 				Port:     8080,
 				Hostname: "api-domain",
 				Selector: map[string]string{"app": "api-domain"},
-				Traffic:  Traffic{
+				Traffic: Traffic{
 					PodSelector: map[string]string{"version": "1.2.3"},
 				},
 			},
@@ -268,4 +254,48 @@ func TestDestinationRule_Clear(t *testing.T) {
 
 	err := dr.Clear(shift)
 	assert.NoError(t, err)
+}
+
+func TestDestinationRule_Update_Integrated(t *testing.T) {
+	fakeIstioClient = fake.NewSimpleClientset()
+	dr := DestinationRule{
+		Namespace: "integration",
+		TrackingId: "unit-testing-tracking-id",
+		Istio:      fakeIstioClient,
+	}
+
+	// create a destinationRule object in memory
+	tdr := v1alpha32.DestinationRule{
+		Spec:       v1alpha32.DestinationRuleSpec{},
+	}
+
+	tdr.Name = "integration-testing-dr"
+	tdr.Namespace = dr.Namespace
+	labelSelector := map[string]string{
+		"app": "api-test",
+		"environment": "integration-tests",
+	}
+	tdr.Labels = labelSelector
+
+	_, err := fakeIstioClient.NetworkingV1alpha3().DestinationRules(dr.Namespace).Create(&tdr)
+
+	shift := Shift{
+		Port:     8080,
+		Hostname: "api-domain",
+		Selector: labelSelector,
+		Traffic: Traffic{
+			PodSelector: map[string]string{"version": "1.2.3"},
+		},
+	}
+
+	err = dr.Update(shift)
+
+	v, _ := fakeIstioClient.NetworkingV1alpha3().DestinationRules(dr.Namespace).List(v1.ListOptions{})
+	mockedDr := v.Items[0]
+
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(v.Items))
+	assert.Equal(t, "integration-testing-dr", mockedDr.Name)
+	assert.Equal(t, "integration", mockedDr.Namespace)
+	assert.Equal(t, "integration-tests", mockedDr.Labels["environment"])
 }
