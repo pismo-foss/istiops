@@ -5,6 +5,8 @@ import (
 	"testing"
 )
 
+var fakeIstioClient IstioClientInterface
+
 func TestStringify_Unit(t *testing.T) {
 	cases := []struct {
 		mapSelector map[string]string

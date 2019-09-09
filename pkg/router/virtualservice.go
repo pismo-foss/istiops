@@ -103,6 +103,10 @@ func (v *VirtualService) Validate(s Shift) error {
 		return errors.New("a route needs to be served with a 'weight' or 'request headers', not both")
 	}
 
+	if s.Traffic.Weight == 0 && len(s.Traffic.RequestHeaders) == 0 {
+		return errors.New("could not update route without 'weight' or 'headers'")
+	}
+
 	return nil
 
 }
@@ -148,7 +152,7 @@ func (v *VirtualService) Update(s Shift) error {
 			logger.Info("Found existent rule created for virtualService, skipping creation", v.TrackingId)
 
 			if s.Traffic.Weight > 0 {
-				httpRoutes, err := percentage(v.TrackingId, subsetName, vs.Spec.Http, s)
+				httpRoutes, err := Percentage(v.TrackingId, subsetName, vs.Spec.Http, s)
 				if err != nil {
 					return err
 				}
@@ -250,12 +254,12 @@ func balance(currentSubset string, newSubset string, s Shift) ([]*v1alpha3.HTTPR
 }
 
 // remove will return a slice without an element given an index
-func remove(slice []*v1alpha3.HTTPRoute, index int) []*v1alpha3.HTTPRoute {
+func Remove(slice []*v1alpha3.HTTPRoute, index int) []*v1alpha3.HTTPRoute {
 	return append(slice[:index], slice[index+1:]...)
 }
 
 // percentage set weight routing to a set of (or unique) virtualServices
-func percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRoute, s Shift) ([]*v1alpha3.HTTPRoute, error) {
+func Percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRoute, s Shift) ([]*v1alpha3.HTTPRoute, error) {
 	// Finding master route (URI match)
 	var masterRouteCounter int
 	var masterIndex int
@@ -293,7 +297,7 @@ func percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRout
 
 	// setting URI Master route to the last element of []*Routes due to istio's traffic rule precedence
 	tempMasterRoute := httpRoute[masterIndex]
-	httpRoute = remove(httpRoute, masterIndex)
+	httpRoute = Remove(httpRoute, masterIndex)
 	httpRoute = append(httpRoute, tempMasterRoute)
 
 	if masterRouteCounter > 1 {

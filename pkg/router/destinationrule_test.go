@@ -11,8 +11,6 @@ import (
 	"testing"
 )
 
-var fakeIstioClient IstioClientInterface
-
 func TestMain(m *testing.M) {
 	// discard stdout logs if not being run with '-v' flag
 	log.SetOutput(ioutil.Discard)
