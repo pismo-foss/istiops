@@ -67,7 +67,16 @@ func operator(dr *router.DestinationRule, vs *router.VirtualService) istiOperato
 var rootCmd = &cobra.Command{
 	Use:   "istiops",
 	Short: "Main",
-	Long:  `Istiops is a CLI library for Go that manages istio's traffic shifting easily.`,
+	Long:  `
+ _     _   _
+(_)___| |_(_) ___  _ __  ___
+| / __| __| |/ _ \| '_ \/ __|
+| \__ \ |_| | (_) | |_) \__ \
+|_|___/\__|_|\___/| .__/|___/
+                  |_|
+
+Istiops is a CLI library for Go that manages istio's traffic shifting easily.
+	`,
 }
 
 func Execute() {

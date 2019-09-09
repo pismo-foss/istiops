@@ -2,9 +2,7 @@
 
 Istio Traffic Shifter (a.k.a `istiops`) is a tool to manage traffic for microservices deployed via [Istio](https://istio.io/). It simplifies deployment strategies such as bluegreen or canary releases with no need of messing around with tons of `yamls` from kubernetes' resources.
 
-<p align="center">
-    <a href="https://asciinema.org/a/5ZpTTNkp8ysM4C50y7ibxkce9?autoplay=1"><img src="https://asciinema.org/a/5ZpTTNkp8ysM4C50y7ibxkce9.png" width="600"/></a>
-</p>
+<img src="https://github.com/pismo/istiops/blob/master/imgs/intro.png" alt="">
 
 ## Documentation
 
@@ -81,6 +79,10 @@ A deeper in the details
 <img src="https://github.com/pismo/istiops/blob/master/imgs/howitworks3.png" alt="">
 
 ## Using CLI
+
+<p align="center">
+    <a href="https://asciinema.org/a/5ZpTTNkp8ysM4C50y7ibxkce9?autoplay=1"><img src="https://asciinema.org/a/5ZpTTNkp8ysM4C50y7ibxkce9.png" width="600"/></a>
+</p>
 
 ### Each operation list, creates or removes items from both the VirtualService and DestinationRule
 
