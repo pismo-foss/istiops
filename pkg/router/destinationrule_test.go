@@ -5,7 +5,7 @@ import (
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"log"
 	"os"
 	"testing"
@@ -51,7 +51,7 @@ func TestValidateDestinationRuleList_Unit_EmptyItems(t *testing.T) {
 }
 
 func TestDestinationRule_Validate_Unit(t *testing.T) {
-	fakeIstioClient = &fake.Clientset{}
+	fakeIstioClient = fake.NewSimpleClientset()
 
 	cases := []struct {
 		dr    DestinationRule
@@ -242,7 +242,7 @@ func TestDestinationRule_Create_Integrated(t *testing.T) {
 }
 
 func TestDestinationRule_Clear(t *testing.T) {
-	fakeIstioClient = &fake.Clientset{}
+	fakeIstioClient = fake.NewSimpleClientset()
 	dr := DestinationRule{
 		TrackingId: "unit-testing-tracking-id",
 		Istio:      fakeIstioClient,
@@ -288,11 +288,9 @@ func TestDestinationRule_Update_Integrated(t *testing.T) {
 
 	err = dr.Update(shift)
 
-	v, _ := fakeIstioClient.NetworkingV1alpha3().DestinationRules(dr.Namespace).List(v1.ListOptions{})
-	mockedDr := v.Items[0]
+	mockedDr, _ := fakeIstioClient.NetworkingV1alpha3().DestinationRules(dr.Namespace).Get(tdr.Name, metav1.GetOptions{})
 
 	assert.NoError(t, err)
-	assert.Equal(t, 1, len(v.Items))
 	assert.Equal(t, "integration-testing-dr", mockedDr.Name)
 	assert.Equal(t, "integration", mockedDr.Namespace)
 	assert.Equal(t, "integration-tests", mockedDr.Labels["environment"])
