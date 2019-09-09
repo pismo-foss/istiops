@@ -12,7 +12,7 @@ Istio Traffic Shifter (a.k.a `istiops`) is a tool to manage traffic for microser
 * [Running tests](#running-tests)
 * [Building the CLI](#building-the-cli)
 * [Prerequisites](#prerequisites)
-* [How it works ?](#how-it-works-?)
+* [How it works ?](#how-it-works-)
     - [Traffic Shifting](#traffic-shifting)
 * [Using CLI](#using-cli)
     - [Get current routes](#get-current-routes)
@@ -82,9 +82,7 @@ A deeper in the details
 
 ## Using CLI
 
-<p align="center">
-    <a href="https://asciinema.org/a/5ZpTTNkp8ysM4C50y7ibxkce9?autoplay=1"><img src="https://asciinema.org/a/5ZpTTNkp8ysM4C50y7ibxkce9.png" width="600"/></a>
-</p>
+![CLI](./imgs/cli.svg)
 
 ### Each operation list, creates or removes items from both the VirtualService and DestinationRule
 
