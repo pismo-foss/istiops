@@ -50,6 +50,10 @@ func TestValidateDestinationRuleList_Unit_EmptyItems(t *testing.T) {
 	assert.EqualError(t, err, "empty destinationRules")
 }
 
+func TestUpdateDestinationRule_Integrated(t *testing.T) {
+
+}
+
 func TestDestinationRule_Validate_Unit(t *testing.T) {
 	fakeIstioClient = fake.NewSimpleClientset()
 

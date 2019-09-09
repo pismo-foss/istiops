@@ -151,13 +151,41 @@ func TestVirtualService_Validate_Unit_Success(t *testing.T) {
 	}
 }
 
+func TestUpdateVirtualService_Integrated(t *testing.T) {
+	fakeIstioClient = fake.NewSimpleClientset()
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Namespace:  "integration",
+		Istio:      fakeIstioClient,
+	}
+
+	v := v1alpha32.VirtualService{
+		Spec:       v1alpha32.VirtualServiceSpec{},
+	}
+
+	v.Name = "updated-virtualservice"
+	v.Namespace = vs.Namespace
+
+	_, err := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&v)
+
+	// updating resource
+	v.Labels = map[string]string{"label-key":"label-value"}
+
+	err = UpdateVirtualService(&vs, &v)
+	assert.NoError(t, err)
+
+	mockedVs, _ := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(v.Name, metav1.GetOptions{})
+
+	assert.Equal(t, "label-value", mockedVs.Labels["label-key"])
+}
+
 func TestVirtualService_Clear_Integrated_EmptyRoutes(t *testing.T) {
 	fakeIstioClient = fake.NewSimpleClientset()
 
 	vs := VirtualService{
 		TrackingId: "unit-testing-uuid",
 		Name:       "api-testing",
-		Namespace:  "arrow",
+		Namespace:  "integration",
 		Build:      1,
 		Istio:      fakeIstioClient,
 	}
