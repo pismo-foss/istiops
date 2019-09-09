@@ -2,7 +2,7 @@
 
 Istio Traffic Shifter (a.k.a `istiops`) is a tool to manage traffic for microservices deployed via [Istio](https://istio.io/). It simplifies deployment strategies such as bluegreen or canary releases with no need of messing around with tons of `yamls` from kubernetes' resources.
 
-<img src="https://github.com/pismo/istiops/blob/master/imgs/intro.png" alt="" width="600">
+<img src="https://github.com/pismo/istiops/blob/master/imgs/intro.png" alt="" align="center" width="600">
 
 ## Documentation
 
