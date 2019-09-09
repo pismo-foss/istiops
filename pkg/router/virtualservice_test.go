@@ -160,7 +160,7 @@ func TestUpdateVirtualService_Integrated(t *testing.T) {
 	}
 
 	v := v1alpha32.VirtualService{
-		Spec:       v1alpha32.VirtualServiceSpec{},
+		Spec: v1alpha32.VirtualServiceSpec{},
 	}
 
 	v.Name = "updated-virtualservice"
@@ -169,7 +169,7 @@ func TestUpdateVirtualService_Integrated(t *testing.T) {
 	_, err := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&v)
 
 	// updating resource
-	v.Labels = map[string]string{"label-key":"label-value"}
+	v.Labels = map[string]string{"label-key": "label-value"}
 
 	err = UpdateVirtualService(&vs, &v)
 	assert.NoError(t, err)
@@ -196,7 +196,7 @@ func TestVirtualService_Clear_Integrated_EmptyRoutes(t *testing.T) {
 		Selector: map[string]string{
 			"environment": "integration-tests",
 		},
-		Traffic:  Traffic{},
+		Traffic: Traffic{},
 	}
 
 	// create a virtualService object in memory

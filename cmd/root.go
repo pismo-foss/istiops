@@ -67,7 +67,7 @@ func operator(dr *router.DestinationRule, vs *router.VirtualService) istiOperato
 var rootCmd = &cobra.Command{
 	Use:   "istiops",
 	Short: "Main",
-	Long:  `
+	Long: `
  _     _   _
 (_)___| |_(_) ___  _ __  ___
 | / __| __| |/ _ \| '_ \/ __|

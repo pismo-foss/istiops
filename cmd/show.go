@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gookit/color"
 	"github.com/pismo/istiops/pkg/logger"
@@ -15,6 +16,29 @@ func init() {
 
 	_ = showCmd.MarkPersistentFlagRequired("label-selector")
 	_ = showCmd.MarkPersistentFlagRequired("output")
+}
+
+type JsonResource struct {
+	Name    string
+	Match   []string
+	Destination   []string
+}
+
+func jsonfy(irl router.IstioRouteList) {
+	basket := JsonResource{
+		Name:    "api-something-virtualservice",
+		Match: []string{},
+		Destination:   []string{},
+	}
+
+	var jsonData []byte
+	jsonData, err := json.Marshal(basket)
+	if err != nil {
+		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
+	}
+
+	fmt.Println(string(jsonData))
+
 }
 
 func beautified(irl router.IstioRouteList) {
@@ -94,8 +118,8 @@ var showCmd = &cobra.Command{
 
 		output := fmt.Sprintf("%s", cmd.Flag("output").Value)
 
-		if output != "summarized" && output != "beautified" {
-			logger.Fatal(fmt.Sprintf("--output must be 'summarized' or 'beautified'"), trackingId)
+		if output != "summarized" && output != "beautified" && output != "json" {
+			logger.Fatal(fmt.Sprintf("--output must be 'summarized', 'json' or 'beautified'"), trackingId)
 		}
 
 		mappedLabelSelector, err := router.Mapify(trackingId, fmt.Sprintf("%s", cmd.Flag("label-selector").Value))
@@ -132,6 +156,10 @@ var showCmd = &cobra.Command{
 
 		if output == "summarized" {
 			summarized(irl)
+		}
+
+		if output == "json" {
+			jsonfy(irl)
 		}
 	},
 }
