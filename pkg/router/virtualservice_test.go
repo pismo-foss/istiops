@@ -270,3 +270,46 @@ func TestVirtualService_Clear_Integrated(t *testing.T) {
 	assert.Equal(t, 1, len(mockedVs.Spec.Http))
 	assert.Equal(t, ".+", mockedVs.Spec.Http[0].Match[0].GetUri().GetRegex())
 }
+
+func TestBalance_Unit_PartialPercent(t *testing.T) {
+	shift := Shift{
+		Port:     8080,
+		Hostname: "host",
+		Selector: nil,
+		Traffic:  Traffic{
+			Weight: 40,
+		},
+	}
+
+	balancedRoutes, err := Balance("current-subset","new-subset", shift)
+	assert.NoError(t, err)
+	assert.Equal(t, int32(60), balancedRoutes[0].Weight)
+	assert.Equal(t, int32(40), balancedRoutes[1].Weight)
+	assert.Equal(t, "current-subset", balancedRoutes[0].Destination.GetSubset())
+	assert.Equal(t, "new-subset", balancedRoutes[1].Destination.GetSubset())
+	assert.Equal(t, "host", balancedRoutes[0].Destination.GetHost())
+	assert.Equal(t, "host", balancedRoutes[1].Destination.GetHost())
+	assert.Equal(t, uint32(8080), balancedRoutes[0].Destination.GetPort().GetNumber())
+	assert.Equal(t, uint32(8080), balancedRoutes[1].Destination.GetPort().GetNumber())
+	assert.Equal(t, 2, len(balancedRoutes))
+}
+
+func TestBalance_Unit_FullPercent(t *testing.T) {
+	shift := Shift{
+		Port:     9090,
+		Hostname: "host",
+		Selector: nil,
+		Traffic:  Traffic{
+			Weight: 100,
+		},
+	}
+
+	balancedRoutes, err := Balance("current","new", shift)
+	assert.NoError(t, err)
+	assert.Equal(t, int32(100), balancedRoutes[0].Weight)
+	assert.Equal(t, "new", balancedRoutes[0].Destination.GetSubset())
+	assert.Equal(t, "host", balancedRoutes[0].Destination.GetHost())
+	assert.Equal(t, uint32(9090), balancedRoutes[0].Destination.GetPort().GetNumber())
+	assert.Equal(t, 1, len(balancedRoutes))
+
+}

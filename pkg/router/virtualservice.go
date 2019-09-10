@@ -210,7 +210,7 @@ func UpdateVirtualService(vs *VirtualService, virtualService *v1alpha32.VirtualS
 }
 
 // balance returns a RouteDestination with balanced weight
-func balance(currentSubset string, newSubset string, s Shift) ([]*v1alpha3.HTTPRouteDestination, error) {
+func Balance(currentSubset string, newSubset string, s Shift) ([]*v1alpha3.HTTPRouteDestination, error) {
 	var routeBalanced []*v1alpha3.HTTPRouteDestination
 
 	routeBalanced = []*v1alpha3.HTTPRouteDestination{}
@@ -281,7 +281,7 @@ func Percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRout
 
 				newSubset := httpValue.Route[0].Destination.Subset
 
-				balancedRoute, err := balance(newSubset, subset, s)
+				balancedRoute, err := Balance(newSubset, subset, s)
 				if err != nil {
 					return nil, err
 				}
