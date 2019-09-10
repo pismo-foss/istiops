@@ -322,3 +322,33 @@ func TestPercentage_Unit_EmptyRoute(t *testing.T) {
 	_, err := Percentage("cid", "subset", emptyRouteList, shift)
 	assert.EqualError(t, err, "empty routes")
 }
+
+func TestPercentage_Unit(t *testing.T) {
+	var routeList []*v1alpha3.HTTPRoute
+	route := &v1alpha3.HTTPRoute{}
+
+	match := &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}}
+	routeD := &v1alpha3.HTTPRouteDestination{
+		Destination:          &v1alpha3.Destination{
+			Host:                 "api-integration-test",
+			Subset:               "integration-test",
+		},
+		Weight:               100,
+	}
+	route.Match = append(route.Match, match)
+	route.Route = append(route.Route, routeD)
+	routeList = append(routeList, route)
+
+	shift := Shift{
+		Port:     9999,
+		Hostname: "",
+		Selector: nil,
+		Traffic:  Traffic{
+
+		},
+	}
+
+	routed, err := Percentage("cid", "subset", routeList, shift)
+	t.Log(routed)
+	assert.NoError(t, err)
+}
