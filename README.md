@@ -124,7 +124,7 @@ client -> request to ->  [api.domain.io]
                |- build: PR-10
 ```
 
-The output can be configured as `-o jsonfy` to get an object in order to extract structured metrics.
+The output can be configured as `-o jsonfy`/`-o yamlfy` int order to get an object to extract structured data.
 
 ### Clear all routes
 
