@@ -80,77 +80,6 @@ func TestRemove_Unit(t *testing.T) {
 	assert.Equal(t, "somebody@domain.io", updatedRoutes[1].Match[0].Headers["x-email"].GetExact())
 }
 
-func TestVirtualService_Validate_Unit_ErrorCases(t *testing.T) {
-	failureCases := []struct {
-		vs    VirtualService
-		shift Shift
-		want  string
-	}{
-		{
-			VirtualService{},
-			Shift{
-				Port:     0,
-				Hostname: "",
-				Selector: nil,
-				Traffic:  Traffic{},
-			},
-			"could not update route without 'weight' or 'headers'",
-		},
-		{
-			VirtualService{},
-			Shift{
-				Port:     0,
-				Hostname: "",
-				Selector: nil,
-				Traffic: Traffic{
-					RequestHeaders: map[string]string{
-						"header-key": "header-value",
-					},
-					Weight: 10,
-				},
-			},
-			"a route needs to be served with a 'weight' or 'request headers', not both",
-		},
-	}
-
-	for _, tt := range failureCases {
-		err := tt.vs.Validate(tt.shift)
-		assert.EqualError(t, err, tt.want)
-	}
-}
-
-func TestVirtualService_Validate_Unit_Success(t *testing.T) {
-
-	sucCases := []struct {
-		vs    VirtualService
-		shift Shift
-	}{
-		{
-			VirtualService{},
-			Shift{
-				Traffic: Traffic{
-					Weight: 10,
-				},
-			},
-		},
-		{
-			VirtualService{},
-			Shift{
-				Traffic: Traffic{
-					RequestHeaders: map[string]string{
-						"x-email": "somebody@domain.io",
-					},
-				},
-			},
-		},
-	}
-
-	for _, tt := range sucCases {
-		err := tt.vs.Validate(tt.shift)
-		assert.NoError(t, err)
-	}
-}
-
 func TestUpdateVirtualService_Integrated(t *testing.T) {
 	fakeIstioClient = fake.NewSimpleClientset()
 	vs := VirtualService{
@@ -323,7 +252,7 @@ func TestPercentage_Unit_EmptyRoute(t *testing.T) {
 	assert.EqualError(t, err, "empty routes")
 }
 
-func TestPercentage_Unit(t *testing.T) {
+func TestPercentage_Unit_ExistentMasterRoute(t *testing.T) {
 	var routeList []*v1alpha3.HTTPRoute
 	route := &v1alpha3.HTTPRoute{}
 
@@ -331,7 +260,7 @@ func TestPercentage_Unit(t *testing.T) {
 	routeD := &v1alpha3.HTTPRouteDestination{
 		Destination:          &v1alpha3.Destination{
 			Host:                 "api-integration-test",
-			Subset:               "integration-test",
+			Subset:               "existent-subset",
 		},
 		Weight:               100,
 	}
@@ -348,7 +277,146 @@ func TestPercentage_Unit(t *testing.T) {
 		},
 	}
 
-	routed, err := Percentage("cid", "subset", routeList, shift)
-	t.Log(routed)
+	routed, err := Percentage("unit-testing-uuid", "subset", routeList, shift)
 	assert.NoError(t, err)
+	assert.Equal(t, ".+", routed[0].Match[0].Uri.GetRegex())
+	assert.Equal(t, "existent-subset", routed[0].Route[0].Destination.Subset)
+
 }
+
+func TestPercentage_Unit_NewMasterRoute(t *testing.T) {
+	var routeList []*v1alpha3.HTTPRoute
+	routeList = []*v1alpha3.HTTPRoute{ {} }
+
+	shift := Shift{
+		Port:     9999,
+		Hostname: "",
+		Selector: nil,
+		Traffic:  Traffic{
+
+		},
+	}
+
+	routed, err := Percentage("unit-testing-uuid", "new-subset", routeList, shift)
+
+	assert.NoError(t, err)
+	assert.Equal(t, ".+", routed[1].Match[0].Uri.GetRegex())
+	assert.Equal(t, "new-subset", routed[1].Route[0].Destination.Subset)
+
+}
+
+func TestPercentage_Unit_MultipleMasterRoute(t *testing.T) {
+	var routeList []*v1alpha3.HTTPRoute
+	route := &v1alpha3.HTTPRoute{}
+
+	match := &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}}
+	routeD := &v1alpha3.HTTPRouteDestination{
+		Destination:          &v1alpha3.Destination{
+			Host:                 "api-integration-test",
+			Subset:               "existent-subset",
+		},
+		Weight:               100,
+	}
+
+	// create two routes with the same Regex '.+'
+	route.Match = append(route.Match, match)
+	route.Route = append(route.Route, routeD)
+
+	route.Match = append(route.Match, match)
+	route.Route = append(route.Route, routeD)
+
+	routeList = append(routeList, route)
+
+
+	shift := Shift{
+		Port:     9999,
+		Hostname: "",
+		Selector: nil,
+		Traffic:  Traffic{
+
+		},
+	}
+
+	_, err := Percentage("unit-testing-uuid", "new-subset", routeList, shift)
+
+	assert.EqualError(t, err, "multiple master routes found")
+
+}
+
+
+func TestVirtualService_Validate_Unit_ErrorCases(t *testing.T) {
+	failureCases := []struct {
+		vs    VirtualService
+		shift Shift
+		want  string
+	}{
+		{
+			VirtualService{},
+			Shift{
+				Port:     0,
+				Hostname: "",
+				Selector: nil,
+				Traffic:  Traffic{},
+			},
+			"could not update route without 'weight' or 'headers'",
+		},
+		{
+			VirtualService{},
+			Shift{
+				Port:     0,
+				Hostname: "",
+				Selector: nil,
+				Traffic: Traffic{
+					RequestHeaders: map[string]string{
+						"header-key": "header-value",
+					},
+					Weight: 10,
+				},
+			},
+			"a route needs to be served with a 'weight' or 'request headers', not both",
+		},
+	}
+
+	for _, tt := range failureCases {
+		err := tt.vs.Validate(tt.shift)
+		assert.EqualError(t, err, tt.want)
+	}
+}
+
+func TestVirtualService_Validate_Unit_Success(t *testing.T) {
+
+	sucCases := []struct {
+		vs    VirtualService
+		shift Shift
+	}{
+		{
+			VirtualService{},
+			Shift{
+				Traffic: Traffic{
+					Weight: 10,
+				},
+			},
+		},
+		{
+			VirtualService{},
+			Shift{
+				Traffic: Traffic{
+					RequestHeaders: map[string]string{
+						"x-email": "somebody@domain.io",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range sucCases {
+		err := tt.vs.Validate(tt.shift)
+		assert.NoError(t, err)
+	}
+}
+
+// Update
+
+// Create
+
+// List

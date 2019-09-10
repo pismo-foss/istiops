@@ -305,7 +305,7 @@ func Percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRout
 	httpRoute = append(httpRoute, tempMasterRoute)
 
 	if masterRouteCounter > 1 {
-		return nil, errors.New("multiple master routes (URI: .+) found")
+		return nil, errors.New("multiple master routes found")
 	}
 
 	// create a master route rule if does not exists
