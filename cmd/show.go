@@ -18,21 +18,100 @@ func init() {
 	_ = showCmd.MarkPersistentFlagRequired("output")
 }
 
+type JsonSubset struct {
+	Name string
+	Labels map[string]string
+}
+
+type JsonDestination struct {
+	Destination string
+	Weight int32
+	Subset JsonSubset
+}
+
 type JsonResource struct {
 	Name    string
-	Match   []string
-	Destination   []string
+	Namespace string
+	Hosts []string
+	Match   map[string]string
+	Destinations   []JsonDestination
 }
 
 func jsonfy(irl router.IstioRouteList) {
-	basket := JsonResource{
-		Name:    "api-something-virtualservice",
-		Match: []string{},
-		Destination:   []string{},
+	var r JsonResource
+	var resourceList []JsonResource
+
+	for _, vs := range irl.VList.Items {
+		r = JsonResource{}
+		r.Match = map[string]string{}
+
+		r.Name = vs.Name
+		r.Namespace = vs.Namespace
+		r.Hosts = vs.Spec.Hosts
+
+		for _, httpValue := range vs.Spec.Http {
+			// filtering virtualServices
+			for _, httpMatch := range httpValue.Match {
+				if httpMatch.Uri != nil {
+					r.Match["regex"] = httpMatch.Uri.GetRegex()
+				}
+
+				if len(httpMatch.Headers) > 0 {
+					for headerKey, headerValue := range httpMatch.Headers {
+						r.Match["headers"] = fmt.Sprintf("%s:%s", headerKey, headerValue)
+					}
+				}
+			}
+
+			// handle destination
+			var currentWeight int32
+			for _, httpRoute := range httpValue.Route {
+				jr := JsonDestination{}
+				jr.Destination = fmt.Sprintf("%s:%d", httpRoute.Destination.Host, httpRoute.Destination.Port.GetNumber())
+
+				if httpRoute.Weight == 0 {
+					currentWeight = 100
+				} else {
+					currentWeight = httpRoute.Weight
+				}
+
+				subsetExists := false
+				for _, dr := range irl.DList.Items {
+					for _, subset := range dr.Spec.Subsets {
+						js := JsonSubset{}
+						js.Labels = map[string]string{}
+
+						if subset.Name == httpRoute.Destination.Subset {
+							subsetExists = true
+							js.Name = subset.Name
+
+							// append pod labels
+							for labelKey, labelValue := range subset.Labels {
+								js.Labels[labelKey] = labelValue
+							}
+
+							jr.Subset.Labels = js.Labels
+						}
+					}
+
+					if !subsetExists {
+						jr.Subset = JsonSubset{
+							Name:   "None",
+							Labels: nil,
+						}
+					}
+				}
+
+				jr.Weight = currentWeight
+				r.Destinations = append(r.Destinations, jr)
+			}
+		}
+
+		resourceList = append(resourceList, r)
 	}
 
 	var jsonData []byte
-	jsonData, err := json.Marshal(basket)
+	jsonData, err := json.Marshal(resourceList)
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
 	}
@@ -64,6 +143,7 @@ func beautified(irl router.IstioRouteList) {
 				}
 			}
 
+			// handle destinations
 			fmt.Println("       \\_ Destination [k8s service]")
 			var currentWeight int32
 			for _, httpRoute := range httpValue.Route {
