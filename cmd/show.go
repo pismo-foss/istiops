@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ghodss/yaml"
 	"github.com/gookit/color"
 	"github.com/pismo/istiops/pkg/logger"
 	"github.com/pismo/istiops/pkg/router"
@@ -18,31 +19,31 @@ func init() {
 	_ = showCmd.MarkPersistentFlagRequired("output")
 }
 
-type JsonSubset struct {
-	Name string
+type Subset struct {
+	Name   string
 	Labels map[string]string
 }
 
-type JsonDestination struct {
+type Destination struct {
 	Destination string
-	Weight int32
-	Subset JsonSubset
+	Weight      int32
+	Subset      Subset
 }
 
-type JsonResource struct {
-	Name    string
-	Namespace string
-	Hosts []string
-	Match   map[string]string
-	Destinations   []JsonDestination
+type Resource struct {
+	Name         string
+	Namespace    string
+	Hosts        []string
+	Match        map[string]string
+	Destinations []Destination
 }
 
-func jsonfy(irl router.IstioRouteList) {
-	var r JsonResource
-	var resourceList []JsonResource
+func structured(irl router.IstioRouteList) []Resource {
+	var r Resource
+	var resourceList []Resource
 
 	for _, vs := range irl.VList.Items {
-		r = JsonResource{}
+		r = Resource{}
 		r.Match = map[string]string{}
 
 		r.Name = vs.Name
@@ -66,7 +67,7 @@ func jsonfy(irl router.IstioRouteList) {
 			// handle destination
 			var currentWeight int32
 			for _, httpRoute := range httpValue.Route {
-				jr := JsonDestination{}
+				jr := Destination{}
 				jr.Destination = fmt.Sprintf("%s:%d", httpRoute.Destination.Host, httpRoute.Destination.Port.GetNumber())
 
 				if httpRoute.Weight == 0 {
@@ -78,7 +79,7 @@ func jsonfy(irl router.IstioRouteList) {
 				subsetExists := false
 				for _, dr := range irl.DList.Items {
 					for _, subset := range dr.Spec.Subsets {
-						js := JsonSubset{}
+						js := Subset{}
 						js.Labels = map[string]string{}
 
 						if subset.Name == httpRoute.Destination.Subset {
@@ -95,7 +96,7 @@ func jsonfy(irl router.IstioRouteList) {
 					}
 
 					if !subsetExists {
-						jr.Subset = JsonSubset{
+						jr.Subset = Subset{
 							Name:   "None",
 							Labels: nil,
 						}
@@ -110,6 +111,10 @@ func jsonfy(irl router.IstioRouteList) {
 		resourceList = append(resourceList, r)
 	}
 
+	return resourceList
+}
+
+func jsonfy(resourceList []Resource) {
 	var jsonData []byte
 	jsonData, err := json.Marshal(resourceList)
 	if err != nil {
@@ -118,6 +123,16 @@ func jsonfy(irl router.IstioRouteList) {
 
 	fmt.Println(string(jsonData))
 
+}
+
+func yamlfy(resourceList []Resource) {
+	var yamlData []byte
+	yamlData, err := yaml.Marshal(resourceList)
+	if err != nil {
+		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
+	}
+
+	fmt.Println(string(yamlData))
 }
 
 func beautified(irl router.IstioRouteList) {
@@ -178,12 +193,6 @@ func beautified(irl router.IstioRouteList) {
 	}
 }
 
-func summarized(irl router.IstioRouteList) {
-	for _, vs := range irl.VList.Items {
-		fmt.Println(vs.Name, vs.Spec.Http)
-	}
-}
-
 var showCmd = &cobra.Command{
 	Use:   "show",
 	Short: "Show current istio's traffic rules",
@@ -198,8 +207,8 @@ var showCmd = &cobra.Command{
 
 		output := fmt.Sprintf("%s", cmd.Flag("output").Value)
 
-		if output != "summarized" && output != "beautified" && output != "json" {
-			logger.Fatal(fmt.Sprintf("--output must be 'summarized', 'json' or 'beautified'"), trackingId)
+		if output != "yaml" && output != "json" && output != "beautified" {
+			logger.Fatal(fmt.Sprintf("--output must be 'yaml', 'json' or 'beautified'"), trackingId)
 		}
 
 		mappedLabelSelector, err := router.Mapify(trackingId, fmt.Sprintf("%s", cmd.Flag("label-selector").Value))
@@ -230,16 +239,18 @@ var showCmd = &cobra.Command{
 		}
 
 		logger.Info("Listing all current active routing rules", trackingId)
+		resourceList := structured(irl)
+
 		if output == "beautified" {
 			beautified(irl)
 		}
 
-		if output == "summarized" {
-			summarized(irl)
+		if output == "yaml" {
+			yamlfy(resourceList)
 		}
 
 		if output == "json" {
-			jsonfy(irl)
+			jsonfy(resourceList)
 		}
 	},
 }

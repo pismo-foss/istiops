@@ -124,6 +124,8 @@ client -> request to ->  [api.domain.io]
                |- build: PR-10
 ```
 
+The output can be configured as `-o jsonfy` to get an object in order to extract structured metrics.
+
 ### Clear all routes
 
 2. Clear all traffic rules, except for **master-route** (default), from service api-domain
