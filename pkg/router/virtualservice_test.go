@@ -313,3 +313,12 @@ func TestBalance_Unit_FullPercent(t *testing.T) {
 	assert.Equal(t, 1, len(balancedRoutes))
 
 }
+
+func TestPercentage_Unit_EmptyRoute(t *testing.T) {
+	var emptyRouteList []*v1alpha3.HTTPRoute
+
+	shift := Shift{}
+
+	_, err := Percentage("cid", "subset", emptyRouteList, shift)
+	assert.EqualError(t, err, "empty routes")
+}

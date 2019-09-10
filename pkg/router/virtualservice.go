@@ -268,6 +268,10 @@ func Percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRout
 
 	// destroy any header rule already created
 
+	if len(httpRoute) == 0 {
+		return nil, errors.New("empty routes")
+	}
+
 	// work with percentage rules
 	for httpKey, httpValue := range httpRoute {
 		for _, matchValue := range httpValue.Match {
