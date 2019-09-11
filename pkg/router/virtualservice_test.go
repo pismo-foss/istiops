@@ -639,7 +639,7 @@ func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *t
 	assert.Equal(t, "old-somebody@domain.io", re.Spec.Http[0].Match[0].Headers["x-email"].GetExact())
 	assert.Equal(t, "eebba923-750f-4b71-81fe-b91e026b7221", re.Spec.Http[0].Match[0].Headers["x-token"].GetExact())
 	assert.Equal(t, fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace), re.Spec.Http[0].Route[0].Destination.Subset)
-	assert.Equal(t, ".+", re.Spec.Http[len(re.Spec.Http)-1lkk].Match[0].Uri.GetRegex())
+	assert.Equal(t, ".+", re.Spec.Http[len(re.Spec.Http)-1].Match[0].Uri.GetRegex())
 
 }
 
