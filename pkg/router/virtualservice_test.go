@@ -4,6 +4,7 @@ import (
 	"fmt"
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
+	"github.com/ghodss/yaml"
 	"github.com/stretchr/testify/assert"
 	"istio.io/api/networking/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -563,6 +564,83 @@ func TestVirtualService_Update_Integrated_NonExistentRoute_Percentage(t *testing
 
 	err := vs.Update(shift)
 	assert.EqualError(t, err, "can't create a new route without request header's match")
+}
+
+func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *testing.T) {
+	var match *v1alpha3.HTTPMatchRequest
+	var route *v1alpha3.HTTPRouteDestination
+
+	fakeIstioClient = fake.NewSimpleClientset()
+
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      2,
+		Istio:      fakeIstioClient,
+	}
+
+	v := v1alpha32.VirtualService{Spec: v1alpha32.VirtualServiceSpec{}}
+	v.Name = vs.Name
+	v.Namespace = vs.Namespace
+	v.Labels = map[string]string{"environment": "integration-tests"}
+
+	match = &v1alpha3.HTTPMatchRequest{}
+	match.Headers = map[string]*v1alpha3.StringMatch{}
+	match.Headers["x-email"] = &v1alpha3.StringMatch{
+		MatchType: &v1alpha3.StringMatch_Exact{
+			Exact: "old-somebody@domain.io",
+		},
+	}
+	match.Headers["x-token"] = &v1alpha3.StringMatch{
+		MatchType: &v1alpha3.StringMatch_Exact{
+			Exact: "eebba923-750f-4b71-81fe-b91e026b7221",
+		},
+	}
+
+	route = &v1alpha3.HTTPRouteDestination{
+		Destination: &v1alpha3.Destination{
+			Host:                 "api-domain",
+			Subset:               "api-testing-2-integration",
+		},
+	}
+
+	v.Spec.Http = append(v.Spec.Http, &v1alpha3.HTTPRoute{
+		Match: []*v1alpha3.HTTPMatchRequest{match},
+		Route: []*v1alpha3.HTTPRouteDestination{route},
+	})
+
+	shift := Shift{
+		Port:     8888,
+		Hostname: "api-service",
+		Selector: map[string]string{
+			"environment": "integration-tests",
+		},
+		Traffic: Traffic{
+			Weight: 50,
+		},
+	}
+
+	_, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&v)
+
+	err := vs.Update(shift)
+	re, _ := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(v.Name, metav1.GetOptions{})
+
+	var yamlData []byte
+	yamlData, err = yaml.Marshal(re)
+	fmt.Println(string(yamlData))
+
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(re.Spec.Http))
+	assert.Equal(t, 1, len(re.Spec.Http[0].Route))
+	assert.Equal(t, 1, len(re.Spec.Http[0].Match))
+	assert.Equal(t, 1, len(re.Spec.Http[1].Route))
+	assert.Equal(t, 1, len(re.Spec.Http[1].Match))
+	assert.Equal(t, "old-somebody@domain.io", re.Spec.Http[0].Match[0].Headers["x-email"].GetExact())
+	assert.Equal(t, "eebba923-750f-4b71-81fe-b91e026b7221", re.Spec.Http[0].Match[0].Headers["x-token"].GetExact())
+	assert.Equal(t, fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace), re.Spec.Http[0].Route[0].Destination.Subset)
+	assert.Equal(t, ".+", re.Spec.Http[len(re.Spec.Http)-1lkk].Match[0].Uri.GetRegex())
+
 }
 
 // Create
