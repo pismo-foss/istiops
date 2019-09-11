@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
@@ -416,6 +417,58 @@ func TestVirtualService_Validate_Unit_Success(t *testing.T) {
 }
 
 // Update
+func TestVirtualService_Update_Integrated_NonExistentRoute(t *testing.T) {
+	fakeIstioClient = fake.NewSimpleClientset()
+
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      1,
+		Istio:      fakeIstioClient,
+	}
+
+	shift := Shift{
+		Port:     8888,
+		Hostname: "api-service",
+		Selector: map[string]string{
+			"environment": "integration-tests",
+		},
+		Traffic: Traffic{
+			RequestHeaders: map[string]string {
+				"x-email": "somebody@domain.io",
+				"x-token": "eebba923-750f-4b71-81fe-b91e026b7221",
+			},
+		},
+	}
+
+	v := v1alpha32.VirtualService{
+		Spec: v1alpha32.VirtualServiceSpec{},
+	}
+
+	v.Name = "integration-test-virtualservice"
+	v.Namespace = vs.Namespace
+	v.Labels = map[string]string{"environment": "integration-tests"}
+
+	_, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&v)
+
+	err := vs.Update(shift)
+	re, _ := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(v.Name, metav1.GetOptions{})
+
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(re.Spec.Http))
+	assert.Equal(t, 1, len(re.Spec.Http[0].Route))
+	assert.Equal(t, 1, len(re.Spec.Http[0].Match))
+	assert.Equal(t, shift.Traffic.RequestHeaders["x-email"], re.Spec.Http[0].Match[0].Headers["x-email"].GetExact())
+	assert.Equal(t, shift.Traffic.RequestHeaders["x-token"], re.Spec.Http[0].Match[0].Headers["x-token"].GetExact())
+	assert.Equal(t, fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace), re.Spec.Http[0].Route[0].Destination.Subset)
+	assert.Equal(t, uint32(8888), re.Spec.Http[0].Route[0].Destination.Port.GetNumber())
+	assert.Equal(t, "api-service", re.Spec.Http[0].Route[0].Destination.Host)
+}
+
+func TestVirtualService_Update_Integrated_ExistentRoute(t *testing.T) {
+
+}
 
 // Create
 

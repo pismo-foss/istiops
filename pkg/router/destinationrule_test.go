@@ -54,6 +54,10 @@ func TestUpdateDestinationRule_Integrated(t *testing.T) {
 
 }
 
+func TestDestinationRule_List(t *testing.T) {
+
+}
+
 func TestDestinationRule_Validate_Unit(t *testing.T) {
 	fakeIstioClient = fake.NewSimpleClientset()
 
