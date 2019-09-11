@@ -206,12 +206,12 @@ func TestBalance_Unit_PartialPercent(t *testing.T) {
 		Port:     8080,
 		Hostname: "host",
 		Selector: nil,
-		Traffic:  Traffic{
+		Traffic: Traffic{
 			Weight: 40,
 		},
 	}
 
-	balancedRoutes, err := Balance("current-subset","new-subset", shift)
+	balancedRoutes, err := Balance("current-subset", "new-subset", shift)
 	assert.NoError(t, err)
 	assert.Equal(t, int32(60), balancedRoutes[0].Weight)
 	assert.Equal(t, int32(40), balancedRoutes[1].Weight)
@@ -229,12 +229,12 @@ func TestBalance_Unit_FullPercent(t *testing.T) {
 		Port:     9090,
 		Hostname: "host",
 		Selector: nil,
-		Traffic:  Traffic{
+		Traffic: Traffic{
 			Weight: 100,
 		},
 	}
 
-	balancedRoutes, err := Balance("current","new", shift)
+	balancedRoutes, err := Balance("current", "new", shift)
 	assert.NoError(t, err)
 	assert.Equal(t, int32(100), balancedRoutes[0].Weight)
 	assert.Equal(t, "new", balancedRoutes[0].Destination.GetSubset())
@@ -259,11 +259,11 @@ func TestPercentage_Unit_ExistentMasterRoute(t *testing.T) {
 
 	match := &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}}
 	routeD := &v1alpha3.HTTPRouteDestination{
-		Destination:          &v1alpha3.Destination{
-			Host:                 "api-integration-test",
-			Subset:               "existent-subset",
+		Destination: &v1alpha3.Destination{
+			Host:   "api-integration-test",
+			Subset: "existent-subset",
 		},
-		Weight:               100,
+		Weight: 100,
 	}
 	route.Match = append(route.Match, match)
 	route.Route = append(route.Route, routeD)
@@ -273,9 +273,7 @@ func TestPercentage_Unit_ExistentMasterRoute(t *testing.T) {
 		Port:     9999,
 		Hostname: "",
 		Selector: nil,
-		Traffic:  Traffic{
-
-		},
+		Traffic:  Traffic{},
 	}
 
 	routed, err := Percentage("unit-testing-uuid", "subset", routeList, shift)
@@ -287,15 +285,13 @@ func TestPercentage_Unit_ExistentMasterRoute(t *testing.T) {
 
 func TestPercentage_Unit_NewMasterRoute(t *testing.T) {
 	var routeList []*v1alpha3.HTTPRoute
-	routeList = []*v1alpha3.HTTPRoute{ {} }
+	routeList = []*v1alpha3.HTTPRoute{{}}
 
 	shift := Shift{
 		Port:     9999,
 		Hostname: "",
 		Selector: nil,
-		Traffic:  Traffic{
-
-		},
+		Traffic:  Traffic{},
 	}
 
 	routed, err := Percentage("unit-testing-uuid", "new-subset", routeList, shift)
@@ -312,11 +308,11 @@ func TestPercentage_Unit_MultipleMasterRoute(t *testing.T) {
 
 	match := &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}}
 	routeD := &v1alpha3.HTTPRouteDestination{
-		Destination:          &v1alpha3.Destination{
-			Host:                 "api-integration-test",
-			Subset:               "existent-subset",
+		Destination: &v1alpha3.Destination{
+			Host:   "api-integration-test",
+			Subset: "existent-subset",
 		},
-		Weight:               100,
+		Weight: 100,
 	}
 
 	// create two routes with the same Regex '.+'
@@ -328,14 +324,11 @@ func TestPercentage_Unit_MultipleMasterRoute(t *testing.T) {
 
 	routeList = append(routeList, route)
 
-
 	shift := Shift{
 		Port:     9999,
 		Hostname: "",
 		Selector: nil,
-		Traffic:  Traffic{
-
-		},
+		Traffic:  Traffic{},
 	}
 
 	_, err := Percentage("unit-testing-uuid", "new-subset", routeList, shift)
@@ -343,7 +336,6 @@ func TestPercentage_Unit_MultipleMasterRoute(t *testing.T) {
 	assert.EqualError(t, err, "multiple master routes found")
 
 }
-
 
 func TestVirtualService_Validate_Unit_ErrorCases(t *testing.T) {
 	failureCases := []struct {
@@ -417,7 +409,7 @@ func TestVirtualService_Validate_Unit_Success(t *testing.T) {
 }
 
 // Update
-func TestVirtualService_Update_Integrated_NonExistentRoute(t *testing.T) {
+func TestVirtualService_Update_Integrated_NonExistentRoute_Headers(t *testing.T) {
 	fakeIstioClient = fake.NewSimpleClientset()
 
 	vs := VirtualService{
@@ -435,7 +427,7 @@ func TestVirtualService_Update_Integrated_NonExistentRoute(t *testing.T) {
 			"environment": "integration-tests",
 		},
 		Traffic: Traffic{
-			RequestHeaders: map[string]string {
+			RequestHeaders: map[string]string{
 				"x-email": "somebody@domain.io",
 				"x-token": "eebba923-750f-4b71-81fe-b91e026b7221",
 			},
@@ -466,8 +458,111 @@ func TestVirtualService_Update_Integrated_NonExistentRoute(t *testing.T) {
 	assert.Equal(t, "api-service", re.Spec.Http[0].Route[0].Destination.Host)
 }
 
-func TestVirtualService_Update_Integrated_ExistentRoute(t *testing.T) {
+func TestVirtualService_Update_Integrated_ExistentRoute_Headers(t *testing.T) {
+	var match *v1alpha3.HTTPMatchRequest
+	var route *v1alpha3.HTTPRouteDestination
+	fakeIstioClient = fake.NewSimpleClientset()
 
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      5,
+		Istio:      fakeIstioClient,
+	}
+
+	v := v1alpha32.VirtualService{Spec: v1alpha32.VirtualServiceSpec{}}
+	v.Name = vs.Name
+	v.Namespace = vs.Namespace
+	v.Labels = map[string]string{"environment": "integration-tests"}
+
+	match = &v1alpha3.HTTPMatchRequest{}
+	match.Headers = map[string]*v1alpha3.StringMatch{}
+	match.Headers["x-email"] = &v1alpha3.StringMatch{
+		MatchType: &v1alpha3.StringMatch_Exact{
+			Exact: "old-somebody@domain.io",
+		},
+	}
+	match.Headers["x-token"] = &v1alpha3.StringMatch{
+		MatchType: &v1alpha3.StringMatch_Exact{
+			Exact: "eebba923-750f-4b71-81fe-b91e026b7221",
+		},
+	}
+
+	route = &v1alpha3.HTTPRouteDestination{
+		Destination: &v1alpha3.Destination{
+			Host:                 "api-domain",
+			Subset:               "api-testing-5-integration",
+		},
+	}
+
+	v.Spec.Http = append(v.Spec.Http, &v1alpha3.HTTPRoute{
+		Match: []*v1alpha3.HTTPMatchRequest{match},
+		Route: []*v1alpha3.HTTPRouteDestination{route},
+	})
+
+	shift := Shift{
+		Port:     8888,
+		Hostname: "api-service",
+		Selector: map[string]string{
+			"environment": "integration-tests",
+		},
+		Traffic: Traffic{
+			RequestHeaders: map[string]string{
+				"x-email": "new-somebody@domain.io",
+				"x-token": "updated-token",
+			},
+		},
+	}
+
+	_, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&v)
+
+	err := vs.Update(shift)
+	re, _ := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(v.Name, metav1.GetOptions{})
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(re.Spec.Http))
+	assert.Equal(t, 1, len(re.Spec.Http[0].Route))
+	assert.Equal(t, 1, len(re.Spec.Http[0].Match))
+	assert.Equal(t, "old-somebody@domain.io", re.Spec.Http[0].Match[0].Headers["x-email"].GetExact())
+	assert.Equal(t, "eebba923-750f-4b71-81fe-b91e026b7221", re.Spec.Http[0].Match[0].Headers["x-token"].GetExact())
+	assert.Equal(t, fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace), re.Spec.Http[0].Route[0].Destination.Subset)
+
+}
+
+func TestVirtualService_Update_Integrated_NonExistentRoute_Percentage(t *testing.T) {
+	fakeIstioClient = fake.NewSimpleClientset()
+
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      7,
+		Istio:      fakeIstioClient,
+	}
+
+	shift := Shift{
+		Port:     8888,
+		Hostname: "api-service",
+		Selector: map[string]string{
+			"environment": "integration-tests",
+		},
+		Traffic: Traffic{
+			Weight: 30,
+		},
+	}
+
+	v := v1alpha32.VirtualService{
+		Spec: v1alpha32.VirtualServiceSpec{},
+	}
+
+	v.Name = "integration-test-virtualservice"
+	v.Namespace = vs.Namespace
+	v.Labels = map[string]string{"environment": "integration-tests"}
+
+	_, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&v)
+
+	err := vs.Update(shift)
+	assert.EqualError(t, err, "can't create a new route without request header's match")
 }
 
 // Create
