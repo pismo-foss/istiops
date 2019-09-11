@@ -188,7 +188,10 @@ func (v *VirtualService) List(selector map[string]string) (*IstioRouteList, erro
 		return nil, err
 	}
 
-	if vss == nil || len(vss.Items) <= 0 {
+	if vss == nil {
+		return nil, errors.New("empty virtualService list")
+	}
+	if len(vss.Items) <= 0 {
 		return nil, errors.New(fmt.Sprintf("could not find any virtualServices which matched label-selector '%v'", listOptions.LabelSelector))
 	}
 
