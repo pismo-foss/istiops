@@ -49,7 +49,6 @@ func TestValidateVirtualServiceList_Unit_NoItems(t *testing.T) {
 	assert.EqualError(t, err, "empty virtualServices list")
 }
 
-
 func TestRemoveRouteInList_Unit(t *testing.T) {
 	var routes []*v1alpha3.HTTPRoute
 	var destinations []*v1alpha3.HTTPRouteDestination
@@ -88,8 +87,6 @@ func TestRemoveRouteInList_Unit(t *testing.T) {
 	assert.Equal(t, 2, len(updatedRoutes))
 	assert.Equal(t, "somebody@domain.io", updatedRoutes[1].Match[0].Headers["x-email"].GetExact())
 }
-
-
 
 func TestUpdateVirtualService_Integrated(t *testing.T) {
 	fakeIstioClient = fake.NewSimpleClientset()
@@ -212,7 +209,7 @@ func TestVirtualService_Clear_Integrated(t *testing.T) {
 }
 
 func TestBalance_Unit_PartialPercent(t *testing.T) {
-	shift := Shift {
+	shift := Shift{
 		Port:     8080,
 		Hostname: "host",
 		Selector: nil,
@@ -316,7 +313,6 @@ func TestPercentage_Unit_ExistentMasterRoute(t *testing.T) {
 
 }
 
-
 func TestPercentage_Unit_NewMasterRouteAgain(t *testing.T) {
 	var routeList []*v1alpha3.HTTPRoute
 	routeList = []*v1alpha3.HTTPRoute{{}}
@@ -353,7 +349,6 @@ func TestPercentage_Unit_NewMasterRouteAgain(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, ".+", routed[1].Match[0].Uri.GetRegex())
 	assert.Equal(t, "new-subset", routed[1].Route[0].Destination.Subset)
-
 
 }
 
@@ -565,8 +560,8 @@ func TestVirtualService_Update_Integrated_ExistentRoute_Headers(t *testing.T) {
 
 	route = &v1alpha3.HTTPRouteDestination{
 		Destination: &v1alpha3.Destination{
-			Host:                 "api-domain",
-			Subset:               "api-testing-5-integration",
+			Host:   "api-domain",
+			Subset: "api-testing-5-integration",
 		},
 	}
 
@@ -673,8 +668,8 @@ func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *t
 
 	route = &v1alpha3.HTTPRouteDestination{
 		Destination: &v1alpha3.Destination{
-			Host:                 "api-domain",
-			Subset:               "api-testing-2-integration",
+			Host:   "api-domain",
+			Subset: "api-testing-2-integration",
 		},
 	}
 
