@@ -43,7 +43,14 @@ func TestValidateVirtualServiceList_Unit_EmptyItems(t *testing.T) {
 	assert.EqualError(t, err, "empty virtualServices")
 }
 
-func TestRemove_Unit(t *testing.T) {
+func TestValidateVirtualServiceList_Unit_NoItems(t *testing.T) {
+	irl := IstioRouteList{}
+	err := ValidateVirtualServiceList(&irl)
+	assert.EqualError(t, err, "empty virtualServices list")
+}
+
+
+func TestRemoveRouteInList_Unit(t *testing.T) {
 	var routes []*v1alpha3.HTTPRoute
 	var destinations []*v1alpha3.HTTPRouteDestination
 
@@ -81,6 +88,8 @@ func TestRemove_Unit(t *testing.T) {
 	assert.Equal(t, 2, len(updatedRoutes))
 	assert.Equal(t, "somebody@domain.io", updatedRoutes[1].Match[0].Headers["x-email"].GetExact())
 }
+
+
 
 func TestUpdateVirtualService_Integrated(t *testing.T) {
 	fakeIstioClient = fake.NewSimpleClientset()
@@ -203,6 +212,29 @@ func TestVirtualService_Clear_Integrated(t *testing.T) {
 }
 
 func TestBalance_Unit_PartialPercent(t *testing.T) {
+	shift := Shift {
+		Port:     8080,
+		Hostname: "host",
+		Selector: nil,
+		Traffic: Traffic{
+			Weight: 40,
+		},
+	}
+
+	balancedRoutes, err := Balance("current-subset", "new-subset", shift)
+	assert.NoError(t, err)
+	assert.Equal(t, int32(60), balancedRoutes[0].Weight)
+	assert.Equal(t, int32(40), balancedRoutes[1].Weight)
+	assert.Equal(t, "current-subset", balancedRoutes[0].Destination.GetSubset())
+	assert.Equal(t, "new-subset", balancedRoutes[1].Destination.GetSubset())
+	assert.Equal(t, "host", balancedRoutes[0].Destination.GetHost())
+	assert.Equal(t, "host", balancedRoutes[1].Destination.GetHost())
+	assert.Equal(t, uint32(8080), balancedRoutes[0].Destination.GetPort().GetNumber())
+	assert.Equal(t, uint32(8080), balancedRoutes[1].Destination.GetPort().GetNumber())
+	assert.Equal(t, 2, len(balancedRoutes))
+}
+
+func TestBalance_Unit_PartialPercentAgain(t *testing.T) {
 	shift := Shift{
 		Port:     8080,
 		Hostname: "host",
@@ -281,6 +313,47 @@ func TestPercentage_Unit_ExistentMasterRoute(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, ".+", routed[0].Match[0].Uri.GetRegex())
 	assert.Equal(t, "existent-subset", routed[0].Route[0].Destination.Subset)
+
+}
+
+
+func TestPercentage_Unit_NewMasterRouteAgain(t *testing.T) {
+	var routeList []*v1alpha3.HTTPRoute
+	routeList = []*v1alpha3.HTTPRoute{{}}
+
+	shift := Shift{
+		Port:     9999,
+		Hostname: "",
+		Selector: nil,
+		Traffic:  Traffic{},
+	}
+
+	routed, err := Percentage("unit-testing-uuid", "new-subset", routeList, shift)
+
+	assert.NoError(t, err)
+	assert.Equal(t, ".+", routed[1].Match[0].Uri.GetRegex())
+	assert.Equal(t, "new-subset", routed[1].Route[0].Destination.Subset)
+
+	routed, err = Percentage("unit-testing-uuid", "new-subset", routed, shift)
+	assert.NoError(t, err)
+	assert.Equal(t, ".+", routed[1].Match[0].Uri.GetRegex())
+	assert.Equal(t, "new-subset", routed[1].Route[0].Destination.Subset)
+
+	routed, err = Percentage("unit-testing-uuid", "new-subset", routed, shift)
+	assert.NoError(t, err)
+	assert.Equal(t, ".+", routed[1].Match[0].Uri.GetRegex())
+	assert.Equal(t, "new-subset", routed[1].Route[0].Destination.Subset)
+
+	routed, err = Percentage("unit-testing-uuid", "new-subset", routed, shift)
+	assert.NoError(t, err)
+	assert.Equal(t, ".+", routed[1].Match[0].Uri.GetRegex())
+	assert.Equal(t, "new-subset", routed[1].Route[0].Destination.Subset)
+
+	routed, err = Percentage("unit-testing-uuid", "new-subset", routed, shift)
+	assert.NoError(t, err)
+	assert.Equal(t, ".+", routed[1].Match[0].Uri.GetRegex())
+	assert.Equal(t, "new-subset", routed[1].Route[0].Destination.Subset)
+
 
 }
 
@@ -641,6 +714,68 @@ func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *t
 	assert.Equal(t, fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace), re.Spec.Http[0].Route[0].Destination.Subset)
 	assert.Equal(t, ".+", re.Spec.Http[len(re.Spec.Http)-1].Match[0].Uri.GetRegex())
 
+	// === idempotency check same rule
+
+	err = vs.Update(shift)
+	re, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(v.Name, metav1.GetOptions{})
+
+	yamlData, err = yaml.Marshal(re)
+	fmt.Println(string(yamlData))
+
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(re.Spec.Http))
+	assert.Equal(t, 1, len(re.Spec.Http[0].Route))
+	assert.Equal(t, 1, len(re.Spec.Http[0].Match))
+	assert.Equal(t, 2, len(re.Spec.Http[1].Route))
+	assert.Equal(t, 1, len(re.Spec.Http[1].Match))
+	assert.Equal(t, "old-somebody@domain.io", re.Spec.Http[0].Match[0].Headers["x-email"].GetExact())
+	assert.Equal(t, "eebba923-750f-4b71-81fe-b91e026b7221", re.Spec.Http[0].Match[0].Headers["x-token"].GetExact())
+	assert.Equal(t, fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace), re.Spec.Http[0].Route[0].Destination.Subset)
+	assert.Equal(t, ".+", re.Spec.Http[len(re.Spec.Http)-1].Match[0].Uri.GetRegex())
+	assert.Equal(t, int32(50), re.Spec.Http[1].Route[0].Weight)
+	assert.Equal(t, int32(50), re.Spec.Http[1].Route[1].Weight)
+
+	// === third check same rule
+
+	err = vs.Update(shift)
+	re, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(v.Name, metav1.GetOptions{})
+
+	yamlData, err = yaml.Marshal(re)
+	fmt.Println(string(yamlData))
+
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(re.Spec.Http))
+	assert.Equal(t, 1, len(re.Spec.Http[0].Route))
+	assert.Equal(t, 1, len(re.Spec.Http[0].Match))
+	assert.Equal(t, 2, len(re.Spec.Http[1].Route))
+	assert.Equal(t, 1, len(re.Spec.Http[1].Match))
+	assert.Equal(t, "old-somebody@domain.io", re.Spec.Http[0].Match[0].Headers["x-email"].GetExact())
+	assert.Equal(t, "eebba923-750f-4b71-81fe-b91e026b7221", re.Spec.Http[0].Match[0].Headers["x-token"].GetExact())
+	assert.Equal(t, fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace), re.Spec.Http[0].Route[0].Destination.Subset)
+	assert.Equal(t, ".+", re.Spec.Http[len(re.Spec.Http)-1].Match[0].Uri.GetRegex())
+	assert.Equal(t, int32(50), re.Spec.Http[1].Route[0].Weight)
+	assert.Equal(t, int32(50), re.Spec.Http[1].Route[1].Weight)
+
+	// == fourth check different percentage
+	shift.Traffic.Weight = 60
+	err = vs.Update(shift)
+	re, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(v.Name, metav1.GetOptions{})
+
+	yamlData, err = yaml.Marshal(re)
+	fmt.Println(string(yamlData))
+
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(re.Spec.Http))
+	assert.Equal(t, 1, len(re.Spec.Http[0].Route))
+	assert.Equal(t, 1, len(re.Spec.Http[0].Match))
+	assert.Equal(t, 2, len(re.Spec.Http[1].Route))
+	assert.Equal(t, 1, len(re.Spec.Http[1].Match))
+	assert.Equal(t, "old-somebody@domain.io", re.Spec.Http[0].Match[0].Headers["x-email"].GetExact())
+	assert.Equal(t, "eebba923-750f-4b71-81fe-b91e026b7221", re.Spec.Http[0].Match[0].Headers["x-token"].GetExact())
+	assert.Equal(t, fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace), re.Spec.Http[0].Route[0].Destination.Subset)
+	assert.Equal(t, ".+", re.Spec.Http[len(re.Spec.Http)-1].Match[0].Uri.GetRegex())
+	assert.Equal(t, int32(40), re.Spec.Http[1].Route[0].Weight)
+	assert.Equal(t, int32(60), re.Spec.Http[1].Route[1].Weight)
 }
 
 // Create

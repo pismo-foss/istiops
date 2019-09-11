@@ -188,7 +188,7 @@ func (v *VirtualService) List(selector map[string]string) (*IstioRouteList, erro
 		return nil, err
 	}
 
-	if len(vss.Items) <= 0 {
+	if vss == nil || len(vss.Items) <= 0 {
 		return nil, errors.New(fmt.Sprintf("could not find any virtualServices which matched label-selector '%v'", listOptions.LabelSelector))
 	}
 
@@ -335,6 +335,11 @@ func Percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRout
 }
 
 func ValidateVirtualServiceList(irl *IstioRouteList) error {
+
+	if irl.VList == nil {
+		return errors.New("empty virtualServices list")
+	}
+
 	if len(irl.VList.Items) == 0 {
 		return errors.New("empty virtualServices")
 	}
