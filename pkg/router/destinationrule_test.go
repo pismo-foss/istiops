@@ -5,6 +5,7 @@ import (
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
+	"istio.io/api/networking/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"log"
 	"os"
@@ -54,8 +55,49 @@ func TestUpdateDestinationRule_Integrated(t *testing.T) {
 
 }
 
-func TestDestinationRule_List(t *testing.T) {
+func TestDestinationRule_List_Integrated_Empty(t *testing.T) {
+	fakeIstioClient = fake.NewSimpleClientset()
 
+	dr := DestinationRule{
+		TrackingId: "unit-testing-tracking-id",
+		Name:       "api-testing",
+		Namespace:  "default",
+		Build:      10000,
+		Istio:      fakeIstioClient,
+	}
+
+	_, err := dr.List(map[string]string{"environment":"integration-tests"})
+	assert.EqualError(t, err, "could not find any destinationRules which matched label-selector 'environment=integration-tests'")
+}
+
+func TestDestinationRule_List_Integrated(t *testing.T) {
+	fakeIstioClient = fake.NewSimpleClientset()
+
+	dr := DestinationRule{
+		TrackingId: "unit-testing-tracking-id",
+		Name:       "api-testing",
+		Namespace:  "default",
+		Build:      10000,
+		Istio:      fakeIstioClient,
+	}
+
+	d := v1alpha32.DestinationRule{
+		Spec:       v1alpha32.DestinationRuleSpec{},
+	}
+
+	labelSelector := map[string]string {
+		"environment":"integration-tests",
+	}
+
+	d.Name = "custom-dr"
+	d.Namespace = dr.Namespace
+	d.Labels = labelSelector
+
+	_, _ = dr.Istio.NetworkingV1alpha3().DestinationRules(dr.Namespace).Create(&d)
+	irl, err := dr.List(labelSelector)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(irl.DList.Items))
+	assert.Equal(t, "custom-dr", irl.DList.Items[0].Name)
 }
 
 func TestDestinationRule_Validate_Unit(t *testing.T) {
@@ -217,6 +259,23 @@ func TestDestinationRule_Validate_Unit(t *testing.T) {
 			},
 			"nil istioClient object",
 		},
+		{DestinationRule{
+			TrackingId: "",
+			Name:       "api-test",
+			Namespace:  "arrow",
+			Build:      1,
+			Istio:      fakeIstioClient,
+		},
+			Shift{
+				Port:     8080,
+				Hostname: "api-domain",
+				Selector: map[string]string{"app": "api-domain"},
+				Traffic: Traffic{
+					PodSelector: map[string]string{"version": "1.2.3"},
+				},
+			},
+			"empty 'trackingId' attribute",
+		},
 	}
 
 	for _, tt := range cases {
@@ -249,17 +308,119 @@ func TestDestinationRule_Create_Integrated(t *testing.T) {
 	assert.Equal(t, "api-testing-10000-arrow", irl.Subset.Name)
 }
 
-func TestDestinationRule_Clear(t *testing.T) {
+func TestDestinationRule_Clear_Integrated_EmptyVirtualServiceRoutes(t *testing.T) {
 	fakeIstioClient = fake.NewSimpleClientset()
+
 	dr := DestinationRule{
 		TrackingId: "unit-testing-tracking-id",
 		Istio:      fakeIstioClient,
 	}
 
-	shift := Shift{}
+	labelSelector := map[string]string{
+		"app":         "api-test",
+		"environment": "integration-tests",
+	}
 
-	err := dr.Clear(shift)
+	// create a destinationRule object in memory
+	tdr := v1alpha32.DestinationRule{
+		Spec: v1alpha32.DestinationRuleSpec{},
+	}
+
+	tdr.Name = "integration-testing-dr"
+	tdr.Namespace = dr.Namespace
+	tdr.Labels = labelSelector
+
+	// create a virtualService object in memory
+	tvs := v1alpha32.VirtualService{
+		Spec: v1alpha32.VirtualServiceSpec{},
+	}
+	tvs.Labels = labelSelector
+
+	_, err := fakeIstioClient.NetworkingV1alpha3().DestinationRules(dr.Namespace).Create(&tdr)
+	_, err = fakeIstioClient.NetworkingV1alpha3().VirtualServices(dr.Namespace).Create(&tvs)
+
+	shift := Shift{
+		Selector: map[string]string{
+			"app":         "api-test",
+			"environment": "integration-tests",
+		},
+	}
+
+	err = dr.Clear(shift)
+	re, _ := fakeIstioClient.NetworkingV1alpha3().DestinationRules(dr.Namespace).Get(dr.Name, metav1.GetOptions{})
+
 	assert.NoError(t, err)
+	assert.Equal(t, 0, len(re.Spec.Subsets))
+}
+
+func TestDestinationRule_Clear_Integrated_ExistentVirtualServiceRoutes(t *testing.T) {
+	fakeIstioClient = fake.NewSimpleClientset()
+
+	dr := DestinationRule{
+		TrackingId: "unit-testing-tracking-id",
+		Istio:      fakeIstioClient,
+	}
+
+	labelSelector := map[string]string{
+		"app":         "api-test",
+		"environment": "integration-tests",
+	}
+
+	// create a destinationRule object in memory
+	tdr := v1alpha32.DestinationRule{
+		Spec: v1alpha32.DestinationRuleSpec{},
+	}
+
+	tdr.Name = "integration-testing-dr"
+	tdr.Namespace = dr.Namespace
+	tdr.Labels = labelSelector
+	tdr.Spec.Subsets = append(tdr.Spec.Subsets, &v1alpha3.Subset{
+		Name:                 "existent-subset",
+		Labels:               map[string]string{
+			"label": "value",
+			"version": "PR-integrated",
+		},
+	})
+
+	tdr.Spec.Subsets = append(tdr.Spec.Subsets, &v1alpha3.Subset{
+		Name:                 "subset-to-be-removed",
+		Labels:               map[string]string{
+			"label": "value2",
+			"version": "1.3.2",
+		},
+	})
+
+	// create a virtualService object in memory
+	tvs := v1alpha32.VirtualService{
+		Spec: v1alpha32.VirtualServiceSpec{},
+	}
+	tvs.Labels = labelSelector
+	tvs.Spec.Http = append(tvs.Spec.Http, &v1alpha3.HTTPRoute{})
+	tvs.Spec.Http[0].Match = append(tvs.Spec.Http[0].Match, &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}})
+	tvs.Spec.Http[0].Route = append(tvs.Spec.Http[0].Route, &v1alpha3.HTTPRouteDestination{
+		Destination:           &v1alpha3.Destination{
+			Host:                 "api-integrated-test",
+			Subset:               "existent-subset",
+		},
+	})
+
+	_, err := fakeIstioClient.NetworkingV1alpha3().DestinationRules(dr.Namespace).Create(&tdr)
+	_, err = fakeIstioClient.NetworkingV1alpha3().VirtualServices(dr.Namespace).Create(&tvs)
+
+	shift := Shift{
+		Selector: map[string]string{
+			"app":         "api-test",
+			"environment": "integration-tests",
+		},
+	}
+
+	err = dr.Clear(shift)
+	re, _ := fakeIstioClient.NetworkingV1alpha3().DestinationRules(dr.Namespace).Get(dr.Name, metav1.GetOptions{})
+
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(re.Spec.Subsets))
+	assert.Equal(t, "existent-subset", re.Spec.Subsets[0].Name)
+	assert.Equal(t, "PR-integrated", re.Spec.Subsets[0].Labels["version"])
 }
 
 func TestDestinationRule_Update_Integrated(t *testing.T) {

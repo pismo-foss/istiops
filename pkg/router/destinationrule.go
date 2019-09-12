@@ -150,8 +150,10 @@ func (d *DestinationRule) Clear(s Shift) error {
 
 			// create a new subsetList with only the active ones
 			if subsetExists {
-				logger.Info(fmt.Sprintf("found active subset rule '%s', skipping removal", subset.Name), d.TrackingId)
+				logger.Info(fmt.Sprintf("found active subset rule '%s' which will be kept", subset.Name), d.TrackingId)
 				cleanedSubsetList = append(cleanedSubsetList, subset)
+			} else {
+				logger.Info(fmt.Sprintf("found inactive subset rule '%s' to be deleted", subset.Name), d.TrackingId)
 			}
 		}
 
@@ -180,7 +182,7 @@ func (d *DestinationRule) List(selector map[string]string) (*IstioRouteList, err
 
 	drs, err := d.Istio.NetworkingV1alpha3().DestinationRules(d.Namespace).List(listOptions)
 	if err != nil {
-		return nil, err
+		return &IstioRouteList{}, err
 	}
 
 	if len(drs.Items) <= 0 {

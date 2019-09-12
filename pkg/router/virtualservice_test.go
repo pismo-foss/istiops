@@ -4,7 +4,6 @@ import (
 	"fmt"
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
-	"github.com/ghodss/yaml"
 	"github.com/stretchr/testify/assert"
 	"istio.io/api/networking/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -694,10 +693,6 @@ func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *t
 	err := vs.Update(shift)
 	re, _ := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(v.Name, metav1.GetOptions{})
 
-	var yamlData []byte
-	yamlData, err = yaml.Marshal(re)
-	fmt.Println(string(yamlData))
-
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(re.Spec.Http))
 	assert.Equal(t, 1, len(re.Spec.Http[0].Route))
@@ -713,9 +708,6 @@ func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *t
 
 	err = vs.Update(shift)
 	re, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(v.Name, metav1.GetOptions{})
-
-	yamlData, err = yaml.Marshal(re)
-	fmt.Println(string(yamlData))
 
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(re.Spec.Http))
@@ -735,9 +727,6 @@ func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *t
 	err = vs.Update(shift)
 	re, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(v.Name, metav1.GetOptions{})
 
-	yamlData, err = yaml.Marshal(re)
-	fmt.Println(string(yamlData))
-
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(re.Spec.Http))
 	assert.Equal(t, 1, len(re.Spec.Http[0].Route))
@@ -755,9 +744,6 @@ func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *t
 	shift.Traffic.Weight = 60
 	err = vs.Update(shift)
 	re, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(v.Name, metav1.GetOptions{})
-
-	yamlData, err = yaml.Marshal(re)
-	fmt.Println(string(yamlData))
 
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(re.Spec.Http))
