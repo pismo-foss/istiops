@@ -58,7 +58,7 @@ You can then run it as: `./build/istiops version`
 
 Istiops creates routing rules into virtualservices & destination rules in order to manage traffic correctly. This is an example of a routing being managed by Istio, using as default routing rule any HTTP request which matches as URI the regular expression: `'.+'`:
 
-<img src="https://github.com/pismo/istiops/blob/master/imgs/howitworks1.png" alt="">
+![HW1](./imgs/howitworks1.png)
 
 We call this `'.+'` rule as **master-route**, which it will be served as the default routing rule.
 
@@ -72,11 +72,11 @@ A deeper in the details
 
 3. Attach to an existent route rule a `request-headers` match if given
 
-<img src="https://github.com/pismo/istiops/blob/master/imgs/howitworks2.png" alt="">
+![HW2](./imgs/howitworks2.png)
 
 4. Attach to an existent route rule a `weight` if given. In case of a `weight: 100` the balance-routing will be skipped.
 
-<img src="https://github.com/pismo/istiops/blob/master/imgs/howitworks3.png" alt="">
+![HW3](./imgs/howitworks3.png)
 
 ## Using CLI
 
