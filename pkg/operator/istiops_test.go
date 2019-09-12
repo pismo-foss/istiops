@@ -36,6 +36,14 @@ type MockedResources struct {
 	Istio      *versionedClientFake.Clientset
 }
 
+type MockedErrorResources struct {
+	TrackingId string
+	Name       string
+	Namespace  string
+	Build      uint32
+	Istio      *versionedClientFake.Clientset
+}
+
 func (m MockedResources) Create(shift router.Shift) (*router.IstioRules, error) {
 	return &router.IstioRules{}, nil
 }

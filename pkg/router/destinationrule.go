@@ -87,7 +87,6 @@ func (d *DestinationRule) Update(s Shift) error {
 		subsetExists := false
 		for _, subsetValue := range dr.Spec.Subsets {
 			if subsetValue.Name == newSubset {
-				// remove item from slice
 				subsetExists = true
 			}
 		}
@@ -115,6 +114,54 @@ func (d *DestinationRule) Update(s Shift) error {
 }
 
 func (d *DestinationRule) Clear(s Shift) error {
+	v := VirtualService{
+		TrackingId: d.TrackingId,
+		Name:       d.Name,
+		Namespace:  d.Namespace,
+		Build:      d.Build,
+		Istio:      d.Istio,
+	}
+
+	vss, err := v.List(s.Selector)
+	if err != nil {
+		return err
+	}
+
+	drs, err := d.List(s.Selector)
+	if err != nil {
+		return err
+	}
+
+	var cleanedSubsetList []*v1alpha3.Subset
+
+	for _, dr := range drs.DList.Items {
+		// validate for each subset it's own existence in virtualServices
+		for _, subset := range dr.Spec.Subsets {
+			subsetExists := false
+			for _, vs := range vss.VList.Items {
+				for _, http := range vs.Spec.Http {
+					for _, route := range http.Route {
+						if subset.GetName() == route.Destination.Subset {
+							subsetExists = true
+						}
+					}
+				}
+			}
+
+			// create a new subsetList with only the active ones
+			if subsetExists {
+				logger.Info(fmt.Sprintf("found active subset rule '%s', skipping removal", subset.Name), d.TrackingId)
+				cleanedSubsetList = append(cleanedSubsetList, subset)
+			}
+		}
+
+		dr.Spec.Subsets = cleanedSubsetList
+		err = UpdateDestinationRule(d, &dr)
+		if err != nil {
+			logger.Error(fmt.Sprintf("could not update destinationRule '%s' due to error '%s'", dr.Name, err), d.TrackingId)
+			return err
+		}
+	}
 
 	return nil
 }

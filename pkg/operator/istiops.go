@@ -88,6 +88,9 @@ func (ips *Istiops) Clear(shift router.Shift) error {
 	VsRouter := ips.VsRouter
 	var err error
 
+	// to bypass
+	shift.Traffic.RequestHeaders = map[string]string{"clear": "true"}
+
 	err = VsRouter.Validate(shift)
 	if err != nil {
 		return err

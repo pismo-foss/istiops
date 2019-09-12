@@ -256,7 +256,7 @@ func Balance(currentSubset string, newSubset string, s Shift) ([]*v1alpha3.HTTPR
 	return routeBalanced, nil
 }
 
-// remove will return a slice without an element given an index
+// remove will return a slice of Routes without an element given an index
 func Remove(slice []*v1alpha3.HTTPRoute, index int) []*v1alpha3.HTTPRoute {
 	return append(slice[:index], slice[index+1:]...)
 }
