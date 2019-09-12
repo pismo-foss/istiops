@@ -62,7 +62,7 @@ func TestDestinationRule_List_Integrated_Empty(t *testing.T) {
 		Istio:      fakeIstioClient,
 	}
 
-	irl, err := dr.List(map[string]string{"environment":"integration-tests"})
+	irl, err := dr.List(map[string]string{"environment": "integration-tests"})
 	assert.EqualError(t, err, "could not find any destinationRules which matched label-selector 'environment=integration-tests'")
 	assert.Nil(t, irl)
 }
@@ -79,11 +79,11 @@ func TestDestinationRule_List_Integrated(t *testing.T) {
 	}
 
 	d := v1alpha32.DestinationRule{
-		Spec:       v1alpha32.DestinationRuleSpec{},
+		Spec: v1alpha32.DestinationRuleSpec{},
 	}
 
-	labelSelector := map[string]string {
-		"environment":"integration-tests",
+	labelSelector := map[string]string{
+		"environment": "integration-tests",
 	}
 
 	d.Name = "custom-dr"
@@ -372,17 +372,17 @@ func TestDestinationRule_Clear_Integrated_ExistentVirtualServiceRoutes(t *testin
 	tdr.Namespace = dr.Namespace
 	tdr.Labels = labelSelector
 	tdr.Spec.Subsets = append(tdr.Spec.Subsets, &v1alpha3.Subset{
-		Name:                 "existent-subset",
-		Labels:               map[string]string{
-			"label": "value",
+		Name: "existent-subset",
+		Labels: map[string]string{
+			"label":   "value",
 			"version": "PR-integrated",
 		},
 	})
 
 	tdr.Spec.Subsets = append(tdr.Spec.Subsets, &v1alpha3.Subset{
-		Name:                 "subset-to-be-removed",
-		Labels:               map[string]string{
-			"label": "value2",
+		Name: "subset-to-be-removed",
+		Labels: map[string]string{
+			"label":   "value2",
 			"version": "1.3.2",
 		},
 	})
@@ -395,9 +395,9 @@ func TestDestinationRule_Clear_Integrated_ExistentVirtualServiceRoutes(t *testin
 	tvs.Spec.Http = append(tvs.Spec.Http, &v1alpha3.HTTPRoute{})
 	tvs.Spec.Http[0].Match = append(tvs.Spec.Http[0].Match, &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}})
 	tvs.Spec.Http[0].Route = append(tvs.Spec.Http[0].Route, &v1alpha3.HTTPRouteDestination{
-		Destination:           &v1alpha3.Destination{
-			Host:                 "api-integrated-test",
-			Subset:               "existent-subset",
+		Destination: &v1alpha3.Destination{
+			Host:   "api-integrated-test",
+			Subset: "existent-subset",
 		},
 	})
 

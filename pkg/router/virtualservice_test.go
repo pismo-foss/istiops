@@ -777,7 +777,7 @@ func TestVirtualService_List_Integrated(t *testing.T) {
 
 	_, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&v)
 
-	irl, err := vs.List(map[string]string{"environment":"integration-tests"})
+	irl, err := vs.List(map[string]string{"environment": "integration-tests"})
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(irl.VList.Items))
 	assert.Equal(t, "api-testing", irl.VList.Items[0].Name)
@@ -794,7 +794,7 @@ func TestVirtualService_List_Integrated_Empty(t *testing.T) {
 		Istio:      fakeIstioClient,
 	}
 
-	irl, err := vs.List(map[string]string{"environment":"integration-tests"})
+	irl, err := vs.List(map[string]string{"environment": "integration-tests"})
 	assert.EqualError(t, err, "could not find any virtualServices which matched label-selector 'environment=integration-tests'")
 	assert.Nil(t, irl)
 }
@@ -814,9 +814,9 @@ func TestVirtualService_Create_Unit_EmptyHeaders(t *testing.T) {
 	shift := Shift{
 		Port:     8080,
 		Hostname: "myHostname",
-		Traffic:  Traffic{
-			RequestHeaders: map[string]string {},
-			Weight: 30,
+		Traffic: Traffic{
+			RequestHeaders: map[string]string{},
+			Weight:         30,
 		},
 	}
 
@@ -839,9 +839,9 @@ func TestVirtualService_Create_Unit_HeadersAndWeight(t *testing.T) {
 		Port:     8080,
 		Hostname: "myHostname",
 		Selector: map[string]string{},
-		Traffic:  Traffic{
-			RequestHeaders: map[string]string {
-				"app": "test",
+		Traffic: Traffic{
+			RequestHeaders: map[string]string{
+				"app":     "test",
 				"x-email": "some@domain.io",
 			},
 			Weight: 30,

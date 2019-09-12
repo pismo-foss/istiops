@@ -12,9 +12,11 @@ import (
 
 func main() {
 
+	var istioClient router.IstioClientInterface
+
 	kubeConfigPath := homedir.HomeDir() + "/.kube/config"
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
-	istioClient, err := versioned.NewForConfig(config)
+	istioClient, err = versioned.NewForConfig(config)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -29,35 +31,31 @@ func main() {
 	metadataNamespace = "default"
 	build = 1
 
-	ic := router.Client{
-		Versioned: istioClient,
-	}
-
-	var dr router.Router
+	var dr operator.Router
 	dr = &router.DestinationRule{
 		TrackingId: trackingId,
 		Name:       metadataName,
 		Namespace:  metadataNamespace,
 		Build:      build,
-		Istio:      ic,
+		Istio:      istioClient,
 	}
 
-	var vs router.Router
+	var vs operator.Router
 	vs = &router.VirtualService{
 		TrackingId: trackingId,
 		Name:       metadataName,
 		Namespace:  metadataNamespace,
 		Build:      build,
-		Istio:      ic,
+		Istio:      istioClient,
 	}
 
-	shift := &router.Shift{
+	shift := router.Shift{
 		Port:     5000,
 		Hostname: "api.domain.io",
-		Selector: &router.Selector{
-			Labels: map[string]string{"environment": "pipeline-go"},
+		Selector: map[string]string{
+			"environment": "pipeline-go",
 		},
-		Traffic: &router.Traffic{
+		Traffic: router.Traffic{
 			PodSelector: map[string]string{
 				"app":     "api",
 				"version": "1.3.2",
