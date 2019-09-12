@@ -759,6 +759,100 @@ func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *t
 	assert.Equal(t, int32(60), re.Spec.Http[1].Route[1].Weight)
 }
 
-// Create
+func TestVirtualService_List_Integrated(t *testing.T) {
+	fakeIstioClient = fake.NewSimpleClientset()
 
-// List
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      2,
+		Istio:      fakeIstioClient,
+	}
+
+	v := v1alpha32.VirtualService{Spec: v1alpha32.VirtualServiceSpec{}}
+	v.Name = vs.Name
+	v.Namespace = vs.Namespace
+	v.Labels = map[string]string{"environment": "integration-tests"}
+
+	_, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&v)
+
+	irl, err := vs.List(map[string]string{"environment":"integration-tests"})
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(irl.VList.Items))
+	assert.Equal(t, "api-testing", irl.VList.Items[0].Name)
+}
+
+func TestVirtualService_List_Integrated_Empty(t *testing.T) {
+	fakeIstioClient = fake.NewSimpleClientset()
+
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      2,
+		Istio:      fakeIstioClient,
+	}
+
+	irl, err := vs.List(map[string]string{"environment":"integration-tests"})
+	assert.EqualError(t, err, "could not find any virtualServices which matched label-selector 'environment=integration-tests'")
+	assert.Nil(t, irl)
+}
+
+// Create
+func TestVirtualService_Create_Unit_EmptyHeaders(t *testing.T) {
+	fakeIstioClient = fake.NewSimpleClientset()
+
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      2,
+		Istio:      fakeIstioClient,
+	}
+
+	shift := Shift{
+		Port:     8080,
+		Hostname: "myHostname",
+		Traffic:  Traffic{
+			RequestHeaders: map[string]string {},
+			Weight: 30,
+		},
+	}
+
+	_, err := vs.Create(shift)
+	assert.Error(t, err, "can't create a new route without request header's match")
+}
+
+func TestVirtualService_Create_Unit_HeadersAndWeight(t *testing.T) {
+	fakeIstioClient = fake.NewSimpleClientset()
+
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      15999999,
+		Istio:      fakeIstioClient,
+	}
+
+	shift := Shift{
+		Port:     8080,
+		Hostname: "myHostname",
+		Selector: map[string]string{},
+		Traffic:  Traffic{
+			RequestHeaders: map[string]string {
+				"app": "test",
+				"x-email": "some@domain.io",
+			},
+			Weight: 30,
+		},
+	}
+
+	ir, err := vs.Create(shift)
+	assert.NoError(t, err)
+	assert.Equal(t, int32(0), ir.MatchDestination.Route[0].GetWeight())
+	assert.Equal(t, "api-testing-15999999-integration", ir.MatchDestination.Route[0].Destination.Subset)
+	assert.Equal(t, "test", ir.MatchDestination.Match[0].Headers["app"].GetExact())
+	assert.Equal(t, "some@domain.io", ir.MatchDestination.Match[0].Headers["x-email"].GetExact())
+
+}

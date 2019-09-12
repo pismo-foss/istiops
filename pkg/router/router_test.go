@@ -8,32 +8,12 @@ import (
 var fakeIstioClient IstioClientInterface
 
 func TestStringify_Unit(t *testing.T) {
-	cases := []struct {
-		mapSelector map[string]string
-		want        string
-	}{
-		{
-			map[string]string{
-				"app":  "api-domain",
-				"role": "aws/my-role",
-			},
-			"app=api-domain,role=aws/my-role",
-		},
-		{
-			map[string]string{
-				"app":     "api-domain",
-				"version": "2.1.3'",
-				"role":    "aws/my-role",
-			},
-			"app=api-domain,version=2.1.3',role=aws/my-role",
-		},
-	}
+	mapSelector := map[string]string{}
+	mapSelector["app"] = "api-domain"
 
-	for _, tt := range cases {
-		stringified, err := Stringify("", tt.mapSelector)
-		assert.Equal(t, tt.want, stringified)
-		assert.NoError(t, err)
-	}
+	stringified, err := Stringify("integration-tests-uuid", mapSelector)
+	assert.NoError(t, err)
+	assert.Equal(t, "app=api-domain", stringified)
 }
 
 func TestStringify_Unit_EmptyLabelSelector(t *testing.T) {

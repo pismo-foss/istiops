@@ -51,10 +51,6 @@ func TestValidateDestinationRuleList_Unit_EmptyItems(t *testing.T) {
 	assert.EqualError(t, err, "empty destinationRules")
 }
 
-func TestUpdateDestinationRule_Integrated(t *testing.T) {
-
-}
-
 func TestDestinationRule_List_Integrated_Empty(t *testing.T) {
 	fakeIstioClient = fake.NewSimpleClientset()
 
@@ -66,8 +62,9 @@ func TestDestinationRule_List_Integrated_Empty(t *testing.T) {
 		Istio:      fakeIstioClient,
 	}
 
-	_, err := dr.List(map[string]string{"environment":"integration-tests"})
+	irl, err := dr.List(map[string]string{"environment":"integration-tests"})
 	assert.EqualError(t, err, "could not find any destinationRules which matched label-selector 'environment=integration-tests'")
+	assert.Nil(t, irl)
 }
 
 func TestDestinationRule_List_Integrated(t *testing.T) {
@@ -302,10 +299,10 @@ func TestDestinationRule_Create_Integrated(t *testing.T) {
 		},
 	}
 
-	irl, err := dr.Create(shift)
-	assert.NotNil(t, irl)
+	ir, err := dr.Create(shift)
+	assert.NotNil(t, ir)
 	assert.NoError(t, err)
-	assert.Equal(t, "api-testing-10000-arrow", irl.Subset.Name)
+	assert.Equal(t, "api-testing-10000-arrow", ir.Subset.Name)
 }
 
 func TestDestinationRule_Clear_Integrated_EmptyVirtualServiceRoutes(t *testing.T) {
