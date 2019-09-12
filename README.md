@@ -27,7 +27,7 @@ Istio Traffic Shifter (a.k.a `istiops`) is a tool to manage traffic for microser
 
 `go test ./... -v`
 
-Or you can use Docker as well to not mess with your system
+Or you can use Docker as well in order to not mess with your system
 
 ```shell script
 docker build . -f Dockerfile.test -t istiops-tests
