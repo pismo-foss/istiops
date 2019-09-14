@@ -18,6 +18,7 @@ type Istiops struct {
 	VsRouter Router
 }
 
+// Get will return a list of istio resources: destinationRules & virtualServices
 func (ips *Istiops) Get(selector map[string]string) (router.IstioRouteList, error) {
 	DrRouter := ips.DrRouter
 	dsl, err := DrRouter.List(selector)
@@ -48,6 +49,7 @@ func (ips *Istiops) Get(selector map[string]string) (router.IstioRouteList, erro
 	return ivl, nil
 }
 
+// Update will update (and create if not exists) a route rule based on given Shift struct
 func (ips *Istiops) Update(shift router.Shift) error {
 	if len(shift.Selector) == 0 {
 		return errors.New("label-selector must exists in need to find resources")
@@ -81,8 +83,7 @@ func (ips *Istiops) Update(shift router.Shift) error {
 	return nil
 }
 
-// ClearRules will remove any destination & virtualService rules except the main one (provided by client).
-// Ex: URI or Prefix
+// ClearRules will remove any destination & virtualService route rules except the main one (provided by client).
 func (ips *Istiops) Clear(shift router.Shift) error {
 	DrRouter := ips.DrRouter
 	VsRouter := ips.VsRouter

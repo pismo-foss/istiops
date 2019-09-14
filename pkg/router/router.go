@@ -40,7 +40,7 @@ type IstioRouteList struct {
 	DList *v1alpha32.DestinationRuleList
 }
 
-// StringifyLabelSelector returns a k8s selector string based on given map. Ex: "key=value,key2=value2"
+// Stringify returns a k8s selector string based on given map. Ex: "map[key] = value -> key=value"
 func Stringify(cid string, labelSelector map[string]string) (string, error) {
 
 	var labelsPair []string
@@ -56,6 +56,7 @@ func Stringify(cid string, labelSelector map[string]string) (string, error) {
 	return strings.Join(labelsPair[:], ","), nil
 }
 
+// Stringify returns a map based on given string. Ex: "key=value -> map[key] = value"
 func Mapify(cid string, labelSelector string) (map[string]string, error) {
 	mapLabels := map[string]string{}
 
