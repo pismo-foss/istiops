@@ -16,16 +16,10 @@ func main() {
 	var istioClient router.IstioClientInterface
 
 	kubeConfigPath := homedir.HomeDir() + "/.kube/config"
-	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
-	istioClient, err = versioned.NewForConfig(config)
+	istioClient, err = client.New(kubeConfigPath)
 	if err != nil {
 		panic(err.Error())
 	}
-
-	var build uint32
-	var trackingId string
-	var metadataName string
-	var metadataNamespace string
 
 	// generate random uuid
 	uuid, err := uuid.NewUUID()
@@ -45,7 +39,7 @@ func main() {
 		Name:       metadataName,
 		Namespace:  metadataNamespace,
 		Build:      build,
-		Istio:      istioClient,
+		Istio:      istioNew,
 	}
 
 	var vs operator.Router
