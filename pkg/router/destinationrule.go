@@ -18,101 +18,8 @@ type DestinationRule struct {
 	Istio      IstioClientInterface
 }
 
-func (d *DestinationRule) Create(s Shift) (*IstioRules, error) {
-	newSubset := &v1alpha3.Subset{
-		Name:   fmt.Sprintf("%s-%v-%s", d.Name, d.Build, d.Namespace),
-		Labels: s.Traffic.PodSelector,
-	}
 
-	irl := &IstioRules{
-		Subset: newSubset,
-	}
-	return irl, nil
-}
-
-func (d *DestinationRule) Validate(s Shift) error {
-	if d.Name == "" {
-		return errors.New("empty 'name' attribute")
-	}
-
-	if d.Namespace == "" {
-		return errors.New("empty 'namespace' attribute")
-	}
-
-	if d.Build == 0 {
-		return errors.New("empty 'build' attribute")
-	}
-
-	if d.TrackingId == "" {
-		return errors.New("empty 'trackingId' attribute")
-	}
-
-	if d.Istio == nil {
-		return errors.New("nil istioClient object")
-	}
-
-	if len(s.Selector) == 0 {
-		return errors.New("empty label-selector")
-	}
-
-	if s.Port == 0 {
-		return errors.New("empty port")
-	}
-
-	if s.Port < 1023 {
-		return errors.New("port not in range 1024 - 65535")
-	}
-
-	if s.Port > 65535 {
-		return errors.New("port not in range 1024 - 65535")
-	}
-
-	if len(s.Traffic.PodSelector) == 0 {
-		return errors.New("empty pod selector")
-	}
-
-	return nil
-
-}
-
-func (d *DestinationRule) Update(s Shift) error {
-	newSubset := fmt.Sprintf("%s-%v-%s", d.Name, d.Build, d.Namespace)
-
-	drs, err := d.List(s.Selector)
-	if err != nil {
-		return err
-	}
-
-	for _, dr := range drs.DList.Items {
-		subsetExists := false
-		for _, subsetValue := range dr.Spec.Subsets {
-			if subsetValue.Name == newSubset {
-				subsetExists = true
-			}
-		}
-
-		if !subsetExists {
-			irl, err := d.Create(s)
-			if err != nil {
-				logger.Error(fmt.Sprintf("could not create subset due to error '%s'", err), d.TrackingId)
-				return err
-			}
-
-			dr.Spec.Subsets = append(dr.Spec.Subsets, irl.Subset)
-
-			err = UpdateDestinationRule(d, &dr)
-			if err != nil {
-				logger.Error(fmt.Sprintf("could not update destinationRule '%s' due to error '%s'", dr.Name, err), d.TrackingId)
-				return err
-			}
-		} else {
-			logger.Info(fmt.Sprintf("subset '%s'already created", newSubset), d.TrackingId)
-		}
-	}
-
-	return nil
-}
-
+// Clear will remove any subset which are not used by a virtualService given a k8s labelSelector
 func (d *DestinationRule) Clear(s Shift) error {
 	v := VirtualService{
 		TrackingId: d.TrackingId,
@@ -168,6 +75,107 @@ func (d *DestinationRule) Clear(s Shift) error {
 	return nil
 }
 
+// Create returns a new subset to be posterior appended to destinationRules
+func (d *DestinationRule) Create(s Shift) (*IstioRules, error) {
+	newSubset := &v1alpha3.Subset{
+		Name:   fmt.Sprintf("%s-%v-%s", d.Name, d.Build, d.Namespace),
+		Labels: s.Traffic.PodSelector,
+	}
+
+	irl := &IstioRules{
+		Subset: newSubset,
+	}
+	return irl, nil
+}
+
+// Validate checks if DestinationRule and Shift objects are correctly filled up
+func (d *DestinationRule) Validate(s Shift) error {
+	if d.Name == "" {
+		return errors.New("empty 'name' attribute")
+	}
+
+	if d.Namespace == "" {
+		return errors.New("empty 'namespace' attribute")
+	}
+
+	if d.Build == 0 {
+		return errors.New("empty 'build' attribute")
+	}
+
+	if d.TrackingId == "" {
+		return errors.New("empty 'trackingId' attribute")
+	}
+
+	if d.Istio == nil {
+		return errors.New("nil istioClient object")
+	}
+
+	if len(s.Selector) == 0 {
+		return errors.New("empty label-selector")
+	}
+
+	if s.Port == 0 {
+		return errors.New("empty port")
+	}
+
+	if s.Port < 1023 {
+		return errors.New("port not in range 1024 - 65535")
+	}
+
+	if s.Port > 65535 {
+		return errors.New("port not in range 1024 - 65535")
+	}
+
+	if len(s.Traffic.PodSelector) == 0 {
+		return errors.New("empty pod selector")
+	}
+
+	return nil
+
+}
+
+/* Update a destinationRule with an existent subset based on Shift object
+or just create a new one (based on Create() method)
+*/
+func (d *DestinationRule) Update(s Shift) error {
+	newSubset := fmt.Sprintf("%s-%v-%s", d.Name, d.Build, d.Namespace)
+
+	drs, err := d.List(s.Selector)
+	if err != nil {
+		return err
+	}
+
+	for _, dr := range drs.DList.Items {
+		subsetExists := false
+		for _, subsetValue := range dr.Spec.Subsets {
+			if subsetValue.Name == newSubset {
+				subsetExists = true
+			}
+		}
+
+		if !subsetExists {
+			irl, err := d.Create(s)
+			if err != nil {
+				logger.Error(fmt.Sprintf("could not create subset due to error '%s'", err), d.TrackingId)
+				return err
+			}
+
+			dr.Spec.Subsets = append(dr.Spec.Subsets, irl.Subset)
+
+			err = UpdateDestinationRule(d, &dr)
+			if err != nil {
+				logger.Error(fmt.Sprintf("could not update destinationRule '%s' due to error '%s'", dr.Name, err), d.TrackingId)
+				return err
+			}
+		} else {
+			logger.Info(fmt.Sprintf("subset '%s'already created", newSubset), d.TrackingId)
+		}
+	}
+
+	return nil
+}
+
+// List will return all destinationRules which matches a k8s labelSelector
 func (d *DestinationRule) List(selector map[string]string) (*IstioRouteList, error) {
 	logger.Info(fmt.Sprintf("Getting destinationRules which matches label-selector '%s'", selector), d.TrackingId)
 
@@ -206,6 +214,7 @@ func UpdateDestinationRule(d *DestinationRule, destinationRule *v1alpha32.Destin
 	return nil
 }
 
+// ValidateDestinationRuleList checks for inconsistencies in IstioRouteList.DList
 func ValidateDestinationRuleList(irl *IstioRouteList) error {
 	if len(irl.DList.Items) == 0 {
 		return errors.New("empty destinationRules")

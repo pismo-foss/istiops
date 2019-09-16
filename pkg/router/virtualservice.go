@@ -17,6 +17,7 @@ type VirtualService struct {
 	Istio      IstioClientInterface
 }
 
+// Clear will remove any virtualService's routes which are not master ones given a k8s labelSelector
 func (v *VirtualService) Clear(s Shift) error {
 	vss, err := v.List(s.Selector)
 	if err != nil {
@@ -52,6 +53,7 @@ func (v *VirtualService) Clear(s Shift) error {
 	return nil
 }
 
+// Create returns a new route to be posterior appended to virtualService
 func (v *VirtualService) Create(s Shift) (*IstioRules, error) {
 	subsetName := fmt.Sprintf("%s-%v-%s", v.Name, v.Build, v.Namespace)
 
@@ -98,6 +100,7 @@ func (v *VirtualService) Create(s Shift) (*IstioRules, error) {
 	return &ir, nil
 }
 
+// Validate checks if VirtualService and Shift objects are correctly filled up
 func (v *VirtualService) Validate(s Shift) error {
 	if s.Traffic.Weight != 0 && len(s.Traffic.RequestHeaders) > 0 {
 		return errors.New("a route needs to be served with a 'weight' or 'request headers', not both")
@@ -111,6 +114,10 @@ func (v *VirtualService) Validate(s Shift) error {
 
 }
 
+/* Update a virtualService with an existent route based on Shift object
+or just create a new one (based on Create() method). The traffic will be balanced
+based on Shift object with the inclusion of Weight or RequestHeaders attributes
+*/
 func (v *VirtualService) Update(s Shift) error {
 	subsetName := fmt.Sprintf("%s-%v-%s", v.Name, v.Build, v.Namespace)
 
@@ -172,6 +179,7 @@ func (v *VirtualService) Update(s Shift) error {
 
 }
 
+// List will return all virtualServices which matches a k8s labelSelector
 func (v *VirtualService) List(selector map[string]string) (*IstioRouteList, error) {
 	logger.Info(fmt.Sprintf("Getting virtualServices which matches label-selector '%s'", selector), v.TrackingId)
 	stringified, err := Stringify(v.TrackingId, selector)
@@ -212,7 +220,7 @@ func UpdateVirtualService(vs *VirtualService, virtualService *v1alpha32.VirtualS
 	return nil
 }
 
-// balance returns a RouteDestination with balanced weight
+// Balance returns a RouteDestination with balanced weight to be posterior appended to a virtualService
 func Balance(currentSubset string, newSubset string, s Shift) ([]*v1alpha3.HTTPRouteDestination, error) {
 	var routeBalanced []*v1alpha3.HTTPRouteDestination
 
@@ -256,12 +264,12 @@ func Balance(currentSubset string, newSubset string, s Shift) ([]*v1alpha3.HTTPR
 	return routeBalanced, nil
 }
 
-// remove will return a slice of Routes without an element given an index
+// Remove will return a slice of Routes without an element given an index
 func Remove(slice []*v1alpha3.HTTPRoute, index int) []*v1alpha3.HTTPRoute {
 	return append(slice[:index], slice[index+1:]...)
 }
 
-// percentage set weight routing to a set of (or unique) virtualServices
+// Percentage set weight routing to a set of (or unique) virtualServices to be posterior appended to a virtualService
 func Percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRoute, s Shift) ([]*v1alpha3.HTTPRoute, error) {
 	// Finding master route (URI match)
 	var masterRouteCounter int
@@ -337,8 +345,8 @@ func Percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRout
 	return httpRoute, nil
 }
 
+// ValidateVirtualServiceList checks for inconsistencies in IstioRouteList.VList
 func ValidateVirtualServiceList(irl *IstioRouteList) error {
-
 	if irl.VList == nil {
 		return errors.New("empty virtualServices list")
 	}
