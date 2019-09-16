@@ -679,7 +679,7 @@ func TestRemoveOutdatedRoutes_Unit(t *testing.T) {
 			Subset:               subsetName,
 		},
 	})
-	routeKept = append(route, &v1alpha3.HTTPRouteDestination{
+	routeKept = append(routeKept, &v1alpha3.HTTPRouteDestination{
 		Destination:          &v1alpha3.Destination{
 			Host:                 "host-kept-test",
 			Subset:               "subset-kept",
@@ -701,22 +701,26 @@ func TestRemoveOutdatedRoutes_Unit(t *testing.T) {
 		Route:                 routeKept,
 	})
 
-	t.Log(httpRoute)
-
 	cleanedRoutes, err := RemoveOutdatedRoutes(vs.TrackingId, subsetName, httpRoute)
-	t.Log(cleanedRoutes[0].Route[0].Destination.Subset)
-
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(cleanedRoutes))
 	assert.Equal(t, "subset-kept", cleanedRoutes[0].Route[0].Destination.Subset)
 	assert.Equal(t, ".+", cleanedRoutes[len(cleanedRoutes)-1].Match[0].Uri.GetRegex())
 
-	// validating idempotence
-	cleanedRoutes, err = RemoveOutdatedRoutes(vs.TrackingId, subsetName, httpRoute)
+	// testing idempotence
+	cleanedRoutes, err = RemoveOutdatedRoutes(vs.TrackingId, subsetName, cleanedRoutes)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(cleanedRoutes))
 	assert.Equal(t, "subset-kept", cleanedRoutes[0].Route[0].Destination.Subset)
 	assert.Equal(t, ".+", cleanedRoutes[len(cleanedRoutes)-1].Match[0].Uri.GetRegex())
+
+	// testing idempotence
+	cleanedRoutes, err = RemoveOutdatedRoutes(vs.TrackingId, subsetName, cleanedRoutes)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(cleanedRoutes))
+	assert.Equal(t, "subset-kept", cleanedRoutes[0].Route[0].Destination.Subset)
+	assert.Equal(t, ".+", cleanedRoutes[len(cleanedRoutes)-1].Match[0].Uri.GetRegex())
+
 }
 
 func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *testing.T) {

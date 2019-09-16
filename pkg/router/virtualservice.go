@@ -291,6 +291,8 @@ func RemoveOutdatedRoutes(trackingId string, subset string, httpRoute []*v1alpha
 		}
 	}
 
+	cleanedRoutes = noMasterRoutes
+
 	// for the cleaned HTTPRoute, every route with the given subset must be removed
 	for httpKey, httpValue := range noMasterRoutes {
 		for _, routeValue := range httpValue.Route {
