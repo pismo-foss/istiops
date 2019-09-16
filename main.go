@@ -1,104 +1,22 @@
+/*
+Copyright © 2019 NAME HERE <EMAIL ADDRESS>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package main
 
-import (
-	"fmt"
-	"github.com/google/uuid"
-	"github.com/pismo/istiops/pkg/client"
-	"github.com/pismo/istiops/pkg/logger"
-	"github.com/pismo/istiops/pkg/operator"
-	"github.com/pismo/istiops/pkg/router"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/util/homedir"
-)
+import "github.com/pismo/istiops/cmd"
 
 func main() {
-	kubeConfigPath := homedir.HomeDir() + "/.kube/config"
-	clients, err := client.New(kubeConfigPath)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	// generate random uuid
-	uuid, err := uuid.NewUUID()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	var build uint32
-	trackingId := uuid.String()
-	metadataName := "api-xpto"
-	metadataNamespace := "default"
-	build = 27
-
-	var dr operator.Router
-	dr = &router.DestinationRule{
-		TrackingId: trackingId,
-		Name:       metadataName,
-		Namespace:  metadataNamespace,
-		Build:      build,
-		Istio:      clients.Istio,
-	}
-
-	var vs operator.Router
-	vs = &router.VirtualService{
-		TrackingId: trackingId,
-		Name:       metadataName,
-		Namespace:  metadataNamespace,
-		Build:      build,
-		Istio:      clients.Istio,
-	}
-
-	vs2 := &router.VirtualService{
-		TrackingId: trackingId,
-		Name:       metadataName,
-		Namespace:  metadataNamespace,
-		Build:      build,
-		Istio:      clients.Istio,
-	}
-
-	vs4, _ := vs2.Istio.NetworkingV1alpha3().DestinationRules(vs2.Namespace).List(v1.ListOptions{})
-	fmt.Println(vs4)
-
-	shift := router.Shift{
-		Port:     5000,
-		Hostname: "api.domain.io",
-		Selector: map[string]string{"environment": "pipeline-go"},
-		Traffic: router.Traffic{
-			PodSelector: map[string]string{
-				"app":     "api",
-				"version": "1.3.3",
-				"build":   "24",
-			},
-			//RequestHeaders: map[string]string{
-			//	"x-version":    "PR-142",
-			//	"x-account-id": "233",
-			//},
-			Weight: 10,
-		},
-	}
-
-	var op operator.Operator
-	op = &operator.Istiops{
-		DrRouter: dr,
-		VsRouter: vs,
-	}
-
-	// get current route-rules
-	//_, err = op.Get()
-	//if err != nil {
-	//	logger.Fatal(fmt.Sprintf("%s", err), trackingId)
-	//}
-
-	// clear all routes + subsets
-	//err = op.Clear(shift)
-	//if err != nil {
-	//	logger.Fatal(fmt.Sprintf("%s", err), trackingId)
-	//}
-
-	// Update a route
-	err = op.Update(shift)
-	if err != nil {
-		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
-	}
-
+	cmd.Execute()
 }
