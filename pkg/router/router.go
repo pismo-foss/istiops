@@ -56,7 +56,7 @@ func Stringify(cid string, labelSelector map[string]string) (string, error) {
 	return strings.Join(labelsPair[:], ","), nil
 }
 
-// Stringify returns a map based on given string. Ex: "key=value -> map[key] = value"
+// Mapify returns a map based on given string. Ex: "key=value -> map[key] = value"
 func Mapify(cid string, labelSelector string) (map[string]string, error) {
 	mapLabels := map[string]string{}
 
