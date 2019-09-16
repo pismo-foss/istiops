@@ -90,7 +90,7 @@ var shiftCmd = &cobra.Command{
 			Name:       destinationSplitted[0],
 			Namespace:  namespace,
 			Build:      uint32(buildInt),
-			Istio:      istioClient,
+			Istio:      clients.Istio,
 		}
 
 		vsR := router.VirtualService{
@@ -98,7 +98,7 @@ var shiftCmd = &cobra.Command{
 			Name:       destinationSplitted[0],
 			Namespace:  namespace,
 			Build:      uint32(buildInt),
-			Istio:      istioClient,
+			Istio:      clients.Istio,
 		}
 
 		shift := router.Shift{

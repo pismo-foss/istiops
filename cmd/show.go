@@ -219,13 +219,13 @@ var showCmd = &cobra.Command{
 		drR := &router.DestinationRule{
 			TrackingId: trackingId,
 			Namespace:  namespace,
-			Istio:      istioClient,
+			Istio:      clients.Istio,
 		}
 
 		vsR := &router.VirtualService{
 			TrackingId: trackingId,
 			Namespace:  namespace,
-			Istio:      istioClient,
+			Istio:      clients.Istio,
 		}
 
 		shift := router.Shift{

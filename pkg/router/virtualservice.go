@@ -159,7 +159,12 @@ func (v *VirtualService) Update(s Shift) error {
 			logger.Info("Found existent rule created for virtualService, skipping creation", v.TrackingId)
 
 			if s.Traffic.Weight > 0 {
-				httpRoutes, err := Percentage(v.TrackingId, subsetName, vs.Spec.Http, s)
+				httpRoutesNoHeaders, err := RemoveOutdatedRoutes(v.TrackingId, subsetName, vs.Spec.Http)
+				if err != nil {
+					return err
+				}
+
+				httpRoutes, err := Percentage(v.TrackingId, subsetName, httpRoutesNoHeaders, s)
 				if err != nil {
 					return err
 				}
@@ -264,20 +269,64 @@ func Balance(currentSubset string, newSubset string, s Shift) ([]*v1alpha3.HTTPR
 	return routeBalanced, nil
 }
 
-// Remove will return a slice of Routes without an element given an index
+// Remove returns a slice of Routes without an element given an index
 func Remove(slice []*v1alpha3.HTTPRoute, index int) []*v1alpha3.HTTPRoute {
 	return append(slice[:index], slice[index+1:]...)
 }
 
-// Percentage set weight routing to a set of (or unique) virtualServices to be posterior appended to a virtualService
+// RemoveOutdatedRoutes returns a slice without any route which matches the given subset
+func RemoveOutdatedRoutes(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRoute) ([]*v1alpha3.HTTPRoute, error){
+	var noMasterRoutes []*v1alpha3.HTTPRoute
+	var masterRoute *v1alpha3.HTTPRoute
+	var cleanedRoutes []*v1alpha3.HTTPRoute
+
+	// get a HTTPRoute without a master route to be posterior cleaned
+	for httpKey, httpValue := range httpRoute {
+		// remove request header route based on subset to avoid non-used rules persisted
+		for _, matchValue := range httpValue.Match {
+			if matchValue.Uri.GetRegex() == ".+" {
+				masterRoute = httpRoute[httpKey]
+				noMasterRoutes = Remove(httpRoute, httpKey)
+			}
+		}
+	}
+
+	// for the cleaned HTTPRoute, every route with the given subset must be removed
+	for httpKey, httpValue := range noMasterRoutes {
+		for _, routeValue := range httpValue.Route {
+			if routeValue.Destination.Subset == subset {
+				fmt.Println(noMasterRoutes)
+				logger.Info(fmt.Sprintf("removing outdated rule for '%s' subset in order to weight routing", subset), trackingId)
+				cleanedRoutes = Remove(noMasterRoutes, httpKey)
+			}
+		}
+	}
+
+	cleanedRoutes = append(cleanedRoutes, masterRoute)
+
+
+	if len(cleanedRoutes) == 0 {
+		return nil, errors.New("empty routes when removing outdated subsets")
+	}
+
+	//if cleanedRoutes[len(cleanedRoutes)-1] == nil {
+	//	return nil, errors.New("got nil routes when removing outdated subsets")
+	//}
+
+	if cleanedRoutes[len(cleanedRoutes)-1].Match[0].Uri.GetRegex() != ".+" {
+		return nil, errors.New(fmt.Sprintf("non master-route as last element in routes: %s", cleanedRoutes))
+	}
+
+	return cleanedRoutes, nil
+}
+
+// Percentage returns a []HTTPRoute with weight routing set to be posterior appended to a virtualService
 func Percentage(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRoute, s Shift) ([]*v1alpha3.HTTPRoute, error) {
 	// Finding master route (URI match)
 	var masterRouteCounter int
 	var masterIndex int
 
 	// work with the need of cleaning old headers for the same subset
-
-	// destroy any header rule already created
 
 	if len(httpRoute) == 0 {
 		return nil, errors.New("empty routes")

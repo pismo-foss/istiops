@@ -633,6 +633,54 @@ func TestVirtualService_Update_Integrated_NonExistentRoute_Percentage(t *testing
 	assert.EqualError(t, err, "can't create a new route without request header's match")
 }
 
+func TestRemoveOutdatedRoutes_Unit_EmptyRoutes(t *testing.T) {
+	var httpRoute []*v1alpha3.HTTPRoute
+
+	fakeIstioClient = fake.NewSimpleClientset()
+
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      2,
+		Istio:      fakeIstioClient,
+	}
+
+	subsetName := fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace)
+	cleanedHttpRoute, err := RemoveOutdatedRoutes(vs.TrackingId, subsetName, httpRoute)
+
+	assert.EqualError(t, err, "got nil routes when removing outdated subsets")
+	assert.Equal(t, 0, len(cleanedHttpRoute))
+}
+
+func TestRemoveOutdatedRoutes_Unit(t *testing.T) {
+	var httpRoute []*v1alpha3.HTTPRoute
+	var match []*v1alpha3.HTTPMatchRequest
+	match = append(match, &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}})
+
+	httpRoute = append(httpRoute, &v1alpha3.HTTPRoute{
+		Match:                 match,
+		Route:                 nil,
+	})
+
+	fakeIstioClient = fake.NewSimpleClientset()
+
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      2,
+		Istio:      fakeIstioClient,
+	}
+
+	subsetName := fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace)
+
+	cleanedRoutes, err := RemoveOutdatedRoutes(vs.TrackingId, subsetName, httpRoute)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(cleanedRoutes))
+}
+
 func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *testing.T) {
 	var match *v1alpha3.HTTPMatchRequest
 	var route *v1alpha3.HTTPRouteDestination

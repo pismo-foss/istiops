@@ -211,6 +211,7 @@ func UpdateDestinationRule(d *DestinationRule, destinationRule *v1alpha32.Destin
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
