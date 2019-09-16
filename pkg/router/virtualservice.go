@@ -159,17 +159,17 @@ func (v *VirtualService) Update(s Shift) error {
 			logger.Info("Found existent rule created for virtualService, skipping creation", v.TrackingId)
 
 			if s.Traffic.Weight > 0 {
-				httpRoutesNoHeaders, err := RemoveOutdatedRoutes(v.TrackingId, subsetName, vs.Spec.Http)
+				httpRoutes, err := Percentage(v.TrackingId, subsetName, vs.Spec.Http, s)
 				if err != nil {
 					return err
 				}
 
-				httpRoutes, err := Percentage(v.TrackingId, subsetName, httpRoutesNoHeaders, s)
+				httpRoutesNoHeaders, err := RemoveOutdatedRoutes(v.TrackingId, subsetName, httpRoutes)
 				if err != nil {
 					return err
 				}
 
-				vs.Spec.Http = httpRoutes
+				vs.Spec.Http = httpRoutesNoHeaders
 			}
 
 		}
@@ -295,7 +295,6 @@ func RemoveOutdatedRoutes(trackingId string, subset string, httpRoute []*v1alpha
 	for httpKey, httpValue := range noMasterRoutes {
 		for _, routeValue := range httpValue.Route {
 			if routeValue.Destination.Subset == subset {
-				fmt.Println(noMasterRoutes)
 				logger.Info(fmt.Sprintf("removing outdated rule for '%s' subset in order to weight routing", subset), trackingId)
 				cleanedRoutes = Remove(noMasterRoutes, httpKey)
 			}
@@ -309,9 +308,9 @@ func RemoveOutdatedRoutes(trackingId string, subset string, httpRoute []*v1alpha
 		return nil, errors.New("empty routes when removing outdated subsets")
 	}
 
-	//if cleanedRoutes[len(cleanedRoutes)-1] == nil {
-	//	return nil, errors.New("got nil routes when removing outdated subsets")
-	//}
+	if cleanedRoutes[len(cleanedRoutes)-1] == nil {
+		return nil, errors.New("got nil routes when removing outdated subsets")
+	}
 
 	if cleanedRoutes[len(cleanedRoutes)-1].Match[0].Uri.GetRegex() != ".+" {
 		return nil, errors.New(fmt.Sprintf("non master-route as last element in routes: %s", cleanedRoutes))

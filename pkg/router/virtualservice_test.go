@@ -647,6 +647,7 @@ func TestRemoveOutdatedRoutes_Unit_EmptyRoutes(t *testing.T) {
 	}
 
 	subsetName := fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace)
+
 	cleanedHttpRoute, err := RemoveOutdatedRoutes(vs.TrackingId, subsetName, httpRoute)
 
 	assert.EqualError(t, err, "got nil routes when removing outdated subsets")
@@ -656,12 +657,8 @@ func TestRemoveOutdatedRoutes_Unit_EmptyRoutes(t *testing.T) {
 func TestRemoveOutdatedRoutes_Unit(t *testing.T) {
 	var httpRoute []*v1alpha3.HTTPRoute
 	var match []*v1alpha3.HTTPMatchRequest
-	match = append(match, &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}})
-
-	httpRoute = append(httpRoute, &v1alpha3.HTTPRoute{
-		Match:                 match,
-		Route:                 nil,
-	})
+	var route []*v1alpha3.HTTPRouteDestination
+	var routeKept []*v1alpha3.HTTPRouteDestination
 
 	fakeIstioClient = fake.NewSimpleClientset()
 
@@ -669,16 +666,57 @@ func TestRemoveOutdatedRoutes_Unit(t *testing.T) {
 		TrackingId: "unit-testing-uuid",
 		Name:       "api-testing",
 		Namespace:  "integration",
-		Build:      2,
+		Build:      9,
 		Istio:      fakeIstioClient,
 	}
 
 	subsetName := fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace)
 
+	match = append(match, &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}})
+	route = append(route, &v1alpha3.HTTPRouteDestination{
+		Destination:          &v1alpha3.Destination{
+			Host:                 "integration-test",
+			Subset:               subsetName,
+		},
+	})
+	routeKept = append(route, &v1alpha3.HTTPRouteDestination{
+		Destination:          &v1alpha3.Destination{
+			Host:                 "host-kept-test",
+			Subset:               "subset-kept",
+		},
+	})
+
+	httpRoute = append(httpRoute, &v1alpha3.HTTPRoute{
+		Match:                 match,
+		Route:                 nil,
+	})
+
+	httpRoute = append(httpRoute, &v1alpha3.HTTPRoute{
+		Match:                 nil,
+		Route:                 route,
+	})
+
+	httpRoute = append(httpRoute, &v1alpha3.HTTPRoute{
+		Match:                 nil,
+		Route:                 routeKept,
+	})
+
+	t.Log(httpRoute)
+
 	cleanedRoutes, err := RemoveOutdatedRoutes(vs.TrackingId, subsetName, httpRoute)
+	t.Log(cleanedRoutes[0].Route[0].Destination.Subset)
 
 	assert.NoError(t, err)
-	assert.Equal(t, 1, len(cleanedRoutes))
+	assert.Equal(t, 2, len(cleanedRoutes))
+	assert.Equal(t, "subset-kept", cleanedRoutes[0].Route[0].Destination.Subset)
+	assert.Equal(t, ".+", cleanedRoutes[len(cleanedRoutes)-1].Match[0].Uri.GetRegex())
+
+	// validating idempotence
+	cleanedRoutes, err = RemoveOutdatedRoutes(vs.TrackingId, subsetName, httpRoute)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(cleanedRoutes))
+	assert.Equal(t, "subset-kept", cleanedRoutes[0].Route[0].Destination.Subset)
+	assert.Equal(t, ".+", cleanedRoutes[len(cleanedRoutes)-1].Match[0].Uri.GetRegex())
 }
 
 func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *testing.T) {
@@ -742,33 +780,25 @@ func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *t
 	re, _ := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(v.Name, metav1.GetOptions{})
 
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(re.Spec.Http))
+	assert.Equal(t, 1, len(re.Spec.Http))
 	assert.Equal(t, 1, len(re.Spec.Http[0].Route))
 	assert.Equal(t, 1, len(re.Spec.Http[0].Match))
-	assert.Equal(t, 1, len(re.Spec.Http[1].Route))
-	assert.Equal(t, 1, len(re.Spec.Http[1].Match))
-	assert.Equal(t, "old-somebody@domain.io", re.Spec.Http[0].Match[0].Headers["x-email"].GetExact())
-	assert.Equal(t, "eebba923-750f-4b71-81fe-b91e026b7221", re.Spec.Http[0].Match[0].Headers["x-token"].GetExact())
 	assert.Equal(t, fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace), re.Spec.Http[0].Route[0].Destination.Subset)
 	assert.Equal(t, ".+", re.Spec.Http[len(re.Spec.Http)-1].Match[0].Uri.GetRegex())
 
-	// === idempotency check same rule
+	// === idempotence check same rule
 
 	err = vs.Update(shift)
 	re, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(v.Name, metav1.GetOptions{})
 
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(re.Spec.Http))
-	assert.Equal(t, 1, len(re.Spec.Http[0].Route))
+	assert.Equal(t, 1, len(re.Spec.Http))
+	assert.Equal(t, 2, len(re.Spec.Http[0].Route))
 	assert.Equal(t, 1, len(re.Spec.Http[0].Match))
-	assert.Equal(t, 2, len(re.Spec.Http[1].Route))
-	assert.Equal(t, 1, len(re.Spec.Http[1].Match))
-	assert.Equal(t, "old-somebody@domain.io", re.Spec.Http[0].Match[0].Headers["x-email"].GetExact())
-	assert.Equal(t, "eebba923-750f-4b71-81fe-b91e026b7221", re.Spec.Http[0].Match[0].Headers["x-token"].GetExact())
 	assert.Equal(t, fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace), re.Spec.Http[0].Route[0].Destination.Subset)
 	assert.Equal(t, ".+", re.Spec.Http[len(re.Spec.Http)-1].Match[0].Uri.GetRegex())
-	assert.Equal(t, int32(50), re.Spec.Http[1].Route[0].Weight)
-	assert.Equal(t, int32(50), re.Spec.Http[1].Route[1].Weight)
+	assert.Equal(t, int32(50), re.Spec.Http[0].Route[0].Weight)
+	assert.Equal(t, int32(50), re.Spec.Http[0].Route[1].Weight)
 
 	// === third check same rule
 
@@ -776,17 +806,13 @@ func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *t
 	re, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(v.Name, metav1.GetOptions{})
 
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(re.Spec.Http))
-	assert.Equal(t, 1, len(re.Spec.Http[0].Route))
+	assert.Equal(t, 1, len(re.Spec.Http))
+	assert.Equal(t, 2, len(re.Spec.Http[0].Route))
 	assert.Equal(t, 1, len(re.Spec.Http[0].Match))
-	assert.Equal(t, 2, len(re.Spec.Http[1].Route))
-	assert.Equal(t, 1, len(re.Spec.Http[1].Match))
-	assert.Equal(t, "old-somebody@domain.io", re.Spec.Http[0].Match[0].Headers["x-email"].GetExact())
-	assert.Equal(t, "eebba923-750f-4b71-81fe-b91e026b7221", re.Spec.Http[0].Match[0].Headers["x-token"].GetExact())
 	assert.Equal(t, fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace), re.Spec.Http[0].Route[0].Destination.Subset)
 	assert.Equal(t, ".+", re.Spec.Http[len(re.Spec.Http)-1].Match[0].Uri.GetRegex())
-	assert.Equal(t, int32(50), re.Spec.Http[1].Route[0].Weight)
-	assert.Equal(t, int32(50), re.Spec.Http[1].Route[1].Weight)
+	assert.Equal(t, int32(50), re.Spec.Http[0].Route[0].Weight)
+	assert.Equal(t, int32(50), re.Spec.Http[0].Route[1].Weight)
 
 	// == fourth check different percentage
 	shift.Traffic.Weight = 60
@@ -794,17 +820,13 @@ func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *t
 	re, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(v.Name, metav1.GetOptions{})
 
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(re.Spec.Http))
-	assert.Equal(t, 1, len(re.Spec.Http[0].Route))
+	assert.Equal(t, 1, len(re.Spec.Http))
+	assert.Equal(t, 2, len(re.Spec.Http[0].Route))
 	assert.Equal(t, 1, len(re.Spec.Http[0].Match))
-	assert.Equal(t, 2, len(re.Spec.Http[1].Route))
-	assert.Equal(t, 1, len(re.Spec.Http[1].Match))
-	assert.Equal(t, "old-somebody@domain.io", re.Spec.Http[0].Match[0].Headers["x-email"].GetExact())
-	assert.Equal(t, "eebba923-750f-4b71-81fe-b91e026b7221", re.Spec.Http[0].Match[0].Headers["x-token"].GetExact())
 	assert.Equal(t, fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace), re.Spec.Http[0].Route[0].Destination.Subset)
 	assert.Equal(t, ".+", re.Spec.Http[len(re.Spec.Http)-1].Match[0].Uri.GetRegex())
-	assert.Equal(t, int32(40), re.Spec.Http[1].Route[0].Weight)
-	assert.Equal(t, int32(60), re.Spec.Http[1].Route[1].Weight)
+	assert.Equal(t, int32(40), re.Spec.Http[0].Route[0].Weight)
+	assert.Equal(t, int32(60), re.Spec.Http[0].Route[1].Weight)
 }
 
 func TestVirtualService_List_Integrated(t *testing.T) {
