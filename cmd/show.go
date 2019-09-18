@@ -30,12 +30,16 @@ type Destination struct {
 	Subset      Subset
 }
 
+type Routes struct {
+	Match        map[string]string
+	Destinations []Destination
+}
+
 type Resource struct {
 	Name         string
 	Namespace    string
 	Hosts        []string
-	Match        map[string]string
-	Destinations []Destination
+	Routes       []Routes
 }
 
 func structured(irl router.IstioRouteList) []Resource {
@@ -44,7 +48,8 @@ func structured(irl router.IstioRouteList) []Resource {
 
 	for _, vs := range irl.VList.Items {
 		r = Resource{}
-		r.Match = map[string]string{}
+		route := Routes{}
+		route.Match = map[string]string{}
 
 		r.Name = vs.Name
 		r.Namespace = vs.Namespace
@@ -54,12 +59,12 @@ func structured(irl router.IstioRouteList) []Resource {
 			// filtering virtualServices
 			for _, httpMatch := range httpValue.Match {
 				if httpMatch.Uri != nil {
-					r.Match["regex"] = httpMatch.Uri.GetRegex()
+					route.Match["regex"] = httpMatch.Uri.GetRegex()
 				}
 
 				if len(httpMatch.Headers) > 0 {
 					for headerKey, headerValue := range httpMatch.Headers {
-						r.Match["headers"] = fmt.Sprintf("%s:%s", headerKey, headerValue)
+						route.Match["headers"] = fmt.Sprintf("%s:%s", headerKey, headerValue)
 					}
 				}
 			}
@@ -104,10 +109,11 @@ func structured(irl router.IstioRouteList) []Resource {
 				}
 
 				jr.Weight = currentWeight
-				r.Destinations = append(r.Destinations, jr)
+				route.Destinations = append(route.Destinations, jr)
 			}
 		}
 
+		r.Routes = append(r.Routes, route)
 		resourceList = append(resourceList, r)
 	}
 
@@ -121,7 +127,7 @@ func jsonfy(resourceList []Resource) {
 		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
 	}
 
-	fmt.Println(string(jsonData))
+	fmt.Print(string(jsonData))
 
 }
 
@@ -132,13 +138,12 @@ func yamlfy(resourceList []Resource) {
 		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
 	}
 
-	fmt.Println(string(yamlData))
+	fmt.Print(string(yamlData))
 }
 
 func beautified(irl router.IstioRouteList) {
 	// filtering virtualServices
 	for _, vs := range irl.VList.Items {
-		fmt.Println("--")
 		fmt.Println("Resource: ", vs.Name)
 		fmt.Println("")
 		fmt.Println("client -> request to -> ", vs.Spec.Hosts)
@@ -190,6 +195,8 @@ func beautified(irl router.IstioRouteList) {
 			}
 			fmt.Println("")
 		}
+
+		fmt.Println("--")
 	}
 }
 
@@ -238,7 +245,7 @@ var showCmd = &cobra.Command{
 			logger.Fatal(fmt.Sprintf("%s", err), trackingId)
 		}
 
-		logger.Info("Listing all current active routing rules", trackingId)
+		logger.Debug("Listing all current active routing rules", trackingId)
 		resourceList := structured(irl)
 
 		if output == "beautified" {

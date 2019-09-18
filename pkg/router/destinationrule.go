@@ -177,7 +177,7 @@ func (d *DestinationRule) Update(s Shift) error {
 
 // List will return all destinationRules which matches a k8s labelSelector
 func (d *DestinationRule) List(selector map[string]string) (*IstioRouteList, error) {
-	logger.Info(fmt.Sprintf("Getting destinationRules which matches label-selector '%s'", selector), d.TrackingId)
+	logger.Debug(fmt.Sprintf("Getting destinationRules which matches label-selector '%s'", selector), d.TrackingId)
 
 	stringified, err := Stringify(d.TrackingId, selector)
 	if err != nil {

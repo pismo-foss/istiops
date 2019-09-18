@@ -186,7 +186,7 @@ func (v *VirtualService) Update(s Shift) error {
 
 // List will return all virtualServices which matches a k8s labelSelector
 func (v *VirtualService) List(selector map[string]string) (*IstioRouteList, error) {
-	logger.Info(fmt.Sprintf("Getting virtualServices which matches label-selector '%s'", selector), v.TrackingId)
+	logger.Debug(fmt.Sprintf("Getting virtualServices which matches label-selector '%s'", selector), v.TrackingId)
 	stringified, err := Stringify(v.TrackingId, selector)
 	if err != nil {
 		return &IstioRouteList{}, err
