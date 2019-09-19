@@ -1,0 +1,21 @@
+image: docker:19.03.1-dind
+
+services:
+  - name: docker:19.03.1-dind
+    alias: localhost
+
+# When using dind, it's wise to use the overlayfs driver for
+# improved performance.
+stages:
+  - test
+
+tests:
+  stage: test
+  image: docker:19.03.1-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+  script:
+    - docker build . -f Dockerfile.test -t istiops-tests
+    - docker run -t istiops-tests
+  except:
+    - /^.*skip_tests$/

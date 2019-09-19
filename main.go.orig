@@ -1,0 +1,92 @@
+package main
+
+import (
+	"fmt"
+	"github.com/google/uuid"
+	"github.com/pismo/istiops/pkg/client"
+	"github.com/pismo/istiops/pkg/logger"
+	"github.com/pismo/istiops/pkg/operator"
+	"github.com/pismo/istiops/pkg/router"
+	"k8s.io/client-go/util/homedir"
+)
+
+func main() {
+	kubeConfigPath := homedir.HomeDir() + "/.kube/config"
+	clients, err := client.New(kubeConfigPath)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	// generate random uuid
+	uuid, err := uuid.NewUUID()
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var build uint32
+	trackingId := uuid.String()
+	metadataName := "api-xpto"
+	metadataNamespace := "default"
+	build = 27
+
+	var dr operator.Router
+	dr = &router.DestinationRule{
+		TrackingId: trackingId,
+		Name:       metadataName,
+		Namespace:  metadataNamespace,
+		Build:      build,
+		Istio:      clients.Istio,
+	}
+
+	var vs operator.Router
+	vs = &router.VirtualService{
+		TrackingId: trackingId,
+		Name:       metadataName,
+		Namespace:  metadataNamespace,
+		Build:      build,
+		Istio:      clients.Istio,
+	}
+
+	shift := router.Shift{
+		Port:     5000,
+		Hostname: "api.domain.io",
+		Selector: map[string]string{"environment": "pipeline-go"},
+		Traffic: router.Traffic{
+			PodSelector: map[string]string{
+				"app":     "api",
+				"version": "1.3.3",
+				"build":   "24",
+			},
+			//RequestHeaders: map[string]string{
+			//	"x-version":    "PR-142",
+			//	"x-account-id": "233",
+			//},
+			Weight: 10,
+		},
+	}
+
+	var op operator.Operator
+	op = &operator.Istiops{
+		DrRouter: dr,
+		VsRouter: vs,
+	}
+
+	// get current route-rules
+	//_, err = op.Get()
+	//if err != nil {
+	//	logger.Fatal(fmt.Sprintf("%s", err), trackingId)
+	//}
+
+	// clear all routes + subsets
+	//err = op.Clear(shift)
+	//if err != nil {
+	//	logger.Fatal(fmt.Sprintf("%s", err), trackingId)
+	//}
+
+	// Update a route
+	err = op.Update(shift)
+	if err != nil {
+		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
+	}
+
+}

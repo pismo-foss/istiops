@@ -1,0 +1,17 @@
+FROM golang:1.12
+
+RUN apt-get update && apt-get install -y git gcc
+
+WORKDIR /app
+
+COPY go.mod /app
+COPY go.sum /app
+
+RUN go get
+
+COPY cmd /app/cmd
+COPY pkg /app/pkg
+
+ENTRYPOINT ["go", "test"]
+
+CMD ["./pkg/...", "-v"]
