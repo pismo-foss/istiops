@@ -36,7 +36,7 @@ func init() {
 		MaxSize:    1000,
 		MaxBackups: 7,
 		MaxAge:     7,
-		Level:      logJSON.InfoLevel,
+		Level:      logJSON.DebugLevel,
 		Formatter:  formatter,
 	})
 	if err != nil {

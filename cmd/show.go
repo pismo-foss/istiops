@@ -13,7 +13,7 @@ import (
 func init() {
 	showCmd.PersistentFlags().StringP("namespace", "n", "default", "kubernetes' cluster namespace")
 	showCmd.PersistentFlags().StringP("label-selector", "l", "", "* labels selector to filter istio' resources")
-	showCmd.PersistentFlags().StringP("output", "o", "", "stdout format, can be 'summarized' or 'beautified'")
+	showCmd.PersistentFlags().StringP("output", "o", "", "stdout format, can be 'json', 'yaml' or 'beauty'")
 
 	_ = showCmd.MarkPersistentFlagRequired("label-selector")
 	_ = showCmd.MarkPersistentFlagRequired("output")
@@ -214,8 +214,8 @@ var showCmd = &cobra.Command{
 
 		output := fmt.Sprintf("%s", cmd.Flag("output").Value)
 
-		if output != "yaml" && output != "json" && output != "beautified" {
-			logger.Fatal(fmt.Sprintf("--output must be 'yaml', 'json' or 'beautified'"), trackingId)
+		if output != "yaml" && output != "json" && output != "beauty" {
+			logger.Fatal(fmt.Sprintf("--output must be 'yaml', 'json' or 'beauty'"), trackingId)
 		}
 
 		mappedLabelSelector, err := router.Mapify(trackingId, fmt.Sprintf("%s", cmd.Flag("label-selector").Value))
@@ -248,7 +248,7 @@ var showCmd = &cobra.Command{
 		logger.Debug("Listing all current active routing rules", trackingId)
 		resourceList := structured(irl)
 
-		if output == "beautified" {
+		if output == "beauty" {
 			beautified(irl)
 		}
 
