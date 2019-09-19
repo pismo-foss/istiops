@@ -1,4 +1,4 @@
-[![CI](https://gitlab.com/pismo/istiops/badges/master/pipeline.svg)](https://gitlab.com/pismo/istiops/commits/master)
+[![CI](https://gitlab.com/pismo-pub/istiops/badges/master/pipeline.svg)](https://gitlab.com/pismo-pub/istiops/commits/master)
 
 # Istio Ops: Traffic Shifter
 
