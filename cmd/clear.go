@@ -16,7 +16,7 @@ func init() {
 
 var rulesClearCmd = &cobra.Command{
 	Use:   "clear",
-	Short: "Removes all rules & routes",
+	Short: "Removes all rules & routes except the master-one",
 	Run: func(cmd *cobra.Command, args []string) {
 
 		namespace := cmd.Flag("namespace").Value.String()
