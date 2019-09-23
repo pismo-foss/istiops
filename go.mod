@@ -3,55 +3,36 @@ module github.com/pismo/istiops
 go 1.12
 
 require (
-	cloud.google.com/go v0.0.0-20160913182117-3b1ae45394a2
-	github.com/Azure/go-autorest v9.9.0+incompatible
 	github.com/aspenmesh/istio-client-go v0.0.0-20190426173040-3e73c27b9ace
-	github.com/dgrijalva/jwt-go v0.0.0-20160705203006-01aeca54ebda
-	github.com/emirpasic/gods v1.12.0
 	github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680
-	github.com/gogo/protobuf v1.2.1
-	github.com/golang/glog v0.0.0-20141105023935-44145f04b68c
-	github.com/golang/protobuf v0.0.0-20171021043952-1643683e1b54
-	github.com/google/gofuzz v0.0.0-20161122191042-44d81051d367
+	github.com/gogo/protobuf v1.2.1 // indirect
+	github.com/golang/glog v0.0.0-20141105023935-44145f04b68c // indirect
+	github.com/golang/protobuf v0.0.0-20171021043952-1643683e1b54 // indirect
+	github.com/google/gofuzz v0.0.0-20161122191042-44d81051d367 // indirect
 	github.com/google/uuid v1.1.1
-	github.com/googleapis/gnostic v0.0.0-20170729233727-0c5108395e2d
+	github.com/googleapis/gnostic v0.0.0-20170729233727-0c5108395e2d // indirect
 	github.com/gookit/color v1.2.0
-	github.com/gophercloud/gophercloud v0.0.0-20180210024343-6da026c32e2d
-	github.com/howeyc/gopass v0.0.0-20170109162249-bf9dde6d0d2c
-	github.com/imdario/mergo v0.0.0-20141206190957-6633656539c1
-	github.com/inconshreveable/mousetrap v1.0.0
-	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
-	github.com/json-iterator/go v0.0.0-20171212105241-13f86432b882
-	github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
-	github.com/konsorten/go-windows-terminal-sequences v1.0.2
-	github.com/mitchellh/go-homedir v1.1.0
-	github.com/pborman/uuid v0.0.0-20150603214016-ca53cad383ca
+	github.com/howeyc/gopass v0.0.0-20170109162249-bf9dde6d0d2c // indirect
+	github.com/imdario/mergo v0.0.0-20141206190957-6633656539c1 // indirect
+	github.com/json-iterator/go v0.0.0-20171212105241-13f86432b882 // indirect
+	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
+	github.com/kr/pretty v0.1.0 // indirect
 	github.com/pkg/errors v0.8.1
-	github.com/sergi/go-diff v1.0.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/snowzach/rotatefilehook v0.0.0-20180327172521-2f64f265f58c
 	github.com/spf13/cobra v0.0.5
-	github.com/spf13/pflag v1.0.3
-	github.com/src-d/gcfg v1.4.0
-	github.com/src-d/go-git v4.5.0+incompatible
 	github.com/stretchr/testify v1.3.0
-	github.com/xanzy/ssh-agent v0.2.1
-	golang.org/x/crypto v0.0.0-20190422183909-d864b10871cd
-	golang.org/x/net v0.0.0-20190502183928-7f726cade0ab
-	golang.org/x/oauth2 v0.0.0-20170412232759-a6bd8cefa181
-	golang.org/x/sys v0.0.0-20190726091711-fc99dfbffb4e
-	golang.org/x/text v0.3.0
-	golang.org/x/time v0.0.0-20161028155119-f51c12702a4d
-	google.golang.org/appengine v0.0.0-20160823001527-4f7eeb5305a4
-	gopkg.in/inf.v0 v0.9.0
-	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
-	gopkg.in/src-d/go-billy.v4 v4.3.2
-	gopkg.in/src-d/go-git.v4 v4.12.0
-	gopkg.in/warnings.v0 v0.1.2
-	gopkg.in/yaml.v2 v2.2.2
+	golang.org/x/crypto v0.0.0-20190422183909-d864b10871cd // indirect
+	golang.org/x/net v0.0.0-20190502183928-7f726cade0ab // indirect
+	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
+	golang.org/x/sys v0.0.0-20190726091711-fc99dfbffb4e // indirect
+	golang.org/x/time v0.0.0-20161028155119-f51c12702a4d // indirect
+	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
+	gopkg.in/inf.v0 v0.9.0 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3 // indirect
+	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0 // indirect
 	istio.io/api v0.0.0-20190416154520-4a9a2a12a700
-	k8s.io/api v0.0.0-20180308224125-73d903622b73
+	k8s.io/api v0.0.0-20180308224125-73d903622b73 // indirect
 	k8s.io/apimachinery v0.0.0-20180228050457-302974c03f7e
 	k8s.io/client-go v7.0.0+incompatible
-	k8s.io/helm v2.10.0+incompatible
 )
