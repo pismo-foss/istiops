@@ -8,6 +8,7 @@ import (
 	"github.com/pismo/istiops/pkg/logger"
 	"github.com/pismo/istiops/pkg/router"
 	"github.com/spf13/cobra"
+	"istio.io/api/networking/v1alpha3"
 )
 
 func init() {
@@ -28,10 +29,11 @@ type Destination struct {
 	Destination string
 	Weight      int32
 	Subset      Subset
+
 }
 
 type Routes struct {
-	Match        map[string]string
+	Match        []*v1alpha3.HTTPMatchRequest
 	Destinations []Destination
 }
 
@@ -39,7 +41,7 @@ type Resource struct {
 	Name         string
 	Namespace    string
 	Hosts        []string
-	Routes       []Routes
+	Routes       []*Routes
 }
 
 func structured(irl router.IstioRouteList) []Resource {
@@ -48,25 +50,17 @@ func structured(irl router.IstioRouteList) []Resource {
 
 	for _, vs := range irl.VList.Items {
 		r = Resource{}
-		route := Routes{}
-		route.Match = map[string]string{}
+		//route := Routes{}
 
 		r.Name = vs.Name
 		r.Namespace = vs.Namespace
 		r.Hosts = vs.Spec.Hosts
 
 		for _, httpValue := range vs.Spec.Http {
-			// filtering virtualServices
-			for _, httpMatch := range httpValue.Match {
-				if httpMatch.Uri != nil {
-					route.Match["regex"] = httpMatch.Uri.GetRegex()
-				}
+			route := &Routes{}
 
-				if len(httpMatch.Headers) > 0 {
-					for headerKey, headerValue := range httpMatch.Headers {
-						route.Match["headers"] = fmt.Sprintf("%s:%s", headerKey, headerValue)
-					}
-				}
+			for _, matchValue := range httpValue.Match {
+				route.Match = append(route.Match, matchValue)
 			}
 
 			// handle destination
@@ -102,7 +96,7 @@ func structured(irl router.IstioRouteList) []Resource {
 
 					if !subsetExists {
 						jr.Subset = Subset{
-							Name:   "None",
+							Name:   "missing-subset",
 							Labels: nil,
 						}
 					}
@@ -111,9 +105,10 @@ func structured(irl router.IstioRouteList) []Resource {
 				jr.Weight = currentWeight
 				route.Destinations = append(route.Destinations, jr)
 			}
+
+			r.Routes = append(r.Routes, route)
 		}
 
-		r.Routes = append(r.Routes, route)
 		resourceList = append(resourceList, r)
 	}
 
