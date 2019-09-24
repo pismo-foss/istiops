@@ -17,7 +17,6 @@ func init() {
 	showCmd.PersistentFlags().StringP("output", "o", "", "stdout format, can be 'json', 'yaml' or 'beauty'")
 
 	_ = showCmd.MarkPersistentFlagRequired("label-selector")
-	_ = showCmd.MarkPersistentFlagRequired("output")
 }
 
 type Subset struct {
@@ -208,9 +207,12 @@ var showCmd = &cobra.Command{
 		}
 
 		output := fmt.Sprintf("%s", cmd.Flag("output").Value)
+		if output == "" {
+			output = "pretty"
+		}
 
-		if output != "yaml" && output != "json" && output != "beauty" {
-			logger.Fatal(fmt.Sprintf("--output must be 'yaml', 'json' or 'beauty'"), trackingId)
+		if output != "yaml" && output != "json" && output != "pretty" {
+			logger.Fatal(fmt.Sprintf("--output must be 'yaml', 'json' or 'pretty'"), trackingId)
 		}
 
 		mappedLabelSelector, err := router.Mapify(trackingId, fmt.Sprintf("%s", cmd.Flag("label-selector").Value))
@@ -243,7 +245,7 @@ var showCmd = &cobra.Command{
 		logger.Debug("Listing all current active routing rules", trackingId)
 		resourceList := structured(irl)
 
-		if output == "beauty" {
+		if output == "pretty" {
 			beautified(irl)
 		}
 
