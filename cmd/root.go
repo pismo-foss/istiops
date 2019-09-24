@@ -1,4 +1,3 @@
-
 package cmd
 
 import (
@@ -13,8 +12,8 @@ import (
 )
 
 var (
-	trackingId  string
-	clients *client.Set
+	trackingId string
+	clients    *client.Set
 )
 
 func init() {

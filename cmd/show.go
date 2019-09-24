@@ -38,10 +38,10 @@ type Routes struct {
 }
 
 type Resource struct {
-	Name         string
-	Namespace    string
-	Hosts        []string
-	Routes       []*Routes
+	Name      string
+	Namespace string
+	Hosts     []string
+	Routes    []*Routes
 }
 
 func structured(irl router.IstioRouteList) []Resource {

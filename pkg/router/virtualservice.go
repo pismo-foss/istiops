@@ -275,7 +275,7 @@ func Remove(slice []*v1alpha3.HTTPRoute, index int) []*v1alpha3.HTTPRoute {
 }
 
 // RemoveOutdatedRoutes returns a slice without any route which matches the given subset
-func RemoveOutdatedRoutes(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRoute) ([]*v1alpha3.HTTPRoute, error){
+func RemoveOutdatedRoutes(trackingId string, subset string, httpRoute []*v1alpha3.HTTPRoute) ([]*v1alpha3.HTTPRoute, error) {
 	var noMasterRoutes []*v1alpha3.HTTPRoute
 	var masterRoute *v1alpha3.HTTPRoute
 	var cleanedRoutes []*v1alpha3.HTTPRoute
@@ -304,7 +304,6 @@ func RemoveOutdatedRoutes(trackingId string, subset string, httpRoute []*v1alpha
 	}
 
 	cleanedRoutes = append(cleanedRoutes, masterRoute)
-
 
 	if len(cleanedRoutes) == 0 {
 		return nil, errors.New("empty routes when removing outdated subsets")

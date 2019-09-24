@@ -18,7 +18,6 @@ type DestinationRule struct {
 	Istio      IstioClientInterface
 }
 
-
 // Clear will remove any subset which are not used by a virtualService given a k8s labelSelector
 func (d *DestinationRule) Clear(s Shift) error {
 	v := VirtualService{
