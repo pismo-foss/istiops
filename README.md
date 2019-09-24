@@ -94,8 +94,7 @@ Get all current traffic rules (respecting routes order) for resources which matc
 ```shell script
 istiops traffic show \
     --label-selector environment=pipeline-go \
-    --namespace default \
-    --output beautified
+    --namespace default
 ```
 
 Ex.
@@ -127,7 +126,7 @@ client -> request to ->  [api.domain.io]
                |- build: PR-10
 ```
 
-The output can be configured as `-o jsonfy`/`-o yamlfy` int order to get an object to extract structured data.
+The output can be configured as `-o json`/`-o yaml` int order to get an object to extract structured data.
 
 ### Clear all routes
 
