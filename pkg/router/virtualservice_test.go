@@ -674,31 +674,31 @@ func TestRemoveOutdatedRoutes_Unit(t *testing.T) {
 
 	match = append(match, &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}})
 	route = append(route, &v1alpha3.HTTPRouteDestination{
-		Destination:          &v1alpha3.Destination{
-			Host:                 "integration-test",
-			Subset:               subsetName,
+		Destination: &v1alpha3.Destination{
+			Host:   "integration-test",
+			Subset: subsetName,
 		},
 	})
 	routeKept = append(routeKept, &v1alpha3.HTTPRouteDestination{
-		Destination:          &v1alpha3.Destination{
-			Host:                 "host-kept-test",
-			Subset:               "subset-kept",
+		Destination: &v1alpha3.Destination{
+			Host:   "host-kept-test",
+			Subset: "subset-kept",
 		},
 	})
 
 	httpRoute = append(httpRoute, &v1alpha3.HTTPRoute{
-		Match:                 match,
-		Route:                 nil,
+		Match: match,
+		Route: nil,
 	})
 
 	httpRoute = append(httpRoute, &v1alpha3.HTTPRoute{
-		Match:                 nil,
-		Route:                 route,
+		Match: nil,
+		Route: route,
 	})
 
 	httpRoute = append(httpRoute, &v1alpha3.HTTPRoute{
-		Match:                 nil,
-		Route:                 routeKept,
+		Match: nil,
+		Route: routeKept,
 	})
 
 	cleanedRoutes, err := RemoveOutdatedRoutes(vs.TrackingId, subsetName, httpRoute)

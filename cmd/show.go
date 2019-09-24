@@ -29,7 +29,7 @@ type Destination struct {
 	Destination string
 	Weight      int32
 	Subset      Subset
-
+	Routable    bool
 }
 
 type Routes struct {
@@ -38,10 +38,10 @@ type Routes struct {
 }
 
 type Resource struct {
-	Name         string
-	Namespace    string
-	Hosts        []string
-	Routes       []*Routes
+	Name      string
+	Namespace string
+	Hosts     []string
+	Routes    []*Routes
 }
 
 func structured(irl router.IstioRouteList) []Resource {
@@ -50,7 +50,6 @@ func structured(irl router.IstioRouteList) []Resource {
 
 	for _, vs := range irl.VList.Items {
 		r = Resource{}
-		//route := Routes{}
 
 		r.Name = vs.Name
 		r.Namespace = vs.Namespace
@@ -76,7 +75,9 @@ func structured(irl router.IstioRouteList) []Resource {
 				}
 
 				subsetExists := false
+				jr.Routable = true
 				for _, dr := range irl.DList.Items {
+
 					for _, subset := range dr.Spec.Subsets {
 						js := Subset{}
 						js.Labels = map[string]string{}
@@ -91,14 +92,13 @@ func structured(irl router.IstioRouteList) []Resource {
 							}
 
 							jr.Subset.Labels = js.Labels
+							jr.Subset.Name = js.Name
 						}
 					}
 
 					if !subsetExists {
-						jr.Subset = Subset{
-							Name:   "missing-subset",
-							Labels: nil,
-						}
+						jr.Subset.Name = httpRoute.Destination.Subset
+						jr.Routable = false
 					}
 				}
 
