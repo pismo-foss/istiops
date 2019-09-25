@@ -4,6 +4,7 @@ import (
 	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned"
 	"github.com/pismo/istiops/pkg/router"
 	"k8s.io/client-go/kubernetes"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
