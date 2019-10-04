@@ -158,6 +158,12 @@ func (v *VirtualService) Update(s Shift) error {
 		if routeExists {
 			logger.Info("Found existent rule created for virtualService, skipping creation", v.TrackingId)
 
+			// If a canary rule already exists, just warn it
+			if len(s.Traffic.RequestHeaders) > 0 {
+				logger.Warn(fmt.Sprintf("Already existent canary rule for build '%v', refusing to update it", v.Build), v.TrackingId)
+			}
+
+			// If a weight rule already exists, just update it
 			if s.Traffic.Weight > 0 {
 				httpRoutes, err := Percentage(v.TrackingId, subsetName, vs.Spec.Http, s)
 				if err != nil {
