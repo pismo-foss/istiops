@@ -129,8 +129,11 @@ func (d *DestinationRule) Validate(s Shift) error {
 		return errors.New("empty pod selector")
 	}
 
-	return nil
+	if !s.Traffic.Exact && !s.Traffic.Regexp {
+		return errors.New("need 'exact' or 'regexp' flags")
+	}
 
+	return nil
 }
 
 /* Update a destinationRule with an existent subset based on Shift object
@@ -167,7 +170,7 @@ func (d *DestinationRule) Update(s Shift) error {
 				return err
 			}
 		} else {
-			logger.Info(fmt.Sprintf("subset '%s'already created", newSubset), d.TrackingId)
+			logger.Info(fmt.Sprintf("subset '%s' already created", newSubset), d.TrackingId)
 		}
 	}
 
