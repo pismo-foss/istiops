@@ -477,7 +477,7 @@ func TestVirtualService_Validate_Unit_Success(t *testing.T) {
 }
 
 // Update
-func TestVirtualService_Update_Integrated_NonExistentRoute_Headers(t *testing.T) {
+func TestVirtualService_Update_Integrated_NonExistentRoute_Headers_Exact(t *testing.T) {
 	fakeIstioClient = fake.NewSimpleClientset()
 
 	vs := VirtualService{
@@ -499,6 +499,7 @@ func TestVirtualService_Update_Integrated_NonExistentRoute_Headers(t *testing.T)
 				"x-email": "somebody@domain.io",
 				"x-token": "eebba923-750f-4b71-81fe-b91e026b7221",
 			},
+			Exact: true,
 		},
 	}
 
@@ -521,6 +522,56 @@ func TestVirtualService_Update_Integrated_NonExistentRoute_Headers(t *testing.T)
 	assert.Equal(t, 1, len(re.Spec.Http[0].Match))
 	assert.Equal(t, shift.Traffic.RequestHeaders["x-email"], re.Spec.Http[0].Match[0].Headers["x-email"].GetExact())
 	assert.Equal(t, shift.Traffic.RequestHeaders["x-token"], re.Spec.Http[0].Match[0].Headers["x-token"].GetExact())
+	assert.Equal(t, fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace), re.Spec.Http[0].Route[0].Destination.Subset)
+	assert.Equal(t, uint32(8888), re.Spec.Http[0].Route[0].Destination.Port.GetNumber())
+	assert.Equal(t, "api-service", re.Spec.Http[0].Route[0].Destination.Host)
+}
+
+func TestVirtualService_Update_Integrated_NonExistentRoute_Headers_Regexp(t *testing.T) {
+	fakeIstioClient = fake.NewSimpleClientset()
+
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      1,
+		Istio:      fakeIstioClient,
+	}
+
+	shift := Shift{
+		Port:     8888,
+		Hostname: "api-service",
+		Selector: map[string]string{
+			"environment": "integration-tests",
+		},
+		Traffic: Traffic{
+			RequestHeaders: map[string]string{
+				"x-email": "^.+@domain.io",
+				"x-token": "^eebba923-750f-4b71-81fe-b91e026b7221$",
+			},
+			Regexp: true,
+		},
+	}
+
+	v := v1alpha32.VirtualService{
+		Spec: v1alpha32.VirtualServiceSpec{},
+	}
+
+	v.Name = "integration-test-virtualservice"
+	v.Namespace = vs.Namespace
+	v.Labels = map[string]string{"environment": "integration-tests"}
+
+	_, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&v)
+
+	err := vs.Update(shift)
+	re, _ := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(v.Name, metav1.GetOptions{})
+
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(re.Spec.Http))
+	assert.Equal(t, 1, len(re.Spec.Http[0].Route))
+	assert.Equal(t, 1, len(re.Spec.Http[0].Match))
+	assert.Equal(t, shift.Traffic.RequestHeaders["x-email"], re.Spec.Http[0].Match[0].Headers["x-email"].GetRegex())
+	assert.Equal(t, shift.Traffic.RequestHeaders["x-token"], re.Spec.Http[0].Match[0].Headers["x-token"].GetRegex())
 	assert.Equal(t, fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace), re.Spec.Http[0].Route[0].Destination.Subset)
 	assert.Equal(t, uint32(8888), re.Spec.Http[0].Route[0].Destination.Port.GetNumber())
 	assert.Equal(t, "api-service", re.Spec.Http[0].Route[0].Destination.Host)
@@ -898,7 +949,7 @@ func TestVirtualService_Create_Unit_EmptyHeaders(t *testing.T) {
 	assert.Error(t, err, "can't create a new route without request header's match")
 }
 
-func TestVirtualService_Create_Unit_HeadersAndWeight(t *testing.T) {
+func TestVirtualService_Create_Unit_HeadersAndWeight_Exact(t *testing.T) {
 	fakeIstioClient = fake.NewSimpleClientset()
 
 	vs := VirtualService{
@@ -918,6 +969,7 @@ func TestVirtualService_Create_Unit_HeadersAndWeight(t *testing.T) {
 				"app":     "test",
 				"x-email": "some@domain.io",
 			},
+			Exact: true,
 			Weight: 30,
 		},
 	}
@@ -928,5 +980,39 @@ func TestVirtualService_Create_Unit_HeadersAndWeight(t *testing.T) {
 	assert.Equal(t, "api-testing-15999999-integration", ir.MatchDestination.Route[0].Destination.Subset)
 	assert.Equal(t, "test", ir.MatchDestination.Match[0].Headers["app"].GetExact())
 	assert.Equal(t, "some@domain.io", ir.MatchDestination.Match[0].Headers["x-email"].GetExact())
+
+}
+
+func TestVirtualService_Create_Unit_HeadersAndWeight_Regexp(t *testing.T) {
+	fakeIstioClient = fake.NewSimpleClientset()
+
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      15999999,
+		Istio:      fakeIstioClient,
+	}
+
+	shift := Shift{
+		Port:     8080,
+		Hostname: "myHostname",
+		Selector: map[string]string{},
+		Traffic: Traffic{
+			RequestHeaders: map[string]string{
+				"app":     "test$",
+				"x-email": "^some@.+.com",
+			},
+			Regexp: true,
+			Weight: 30,
+		},
+	}
+
+	ir, err := vs.Create(shift)
+	assert.NoError(t, err)
+	assert.Equal(t, int32(0), ir.MatchDestination.Route[0].GetWeight())
+	assert.Equal(t, "api-testing-15999999-integration", ir.MatchDestination.Route[0].Destination.Subset)
+	assert.Equal(t, "test$", ir.MatchDestination.Match[0].Headers["app"].GetRegex())
+	assert.Equal(t, "^some@.+.com", ir.MatchDestination.Match[0].Headers["x-email"].GetRegex())
 
 }
