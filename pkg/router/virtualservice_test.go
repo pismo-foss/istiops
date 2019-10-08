@@ -548,6 +548,7 @@ func TestVirtualService_Update_Integrated_NonExistentRoute_Headers_Regexp(t *tes
 			RequestHeaders: map[string]string{
 				"x-email": "^.+@domain.io",
 				"x-token": "^eebba923-750f-4b71-81fe-b91e026b7221$",
+				"x-escaped-string": "^(123\\|345)$",
 			},
 			Regexp: true,
 		},
@@ -572,6 +573,7 @@ func TestVirtualService_Update_Integrated_NonExistentRoute_Headers_Regexp(t *tes
 	assert.Equal(t, 1, len(re.Spec.Http[0].Match))
 	assert.Equal(t, shift.Traffic.RequestHeaders["x-email"], re.Spec.Http[0].Match[0].Headers["x-email"].GetRegex())
 	assert.Equal(t, shift.Traffic.RequestHeaders["x-token"], re.Spec.Http[0].Match[0].Headers["x-token"].GetRegex())
+	assert.Equal(t, "^(123\\|345)$", re.Spec.Http[0].Match[0].Headers["x-escaped-string"].GetRegex())
 	assert.Equal(t, fmt.Sprintf("%s-%v-%s", vs.Name, vs.Build, vs.Namespace), re.Spec.Http[0].Route[0].Destination.Subset)
 	assert.Equal(t, uint32(8888), re.Spec.Http[0].Route[0].Destination.Port.GetNumber())
 	assert.Equal(t, "api-service", re.Spec.Http[0].Route[0].Destination.Host)
