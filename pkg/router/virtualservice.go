@@ -107,7 +107,7 @@ func (v *VirtualService) Create(s Shift) (*IstioRules, error) {
 		return &IstioRules{}, errors.New("can't create a new route without request header's match")
 	}
 
-	logger.Info(fmt.Sprintf("Setting request header's match rule '%s' for '%s'...", s.Traffic.RequestHeaders, subsetName), v.TrackingId)
+	logger.Info(fmt.Sprintf("Setting request header's match rule '%#v' for '%s'...", s.Traffic.RequestHeaders, subsetName), v.TrackingId)
 	newRoute.Match = append(newRoute.Match, newMatch)
 	newRoute.Route = append(newRoute.Route, defaultDestination)
 

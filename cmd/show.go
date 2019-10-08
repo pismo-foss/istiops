@@ -152,7 +152,17 @@ func beautified(irl router.IstioRouteList) {
 					//fmt.Println("* Match")
 					color.Cyan.Println("  \\_ Headers")
 					for headerKey, headerValue := range httpMatch.Headers {
-						fmt.Println(color.Cyan.Sprintf("      |- %s: %s", headerKey, headerValue))
+						var escapedHeaderValue string
+
+						if headerValue.GetExact() != "" {
+							escapedHeaderValue = fmt.Sprintf("%s", headerValue.GetExact())
+						}
+
+						if headerValue.GetRegex() != "" {
+							escapedHeaderValue = fmt.Sprintf("%s", headerValue.GetRegex())
+						}
+
+						fmt.Println(color.Cyan.Sprintf("      |- %s: %s", headerKey, escapedHeaderValue))
 					}
 				}
 			}
