@@ -90,11 +90,11 @@ var shiftCmd = &cobra.Command{
 
 		var exact bool
 		var regexp bool
+
+		exact = true
 		if cmd.Flag("regexp").Value.String() == "true" {
 			regexp = true
 			exact = false
-		} else {
-			exact = true
 		}
 
 		drR := router.DestinationRule{
