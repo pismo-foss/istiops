@@ -16,6 +16,9 @@ func init() {
 	shiftCmd.PersistentFlags().StringP("headers", "H", "", "headers")
 	shiftCmd.PersistentFlags().StringP("pod-selector", "p", "", "* pod")
 	shiftCmd.PersistentFlags().Uint32P("weight", "w", 0, "* weight (percentage) of routing")
+	// boolean optional flags
+	shiftCmd.PersistentFlags().BoolP("exact", "e", true, "exact header value (default flag)")
+	shiftCmd.PersistentFlags().BoolP("regexp", "r", false, "regexp header value (can't coexist with --exact flag")
 
 	_ = shiftCmd.MarkPersistentFlagRequired("destination")
 	_ = shiftCmd.MarkPersistentFlagRequired("pod-selector")
@@ -85,6 +88,15 @@ var shiftCmd = &cobra.Command{
 			}
 		}
 
+		var exact bool
+		var regexp bool
+
+		exact = true
+		if cmd.Flag("regexp").Value.String() == "true" {
+			regexp = true
+			exact = false
+		}
+
 		drR := router.DestinationRule{
 			TrackingId: trackingId,
 			Name:       destinationSplitted[0],
@@ -108,6 +120,8 @@ var shiftCmd = &cobra.Command{
 			Traffic: router.Traffic{
 				PodSelector:    mappedPodSelector,
 				RequestHeaders: headers,
+				Exact:          exact,
+				Regexp:         regexp,
 				Weight:         int32(weightInt),
 			},
 		}

@@ -71,10 +71,12 @@ func (ips *Istiops) Update(shift router.Shift) error {
 	if err != nil {
 		return err
 	}
+
 	err = DrRouter.Update(shift)
 	if err != nil {
 		return err
 	}
+
 	err = VsRouter.Update(shift)
 	if err != nil {
 		return err

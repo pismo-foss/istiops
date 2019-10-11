@@ -148,6 +148,12 @@ istiops traffic shift \
     --headers "x-cid=seu_madruga"
 ```
 
+By default header's value is an exact match, you can configure to it's value matches a regular expression passing the flag `-r` or `--regexp`.
+
+Example for a rule which header `x-id` can be match by either `1`, `2`, `3` or `4`.
+
+`istiops ... -r -H 'x-id=1|2|3|4'`
+
 ### Shift to weight routing
 4. Send 20% of traffic to pods with labels `app=api-domain,build=PR-10`
 

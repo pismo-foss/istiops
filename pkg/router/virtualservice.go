@@ -58,16 +58,34 @@ func (v *VirtualService) Create(s Shift) (*IstioRules, error) {
 	subsetName := fmt.Sprintf("%s-%v-%s", v.Name, v.Build, v.Namespace)
 
 	logger.Info(fmt.Sprintf("Creating new http route for subset '%s'...", subsetName), v.TrackingId)
-	newMatch := &v1alpha3.HTTPMatchRequest{
-		Headers: map[string]*v1alpha3.StringMatch{},
-	}
+	newMatch := &v1alpha3.HTTPMatchRequest{}
 
 	// append user labels to exact match
-	for headerKey, headerValue := range s.Traffic.RequestHeaders {
-		newMatch.Headers[headerKey] = &v1alpha3.StringMatch{
-			MatchType: &v1alpha3.StringMatch_Exact{
-				Exact: headerValue,
-			},
+	if s.Traffic.Regexp {
+		newMatch = &v1alpha3.HTTPMatchRequest{
+			Headers: map[string]*v1alpha3.StringMatch{},
+		}
+
+		for headerKey, headerValue := range s.Traffic.RequestHeaders {
+			newMatch.Headers[headerKey] = &v1alpha3.StringMatch{
+				MatchType: &v1alpha3.StringMatch_Regex{
+					Regex: headerValue,
+				},
+			}
+		}
+	}
+
+	if s.Traffic.Exact {
+		newMatch = &v1alpha3.HTTPMatchRequest{
+			Headers: map[string]*v1alpha3.StringMatch{},
+		}
+
+		for headerKey, headerValue := range s.Traffic.RequestHeaders {
+			newMatch.Headers[headerKey] = &v1alpha3.StringMatch{
+				MatchType: &v1alpha3.StringMatch_Exact{
+					Exact: headerValue,
+				},
+			}
 		}
 	}
 
@@ -89,7 +107,7 @@ func (v *VirtualService) Create(s Shift) (*IstioRules, error) {
 		return &IstioRules{}, errors.New("can't create a new route without request header's match")
 	}
 
-	logger.Info(fmt.Sprintf("Setting request header's match rule '%s' for '%s'...", s.Traffic.RequestHeaders, subsetName), v.TrackingId)
+	logger.Info(fmt.Sprintf("Setting request header's match rule '%#v' for '%s'...", s.Traffic.RequestHeaders, subsetName), v.TrackingId)
 	newRoute.Match = append(newRoute.Match, newMatch)
 	newRoute.Route = append(newRoute.Route, defaultDestination)
 

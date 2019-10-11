@@ -23,6 +23,8 @@ type Shift struct {
 type Traffic struct {
 	PodSelector    map[string]string
 	RequestHeaders map[string]string
+	Exact          bool
+	Regexp         bool
 	Weight         int32
 }
 
