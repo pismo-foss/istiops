@@ -150,19 +150,20 @@ func beautified(irl router.IstioRouteList) {
 
 				if len(httpMatch.Headers) > 0 {
 					//fmt.Println("* Match")
-					color.Cyan.Println("  \\_ Headers")
+					color.Cyan.Println("  \\_ Header")
 					for headerKey, headerValue := range httpMatch.Headers {
 						var escapedHeaderValue string
 
 						if headerValue.GetExact() != "" {
-							escapedHeaderValue = fmt.Sprintf("%s", headerValue.GetExact())
+							escapedHeaderValue = fmt.Sprintf("exact: %s", headerValue.GetExact())
 						}
 
 						if headerValue.GetRegex() != "" {
-							escapedHeaderValue = fmt.Sprintf("%s", headerValue.GetRegex())
+							escapedHeaderValue = fmt.Sprintf("regex: %s", headerValue.GetRegex())
 						}
 
-						fmt.Println(color.Cyan.Sprintf("      |- %s: %s", headerKey, escapedHeaderValue))
+						fmt.Println(color.Cyan.Sprintf("      |- %s", headerKey))
+						fmt.Println(color.Cyan.Sprintf("      |- %s", escapedHeaderValue))
 					}
 				}
 			}
