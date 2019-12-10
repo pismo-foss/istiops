@@ -9,12 +9,14 @@ import (
 	"github.com/pismo/istiops/pkg/router"
 	"github.com/spf13/cobra"
 	"istio.io/api/networking/v1alpha3"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 func init() {
 	showCmd.PersistentFlags().StringP("namespace", "n", "default", "kubernetes' cluster namespace")
 	showCmd.PersistentFlags().StringP("label-selector", "l", "", "* labels selector to filter istio' resources")
-	showCmd.PersistentFlags().StringP("output", "o", "", "stdout format, can be 'json', 'yaml' or 'beauty'")
+	showCmd.PersistentFlags().StringP("output", "o", "", "stdout format can be 'json', 'yaml' or 'pretty'")
 
 	_ = showCmd.MarkPersistentFlagRequired("label-selector")
 }
@@ -24,11 +26,18 @@ type Subset struct {
 	Labels map[string]string
 }
 
+type Deployment struct {
+	Name      string
+	Namespace string
+	Pods      int32
+}
+
 type Destination struct {
-	Destination string
-	Weight      int32
-	Subset      Subset
-	Routable    bool
+	Service    string
+	Weight     int32
+	Subset     Subset
+	Routable   bool
+	Deployment Deployment
 }
 
 type Routes struct {
@@ -43,7 +52,7 @@ type Resource struct {
 	Routes    []*Routes
 }
 
-func structured(irl router.IstioRouteList) []Resource {
+func structured(trackingId string, namespace string, irl router.IstioRouteList, kClient kubernetes.Clientset) []Resource {
 	var r Resource
 	var resourceList []Resource
 
@@ -65,7 +74,7 @@ func structured(irl router.IstioRouteList) []Resource {
 			var currentWeight int32
 			for _, httpRoute := range httpValue.Route {
 				jr := Destination{}
-				jr.Destination = fmt.Sprintf("%s:%d", httpRoute.Destination.Host, httpRoute.Destination.Port.GetNumber())
+				jr.Service = fmt.Sprintf("%s:%d", httpRoute.Destination.Host, httpRoute.Destination.Port.GetNumber())
 
 				if httpRoute.Weight == 0 {
 					currentWeight = 100
@@ -77,6 +86,7 @@ func structured(irl router.IstioRouteList) []Resource {
 				jr.Routable = true
 				for _, dr := range irl.DList.Items {
 
+					// validate if subset is valid and routable
 					for _, subset := range dr.Spec.Subsets {
 						js := Subset{}
 						js.Labels = map[string]string{}
@@ -99,6 +109,20 @@ func structured(irl router.IstioRouteList) []Resource {
 						jr.Subset.Name = httpRoute.Destination.Subset
 						jr.Routable = false
 					}
+
+					// validate if there are any pods to be routed
+					labelString, err := router.Stringify(trackingId, jr.Subset.Labels)
+					dep, err := kClient.AppsV1().Deployments(namespace).List(v1.ListOptions{
+						LabelSelector: labelString,
+					})
+					if err != nil {
+						return []Resource{}
+					}
+
+					depItem := dep.Items[0]
+					jr.Deployment.Name = depItem.Name
+					jr.Deployment.Namespace = depItem.Namespace
+					jr.Deployment.Pods = depItem.Status.ReadyReplicas
 				}
 
 				jr.Weight = currentWeight
@@ -135,21 +159,20 @@ func yamlfy(resourceList []Resource) {
 	fmt.Print(string(yamlData))
 }
 
-func beautified(irl router.IstioRouteList) {
-	// filtering virtualServices
-	for _, vs := range irl.VList.Items {
-		fmt.Println("Resource: ", vs.Name)
+func beautified(resourceList []Resource) {
+	for _, vs := range resourceList {
 		fmt.Println("")
-		fmt.Println("client -> request to -> ", vs.Spec.Hosts)
-		for _, httpValue := range vs.Spec.Http {
-			for _, httpMatch := range httpValue.Match {
+		fmt.Println("Resource: ", vs.Name)
+		fmt.Println("Namespace: ", vs.Namespace)
+		fmt.Println("client -> request to -> ", vs.Hosts)
+
+		for _, route := range vs.Routes {
+			for _, httpMatch := range route.Match {
 				if httpMatch.Uri != nil {
-					//fmt.Println("* Match")
 					color.Green.Println("  \\_", httpMatch.Uri)
 				}
 
 				if len(httpMatch.Headers) > 0 {
-					//fmt.Println("* Match")
 					color.Cyan.Println("  \\_ Header")
 					for headerKey, headerValue := range httpMatch.Headers {
 						var escapedHeaderValue string
@@ -162,45 +185,35 @@ func beautified(irl router.IstioRouteList) {
 							escapedHeaderValue = fmt.Sprintf("regex: %s", headerValue.GetRegex())
 						}
 
-						fmt.Println(color.Cyan.Sprintf("      |- %s", headerKey))
-						fmt.Println(color.Cyan.Sprintf("      |- %s", escapedHeaderValue))
+						color.Cyan.Println("      |- ", headerKey)
+						color.Cyan.Println("      |- ", escapedHeaderValue)
 					}
 				}
 			}
 
 			// handle destinations
 			fmt.Println("       \\_ Destination [k8s service]")
-			var currentWeight int32
-			for _, httpRoute := range httpValue.Route {
-				fmt.Println(fmt.Sprintf("         - %s:%d", httpRoute.Destination.Host, httpRoute.Destination.Port.GetNumber()))
+			for _, httpRoute := range route.Destinations {
+				fmt.Println(fmt.Sprintf("         - %s [%s]", httpRoute.Service, httpRoute.Deployment.Name))
 
-				if httpRoute.Weight == 0 {
-					currentWeight = 100
+				if httpRoute.Deployment.Pods > 0 {
+					color.Green.Println("            |- active pods: ", httpRoute.Deployment.Pods)
 				} else {
-					currentWeight = httpRoute.Weight
+					color.Red.Println("            |- NON-EXISTENT ACTIVE PODS:", httpRoute.Deployment.Pods)
 				}
 
-				fmt.Println(fmt.Sprintf("            \\_ %d %% of requests for pods with labels", currentWeight))
-				subsetExists := false
-				for _, dr := range irl.DList.Items {
-					for _, subset := range dr.Spec.Subsets {
-						if subset.Name == httpRoute.Destination.Subset {
-							subsetExists = true
-							for labelKey, labelValue := range subset.Labels {
-								fmt.Println(fmt.Sprintf("               |- %s: %s", labelKey, labelValue))
-							}
-						}
-					}
+				fmt.Println(fmt.Sprintf("            \\_ %d %% of requests for pods with labels", httpRoute.Weight))
 
-					if !subsetExists {
-						color.Red.Printf("               |- NON-EXISTENT SUBSET '%s'", httpRoute.Destination.Subset)
-					}
+				for labelKey, labelValue := range httpRoute.Subset.Labels {
+					fmt.Println(fmt.Sprintf("               |- %s: %s", labelKey, labelValue))
 				}
-				fmt.Println("")
+
+				if !httpRoute.Routable {
+					color.Red.Println("               |- NON-EXISTENT SUBSET", httpRoute.Subset.Name)
+				}
+
 			}
-			fmt.Println("")
 		}
-
 		fmt.Println("--")
 	}
 }
@@ -254,10 +267,10 @@ var showCmd = &cobra.Command{
 		}
 
 		logger.Debug("Listing all current active routing rules", trackingId)
-		resourceList := structured(irl)
+		resourceList := structured(trackingId, namespace, irl, *clients.Kubernetes)
 
 		if output == "pretty" {
-			beautified(irl)
+			beautified(resourceList)
 		}
 
 		if output == "yaml" {

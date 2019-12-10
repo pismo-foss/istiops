@@ -118,7 +118,7 @@ func TestDestinationRule_Validate_Unit(t *testing.T) {
 				Selector: nil,
 				Traffic: Traffic{
 					PodSelector: map[string]string{"version": "1.2.3"},
-					Exact: true,
+					Exact:       true,
 				},
 			},
 			"empty label-selector",
@@ -136,7 +136,7 @@ func TestDestinationRule_Validate_Unit(t *testing.T) {
 				Selector: map[string]string{"app": "api-domain"},
 				Traffic: Traffic{
 					PodSelector: map[string]string{"version": "1.2.3"},
-					Exact: true,
+					Exact:       true,
 				},
 			},
 			"empty port",
@@ -154,7 +154,7 @@ func TestDestinationRule_Validate_Unit(t *testing.T) {
 				Selector: map[string]string{"app": "api-domain"},
 				Traffic: Traffic{
 					PodSelector: map[string]string{"version": "1.2.3"},
-					Exact: true,
+					Exact:       true,
 				},
 			},
 			"port not in range 1024 - 65535",
@@ -172,7 +172,7 @@ func TestDestinationRule_Validate_Unit(t *testing.T) {
 				Selector: map[string]string{"app": "api-domain"},
 				Traffic: Traffic{
 					PodSelector: map[string]string{"version": "1.2.3"},
-					Exact: true,
+					Exact:       true,
 				},
 			},
 			"port not in range 1024 - 65535",
@@ -188,7 +188,7 @@ func TestDestinationRule_Validate_Unit(t *testing.T) {
 				Port:     8080,
 				Hostname: "api-domain",
 				Selector: map[string]string{"app": "api-domain"},
-				Traffic:  Traffic{
+				Traffic: Traffic{
 					Exact: true,
 				},
 			},
@@ -207,7 +207,7 @@ func TestDestinationRule_Validate_Unit(t *testing.T) {
 				Selector: map[string]string{"app": "api-domain"},
 				Traffic: Traffic{
 					PodSelector: map[string]string{"version": "1.2.3"},
-					Exact: true,
+					Exact:       true,
 				},
 			},
 			"empty 'name' attribute",
@@ -225,7 +225,7 @@ func TestDestinationRule_Validate_Unit(t *testing.T) {
 				Selector: map[string]string{"app": "api-domain"},
 				Traffic: Traffic{
 					PodSelector: map[string]string{"version": "1.2.3"},
-					Exact: true,
+					Exact:       true,
 				},
 			},
 			"empty 'namespace' attribute",
@@ -243,7 +243,7 @@ func TestDestinationRule_Validate_Unit(t *testing.T) {
 				Selector: map[string]string{"app": "api-domain"},
 				Traffic: Traffic{
 					PodSelector: map[string]string{"version": "1.2.3"},
-					Exact: true,
+					Exact:       true,
 				},
 			},
 			"empty 'build' attribute",
@@ -261,7 +261,7 @@ func TestDestinationRule_Validate_Unit(t *testing.T) {
 				Selector: map[string]string{"app": "api-domain"},
 				Traffic: Traffic{
 					PodSelector: map[string]string{"version": "1.2.3"},
-					Exact: true,
+					Exact:       true,
 				},
 			},
 			"nil istioClient object",
@@ -279,7 +279,7 @@ func TestDestinationRule_Validate_Unit(t *testing.T) {
 				Selector: map[string]string{"app": "api-domain"},
 				Traffic: Traffic{
 					PodSelector: map[string]string{"version": "1.2.3"},
-					Exact: true,
+					Exact:       true,
 				},
 			},
 			"empty 'trackingId' attribute",

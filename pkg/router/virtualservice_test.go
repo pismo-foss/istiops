@@ -546,8 +546,8 @@ func TestVirtualService_Update_Integrated_NonExistentRoute_Headers_Regexp(t *tes
 		},
 		Traffic: Traffic{
 			RequestHeaders: map[string]string{
-				"x-email": "^.+@domain.io",
-				"x-token": "^eebba923-750f-4b71-81fe-b91e026b7221$",
+				"x-email":          "^.+@domain.io",
+				"x-token":          "^eebba923-750f-4b71-81fe-b91e026b7221$",
 				"x-escaped-string": "^(123\\|345)$",
 			},
 			Regexp: true,
@@ -971,7 +971,7 @@ func TestVirtualService_Create_Unit_HeadersAndWeight_Exact(t *testing.T) {
 				"app":     "test",
 				"x-email": "some@domain.io",
 			},
-			Exact: true,
+			Exact:  true,
 			Weight: 30,
 		},
 	}
