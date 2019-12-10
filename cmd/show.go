@@ -197,9 +197,9 @@ func beautified(resourceList []Resource) {
 				fmt.Println(fmt.Sprintf("         - %s [%s]", httpRoute.Service, httpRoute.Deployment.Name))
 
 				if httpRoute.Deployment.Pods > 0 {
-					color.Green.Println("            |- pods: ", httpRoute.Deployment.Pods)
+					color.Green.Println("            |- active pods: ", httpRoute.Deployment.Pods)
 				} else {
-					color.Red.Println("            |- NON-EXISTENT PODS:", httpRoute.Deployment.Pods)
+					color.Red.Println("            |- NON-EXISTENT ACTIVE PODS:", httpRoute.Deployment.Pods)
 				}
 
 				fmt.Println(fmt.Sprintf("            \\_ %d %% of requests for pods with labels", httpRoute.Weight))
