@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/pismo/istiops/pkg/client"
+	"github.com/pismo/istiops/pkg/logger"
 	istiOperator "github.com/pismo/istiops/pkg/operator"
 	"github.com/pismo/istiops/pkg/router"
 	"github.com/spf13/cobra"
@@ -27,13 +28,13 @@ func setup() {
 	var err error
 	clients, err = client.New(kubeConfigPath)
 	if err != nil {
-		panic(err.Error())
+		logger.Fatal(fmt.Sprintf("%s", err), "cmd")
 	}
 
 	// generate random uuid
 	tracking, err := uuid.NewUUID()
 	if err != nil {
-		panic(err.Error())
+		logger.Fatal(fmt.Sprintf("%s", err), "cmd")
 	}
 
 	trackingId = tracking.String()
@@ -65,7 +66,7 @@ Istiops is a CLI library for Go that manages istio's traffic shifting easily.
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		logger.Fatal(fmt.Sprintf("%s", err), "cmd")
 		os.Exit(-1)
 	}
 }

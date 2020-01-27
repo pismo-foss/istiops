@@ -15,10 +15,11 @@ type VirtualService struct {
 	Namespace  string
 	Build      uint32
 	Istio      IstioClientInterface
+	KubeClient  KubeClientInterface
 }
 
 // Clear will remove any virtualService's routes which are not master ones given a k8s labelSelector
-func (v *VirtualService) Clear(s Shift) error {
+func (v *VirtualService) Clear(s Shift, m string) error {
 	vss, err := v.List(s.Selector)
 	if err != nil {
 		return err
@@ -29,13 +30,39 @@ func (v *VirtualService) Clear(s Shift) error {
 		var cleanedRules []*v1alpha3.HTTPRoute
 		cleanedRules = []*v1alpha3.HTTPRoute{}
 
-		logger.Info(fmt.Sprintf("removing all virtualservice '%s' rules except the master-route one (Regex: .+)", vs.Name), v.TrackingId)
-		for httpKey, httpValue := range vs.Spec.Http {
-			for _, matchValue := range httpValue.Match {
-				if matchValue.Uri.GetRegex() == ".+" {
-					cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
+		if m == "hard" {
+			logger.Info(fmt.Sprintf("removing all virtualservice '%s' rules except the master-route one (Regex: .+)", vs.Name), v.TrackingId)
+			for httpKey, httpValue := range vs.Spec.Http {
+				for _, matchValue := range httpValue.Match {
+					if matchValue.Uri.GetRegex() == ".+" {
+						cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
+					}
 				}
 			}
+		}
+
+		if m == "soft" {
+			logger.Info(fmt.Sprintf("removing all virtualservice '%s' rules with no pod associated", vs.Name), v.TrackingId)
+			for httpKey, httpValue := range vs.Spec.Http {
+				for _, routeValue := range httpValue.Route {
+					routeValue.Destination.Subset
+				}
+			}
+
+			labelString, err := Stringify(v.TrackingId, s.Selector)
+			dep, err := v.KubeClient.AppsV1().Deployments(v.Namespace).List(metav1.ListOptions{
+				LabelSelector: labelString,
+			})
+			if err != nil {
+				return err
+			}
+
+			depItem := dep.Items[0]
+			fmt.Println(depItem.Name)
+		}
+
+		if m != "hard" && m != "soft" {
+			return errors.New("empty mode when trying do clear routes. Refusing to continue")
 		}
 
 		if len(cleanedRules) == 0 {

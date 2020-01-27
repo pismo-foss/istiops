@@ -6,11 +6,18 @@ import (
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
 	networkingv1alpha3 "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/typed/networking/v1alpha3"
 	"istio.io/api/networking/v1alpha3"
+	appsV1 "k8s.io/client-go/kubernetes/typed/apps/v1"
+	coreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"strings"
 )
 
 type IstioClientInterface interface {
 	NetworkingV1alpha3() networkingv1alpha3.NetworkingV1alpha3Interface
+}
+
+type KubeClientInterface interface {
+	AppsV1() appsV1.AppsV1Interface
+	CoreV1() coreV1.CoreV1Interface
 }
 
 type Shift struct {

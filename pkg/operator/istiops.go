@@ -9,7 +9,7 @@ type Router interface {
 	Create(shift router.Shift) (*router.IstioRules, error)
 	Validate(shift router.Shift) error
 	Update(shift router.Shift) error
-	Clear(shift router.Shift) error
+	Clear(shift router.Shift, mode string) error
 	List(selector map[string]string) (*router.IstioRouteList, error)
 }
 
@@ -86,7 +86,7 @@ func (ips *Istiops) Update(shift router.Shift) error {
 }
 
 // ClearRules will remove any destination & virtualService route rules except the main one (provided by client).
-func (ips *Istiops) Clear(shift router.Shift) error {
+func (ips *Istiops) Clear(shift router.Shift, mode string) error {
 	DrRouter := ips.DrRouter
 	VsRouter := ips.VsRouter
 	var err error
@@ -100,12 +100,12 @@ func (ips *Istiops) Clear(shift router.Shift) error {
 	}
 
 	// in this scenario virtualService must be cleaned before the DestinationRule
-	err = VsRouter.Clear(shift)
+	err = VsRouter.Clear(shift, mode)
 	if err != nil {
 		return err
 	}
 
-	err = DrRouter.Clear(shift)
+	err = DrRouter.Clear(shift, mode)
 	if err != nil {
 		return err
 	}

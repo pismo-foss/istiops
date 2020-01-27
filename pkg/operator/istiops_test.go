@@ -68,7 +68,7 @@ func (m MockedResources) List(selector map[string]string) (*router.IstioRouteLis
 	}, nil
 }
 
-func (m MockedResources) Clear(shift router.Shift) error { return nil }
+func (m MockedResources) Clear(shift router.Shift, mode string) error { return nil }
 
 func (m MockedResources) Validate(shift router.Shift) error { return nil }
 
@@ -128,7 +128,7 @@ func TestClear_Unit(t *testing.T) {
 		VsRouter: vs,
 	}
 
-	err := op.Clear(shift)
+	err := op.Clear(shift, "hard")
 	assert.NoError(t, err)
 }
 

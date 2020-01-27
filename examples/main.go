@@ -76,7 +76,7 @@ func main() {
 	}
 
 	// clear all routes + subsets
-	err = op.Clear(shift)
+	err = op.Clear(shift, "soft")
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("%s", err), trackingId)
 	}

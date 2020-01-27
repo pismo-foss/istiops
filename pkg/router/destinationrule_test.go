@@ -371,7 +371,7 @@ func TestDestinationRule_Clear_Integrated_EmptyVirtualServiceRoutes(t *testing.T
 		},
 	}
 
-	err = dr.Clear(shift)
+	err = dr.Clear(shift, "hard")
 	re, _ := fakeIstioClient.NetworkingV1alpha3().DestinationRules(dr.Namespace).Get(dr.Name, metav1.GetOptions{})
 
 	assert.NoError(t, err)
@@ -439,7 +439,7 @@ func TestDestinationRule_Clear_Integrated_ExistentVirtualServiceRoutes(t *testin
 		},
 	}
 
-	err = dr.Clear(shift)
+	err = dr.Clear(shift, "hard")
 	re, _ := fakeIstioClient.NetworkingV1alpha3().DestinationRules(dr.Namespace).Get(dr.Name, metav1.GetOptions{})
 
 	assert.NoError(t, err)

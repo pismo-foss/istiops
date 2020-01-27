@@ -150,7 +150,7 @@ func TestVirtualService_Clear_Integrated_EmptyRoutes(t *testing.T) {
 
 	_, err := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&tvs)
 
-	err = vs.Clear(shift)
+	err = vs.Clear(shift, "hard")
 	assert.EqualError(t, err, "empty routes when cleaning virtualService's rules")
 }
 
@@ -196,7 +196,7 @@ func TestVirtualService_Clear_Integrated(t *testing.T) {
 
 	_, err := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&tvs)
 
-	err = vs.Clear(shift)
+	err = vs.Clear(shift, "hard")
 	assert.NoError(t, err)
 
 	mockedVs, _ := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(tvs.Name, metav1.GetOptions{})

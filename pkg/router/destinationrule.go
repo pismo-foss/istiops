@@ -16,10 +16,11 @@ type DestinationRule struct {
 	Namespace  string
 	Build      uint32
 	Istio      IstioClientInterface
+	KubeClient  KubeClientInterface
 }
 
 // Clear will remove any subset which are not used by a virtualService given a k8s labelSelector
-func (d *DestinationRule) Clear(s Shift) error {
+func (d *DestinationRule) Clear(s Shift, m string) error {
 	v := VirtualService{
 		TrackingId: d.TrackingId,
 		Name:       d.Name,
