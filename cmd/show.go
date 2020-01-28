@@ -52,7 +52,7 @@ type Resource struct {
 	Routes    []*Routes
 }
 
-func structured(trackingId string, namespace string, irl router.IstioRouteList, kClient kubernetes.Clientset) []Resource {
+func structured(trackingId string, namespace string, irl router.IstioRouteList, kClient kubernetes.Interface) []Resource {
 	var r Resource
 	var resourceList []Resource
 
@@ -272,7 +272,7 @@ var showCmd = &cobra.Command{
 		}
 
 		logger.Debug("Listing all current active routing rules", trackingId)
-		resourceList := structured(trackingId, namespace, irl, *clients.Kubernetes)
+		resourceList := structured(trackingId, namespace, irl, clients.Kubernetes)
 
 		if output == "pretty" {
 			beautified(resourceList)
