@@ -9,7 +9,7 @@ import (
 )
 
 type Set struct {
-	Kubernetes *kubernetes.Clientset
+	Kubernetes kubernetes.Interface
 	Istio      router.IstioClientInterface
 }
 

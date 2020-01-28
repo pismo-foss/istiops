@@ -67,7 +67,12 @@ func (v *VirtualService) Clear(s Shift, m string) error {
 			for httpKey, httpValue := range vs.Spec.Http {
 				// append canary rules without pods associated - based on destinationRules
 				for _, routeValue := range httpValue.Route {
-					// subset can be empty
+					// subset can be empty and won't be removed
+					if routeValue.Destination.Subset == "" {
+						logger.Debug("including a 'joker' route which does not have any subset configured", v.TrackingId)
+						cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
+					}
+
 					if routeValue.Destination.Subset != "" {
 						for _, d := range dss.DList.Items {
 							for _, subset := range d.Spec.Subsets {
@@ -101,7 +106,7 @@ func (v *VirtualService) Clear(s Shift, m string) error {
 									if len(deps.Items) == 1 {
 										dep := deps.Items[0]
 										if dep.Status.Replicas > 0 {
-											logger.Info(fmt.Sprintf("including route rule for subset '%s' due to existent pods ('%d') for deployment '%s'", subset.GetName(), dep.Status.Replicas, dep.Name), v.TrackingId)
+											logger.Debug(fmt.Sprintf("including route rule for subset '%s' due to existent pods ('%d') for deployment '%s'", subset.GetName(), dep.Status.Replicas, dep.Name), v.TrackingId)
 											cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
 										} else {
 											logger.Info(fmt.Sprintf("removing route rule for subset '%s' due to inexistent pods ('%d') for deployment '%s'", subset.GetName(), dep.Status.Replicas, dep.Name), v.TrackingId)
