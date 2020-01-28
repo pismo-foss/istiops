@@ -3,10 +3,12 @@ package router
 import (
 	"fmt"
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
-	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
+	istioFake "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
 	"istio.io/api/networking/v1alpha3"
+	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubeFake "k8s.io/client-go/kubernetes/fake"
 	"testing"
 )
 
@@ -88,7 +90,7 @@ func TestRemoveRouteInList_Unit(t *testing.T) {
 }
 
 func TestUpdateVirtualService_Integrated(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 	vs := VirtualService{
 		TrackingId: "unit-testing-uuid",
 		Namespace:  "integration",
@@ -116,7 +118,7 @@ func TestUpdateVirtualService_Integrated(t *testing.T) {
 }
 
 func TestVirtualService_Clear_Hard_Integrated_EmptyRoutes(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	vs := VirtualService{
 		TrackingId: "unit-testing-uuid",
@@ -168,8 +170,11 @@ func TestVirtualService_Clear_Hard_Integrated_EmptyRoutes(t *testing.T) {
 	assert.EqualError(t, err, "empty routes when cleaning virtualService's rules")
 }
 
+// TO DO
+func TestVirtualService_Clear_Soft_Integrated_EmptyRoutes(t *testing.T) {}
+
 func TestVirtualService_Clear_Hard_Integrated(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	vs := VirtualService{
 		TrackingId: "unit-testing-uuid",
@@ -234,6 +239,407 @@ func TestVirtualService_Clear_Hard_Integrated(t *testing.T) {
 	assert.Equal(t, 1, len(mockedVs.Spec.Http))
 
 	assert.Equal(t, ".+", mockedVs.Spec.Http[0].Match[0].GetUri().GetRegex())
+}
+
+func TestVirtualService_Clear_Soft_Integrated(t *testing.T) {
+	fakeIstioClient = istioFake.NewSimpleClientset()
+	fakeKubeClient = kubeFake.NewSimpleClientset()
+
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      1,
+		Istio:      fakeIstioClient,
+		KubeClient: fakeKubeClient,
+	}
+
+	shift := Shift{
+		Port:     0,
+		Hostname: "",
+		Selector: map[string]string{
+			"environment": "integration-tests",
+		},
+		Traffic: Traffic{},
+	}
+
+	// create a virtualService object in memory
+	tvs := v1alpha32.VirtualService{
+		Spec: v1alpha32.VirtualServiceSpec{},
+	}
+
+	tvs.Name = "integration-testing-vs"
+	tvs.Namespace = vs.Namespace
+	labels := map[string]string{
+		"app":         "api-test",
+		"environment": "integration-tests",
+	}
+
+	labelsNoPods := map[string]string{
+		"app": "api-test",
+		"pods": "0",
+	}
+	tvs.Labels = labels
+
+	// first http route which will match a deployment with pods
+	tvs.Spec.Http = append(tvs.Spec.Http, &v1alpha3.HTTPRoute{
+		Match: nil,
+		Route: []*v1alpha3.HTTPRouteDestination{
+			{
+				Destination: &v1alpha3.Destination{
+					Host:   "api-test",
+					Subset: "subset-to-match-a-deployment",
+					Port:   &v1alpha3.PortSelector{},
+				},
+				Weight:  30,
+				Headers: nil,
+			},
+		},
+	})
+	tvs.Spec.Http[0].Match = append(tvs.Spec.Http[0].Match, &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}})
+
+	// second http route which won't match a deployment
+	tvs.Spec.Http = append(tvs.Spec.Http, &v1alpha3.HTTPRoute{})
+	tvs.Spec.Http[1].Match = append(tvs.Spec.Http[0].Match, &v1alpha3.HTTPMatchRequest{})
+
+	// third http route which won't match a deployment with not pods
+	tvs.Spec.Http = append(tvs.Spec.Http, &v1alpha3.HTTPRoute{
+		Match: nil,
+		Route: []*v1alpha3.HTTPRouteDestination{
+			{
+				Destination: &v1alpha3.Destination{
+					Host:   "api-test",
+					Subset: "subset-to-match-a-deployment-without-pods",
+					Port:   &v1alpha3.PortSelector{},
+				},
+				Weight:  30,
+				Headers: nil,
+			},
+		},
+	})
+	tvs.Spec.Http[2].Match = append(tvs.Spec.Http[0].Match, &v1alpha3.HTTPMatchRequest{})
+
+	// create a destinationRule object in memory
+	tdr := v1alpha32.DestinationRule{
+		Spec: v1alpha32.DestinationRuleSpec{},
+	}
+	tdr.Name = "integration-testing-dr"
+	tdr.Namespace = vs.Namespace
+	tdr.Labels = labels
+	tdr.Spec.Subsets = []*v1alpha3.Subset{}
+	tdr.Spec.Subsets = append(tdr.Spec.Subsets, &v1alpha3.Subset{
+		Name:   "subset-to-match-a-deployment",
+		Labels: labels,
+	})
+	tdr.Spec.Subsets = append(tdr.Spec.Subsets, &v1alpha3.Subset{
+		Name:   "subset-to-match-a-deployment-without-pods",
+		Labels: labelsNoPods,
+	})
+
+	// create deployment objects in memory
+	replicasCount := int32(2)
+	noReplicasCount := int32(0)
+
+	depWithPods := v1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "api-test-with-deployments",
+			Namespace: tvs.Namespace,
+			Labels:    labels,
+		},
+		Spec: v1.DeploymentSpec{
+			Replicas: &replicasCount,
+			Selector: &metav1.LabelSelector{},
+			Strategy: v1.DeploymentStrategy{},
+		},
+		Status: v1.DeploymentStatus{
+			Replicas:            replicasCount,
+			AvailableReplicas:   replicasCount,
+			ReadyReplicas:       replicasCount,
+			UnavailableReplicas: 0,
+		},
+	}
+
+	depWithoutPods := v1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "api-test-without-deployments",
+			Namespace: tvs.Namespace,
+			Labels:    labelsNoPods,
+		},
+		Spec: v1.DeploymentSpec{
+			Replicas: &replicasCount,
+			Selector: &metav1.LabelSelector{},
+			Strategy: v1.DeploymentStrategy{},
+		},
+		Status: v1.DeploymentStatus{
+			Replicas:            noReplicasCount,
+			AvailableReplicas:   noReplicasCount,
+			ReadyReplicas:       noReplicasCount,
+			UnavailableReplicas: 0,
+		},
+	}
+
+	// try to create a virtualService with a proper destinationRule
+	_, err := fakeIstioClient.NetworkingV1alpha3().DestinationRules(vs.Namespace).Create(&tdr)
+	assert.NoError(t, err)
+	_, err = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&tvs)
+	assert.NoError(t, err)
+
+	// create a deployment with 2 pods and another with 0 to test a soft clear in both scenarios
+	_, err = vs.KubeClient.AppsV1().Deployments(tvs.Namespace).Create(&depWithPods)
+	assert.NoError(t, err)
+	_, err = vs.KubeClient.AppsV1().Deployments(tvs.Namespace).Create(&depWithoutPods)
+	assert.NoError(t, err)
+
+	// before the clear function there are two http routes
+	mockedVs, _ := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(tvs.Name, metav1.GetOptions{})
+	assert.Equal(t, 3, len(mockedVs.Spec.Http))
+
+	err = vs.Clear(shift, "soft")
+	assert.NoError(t, err)
+
+	mockedVs, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(tvs.Name, metav1.GetOptions{})
+	mockedDep, _ := fakeKubeClient.AppsV1().Deployments(vs.Namespace).Get(depWithoutPods.Name, metav1.GetOptions{})
+
+	// ensure that the created deployment have in fact the needed replicas count
+	assert.Equal(t, depWithoutPods.Status.Replicas, mockedDep.Status.Replicas)
+	// after the clear function there is only one http route (which matched a deployment)
+	assert.Equal(t, 1, len(mockedVs.Spec.Http))
+	assert.Equal(t, ".+", mockedVs.Spec.Http[0].Match[0].GetUri().GetRegex())
+}
+
+func TestVirtualService_Clear_Soft_Integrated_WithPods(t *testing.T) {
+	fakeIstioClient = istioFake.NewSimpleClientset()
+	fakeKubeClient = kubeFake.NewSimpleClientset()
+
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      1,
+		Istio:      fakeIstioClient,
+		KubeClient: fakeKubeClient,
+	}
+
+	shift := Shift{
+		Port:     0,
+		Hostname: "",
+		Selector: map[string]string{
+			"environment": "integration-tests",
+		},
+		Traffic: Traffic{},
+	}
+
+	// create a virtualService object in memory
+	tvs := v1alpha32.VirtualService{
+		Spec: v1alpha32.VirtualServiceSpec{},
+	}
+
+	tvs.Name = "integration-testing-vs"
+	tvs.Namespace = vs.Namespace
+	labels := map[string]string{
+		"app":         "api-test",
+		"environment": "integration-tests",
+	}
+	tvs.Labels = labels
+	tvs.Spec.Http = append(tvs.Spec.Http, &v1alpha3.HTTPRoute{
+		Match: nil,
+		Route: []*v1alpha3.HTTPRouteDestination{
+			{
+				Destination: &v1alpha3.Destination{
+					Host:   "api-test",
+					Subset: "subset-to-match-a-deployment",
+					Port:   &v1alpha3.PortSelector{},
+				},
+				Weight:  30,
+				Headers: nil,
+			},
+		},
+	})
+
+	tvs.Spec.Http[0].Match = append(tvs.Spec.Http[0].Match, &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}})
+	tvs.Spec.Http = append(tvs.Spec.Http, &v1alpha3.HTTPRoute{})
+	tvs.Spec.Http[1].Match = append(tvs.Spec.Http[0].Match, &v1alpha3.HTTPMatchRequest{})
+
+	// create a destinationRule object in memory
+	tdr := v1alpha32.DestinationRule{
+		Spec: v1alpha32.DestinationRuleSpec{},
+	}
+	tdr.Name = "integration-testing-dr"
+	tdr.Namespace = vs.Namespace
+	tdr.Labels = labels
+	tdr.Spec.Subsets = []*v1alpha3.Subset{}
+	tdr.Spec.Subsets = append(tdr.Spec.Subsets, &v1alpha3.Subset{
+		Name:   "subset-to-match-a-deployment",
+		Labels: labels,
+	})
+
+	// create deployment objects in memory
+	replicasCount := int32(2)
+	depWithPods := v1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "api-test-with-deployments",
+			Namespace: tvs.Namespace,
+			Labels:    labels,
+		},
+		Spec: v1.DeploymentSpec{
+			Replicas: &replicasCount,
+			Selector: &metav1.LabelSelector{},
+			Strategy: v1.DeploymentStrategy{},
+		},
+		Status: v1.DeploymentStatus{
+			Replicas:            replicasCount,
+			AvailableReplicas:   replicasCount,
+			ReadyReplicas:       replicasCount,
+			UnavailableReplicas: 0,
+		},
+	}
+
+	// try to create a virtualService with a proper destinationRule
+	_, err := fakeIstioClient.NetworkingV1alpha3().DestinationRules(vs.Namespace).Create(&tdr)
+	assert.NoError(t, err)
+	_, err = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&tvs)
+	assert.NoError(t, err)
+
+	// create a deployment with 2 pods to test a soft clear
+	_, err = vs.KubeClient.AppsV1().Deployments(tvs.Namespace).Create(&depWithPods)
+	assert.NoError(t, err)
+
+	// before the clear function there are two http routes
+	mockedVs, _ := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(tvs.Name, metav1.GetOptions{})
+	assert.Equal(t, 2, len(mockedVs.Spec.Http))
+
+	err = vs.Clear(shift, "soft")
+	assert.NoError(t, err)
+
+	mockedVs, _ = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(tvs.Name, metav1.GetOptions{})
+	mockedDep, _ := fakeKubeClient.AppsV1().Deployments(vs.Namespace).Get(depWithPods.Name, metav1.GetOptions{})
+
+	// ensure that the created deployment have in fact the needed replicas count
+	assert.Equal(t, depWithPods.Status.Replicas, mockedDep.Status.Replicas)
+	// after the clear function there is only one http route (which matched a deployment)
+	assert.Equal(t, 1, len(mockedVs.Spec.Http))
+	assert.Equal(t, ".+", mockedVs.Spec.Http[0].Match[0].GetUri().GetRegex())
+}
+
+func TestVirtualService_Clear_Soft_Integrated_WithoutPods(t *testing.T) {
+	fakeIstioClient = istioFake.NewSimpleClientset()
+	fakeKubeClient = kubeFake.NewSimpleClientset()
+
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      1,
+		Istio:      fakeIstioClient,
+		KubeClient: fakeKubeClient,
+	}
+
+	shift := Shift{
+		Port:     0,
+		Hostname: "",
+		Selector: map[string]string{
+			"environment": "integration-tests",
+		},
+		Traffic: Traffic{},
+	}
+
+	// create a virtualService object in memory
+	tvs := v1alpha32.VirtualService{
+		Spec: v1alpha32.VirtualServiceSpec{},
+	}
+
+	tvs.Name = "integration-testing-vs"
+	tvs.Namespace = vs.Namespace
+	labels := map[string]string{
+		"app":         "api-test",
+		"environment": "integration-tests",
+	}
+	tvs.Labels = labels
+	tvs.Spec.Http = append(tvs.Spec.Http, &v1alpha3.HTTPRoute{
+		Match: nil,
+		Route: []*v1alpha3.HTTPRouteDestination{
+			{
+				Destination: &v1alpha3.Destination{
+					Host:   "api-test",
+					Subset: "subset-to-match-a-deployment",
+					Port:   &v1alpha3.PortSelector{},
+				},
+				Weight:  30,
+				Headers: nil,
+			},
+		},
+	})
+
+	tvs.Spec.Http[0].Match = append(tvs.Spec.Http[0].Match, &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}})
+	tvs.Spec.Http = append(tvs.Spec.Http, &v1alpha3.HTTPRoute{})
+	tvs.Spec.Http[1].Match = append(tvs.Spec.Http[0].Match, &v1alpha3.HTTPMatchRequest{})
+
+	// create a destinationRule object in memory
+	tdr := v1alpha32.DestinationRule{
+		Spec: v1alpha32.DestinationRuleSpec{},
+	}
+	tdr.Name = "integration-testing-dr"
+	tdr.Namespace = vs.Namespace
+	tdr.Labels = labels
+	tdr.Spec.Subsets = []*v1alpha3.Subset{}
+	tdr.Spec.Subsets = append(tdr.Spec.Subsets, &v1alpha3.Subset{
+		Name:   "subset-to-match-a-deployment",
+		Labels: labels,
+	})
+
+	// create deployment objects in memory
+	replicasCount := int32(0)
+	depWithoutPods := v1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "api-test-with-deployments",
+			Namespace: tvs.Namespace,
+			Labels:    labels,
+		},
+		Spec: v1.DeploymentSpec{
+			Replicas: &replicasCount,
+			Selector: &metav1.LabelSelector{},
+			Strategy: v1.DeploymentStrategy{},
+		},
+		Status: v1.DeploymentStatus{
+			Replicas:            replicasCount,
+			AvailableReplicas:   replicasCount,
+			ReadyReplicas:       replicasCount,
+			UnavailableReplicas: 0,
+		},
+	}
+
+	// try to create a virtualService with a proper destinationRule
+	_, err := fakeIstioClient.NetworkingV1alpha3().DestinationRules(vs.Namespace).Create(&tdr)
+	assert.NoError(t, err)
+	_, err = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&tvs)
+	assert.NoError(t, err)
+
+	// create a deployment with 2 pods to test a soft clear
+	_, err = vs.KubeClient.AppsV1().Deployments(tvs.Namespace).Create(&depWithoutPods)
+	assert.NoError(t, err)
+
+	// before the clear function there are two http routes
+	mockedVs, _ := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Get(tvs.Name, metav1.GetOptions{})
+	assert.Equal(t, 2, len(mockedVs.Spec.Http))
+
+	err = vs.Clear(shift, "soft")
+	assert.EqualError(t, err, "empty routes when cleaning virtualService's rules")
 }
 
 func TestBalance_Unit_PartialPercent(t *testing.T) {
@@ -507,7 +913,7 @@ func TestVirtualService_Validate_Unit_Success(t *testing.T) {
 
 // Update
 func TestVirtualService_Update_Integrated_NonExistentRoute_Headers_Exact(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	vs := VirtualService{
 		TrackingId: "unit-testing-uuid",
@@ -557,7 +963,7 @@ func TestVirtualService_Update_Integrated_NonExistentRoute_Headers_Exact(t *test
 }
 
 func TestVirtualService_Update_Integrated_NonExistentRoute_Headers_Regexp(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	vs := VirtualService{
 		TrackingId: "unit-testing-uuid",
@@ -611,7 +1017,7 @@ func TestVirtualService_Update_Integrated_NonExistentRoute_Headers_Regexp(t *tes
 func TestVirtualService_Update_Integrated_ExistentRoute_Headers(t *testing.T) {
 	var match *v1alpha3.HTTPMatchRequest
 	var route *v1alpha3.HTTPRouteDestination
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	vs := VirtualService{
 		TrackingId: "unit-testing-uuid",
@@ -680,7 +1086,7 @@ func TestVirtualService_Update_Integrated_ExistentRoute_Headers(t *testing.T) {
 }
 
 func TestVirtualService_Update_Integrated_NonExistentRoute_Percentage(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	vs := VirtualService{
 		TrackingId: "unit-testing-uuid",
@@ -718,7 +1124,7 @@ func TestVirtualService_Update_Integrated_NonExistentRoute_Percentage(t *testing
 func TestRemoveOutdatedRoutes_Unit_EmptyRoutes(t *testing.T) {
 	var httpRoute []*v1alpha3.HTTPRoute
 
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	vs := VirtualService{
 		TrackingId: "unit-testing-uuid",
@@ -742,7 +1148,7 @@ func TestRemoveOutdatedRoutes_Unit(t *testing.T) {
 	var route []*v1alpha3.HTTPRouteDestination
 	var routeKept []*v1alpha3.HTTPRouteDestination
 
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	vs := VirtualService{
 		TrackingId: "unit-testing-uuid",
@@ -809,7 +1215,7 @@ func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *t
 	var match *v1alpha3.HTTPMatchRequest
 	var route *v1alpha3.HTTPRouteDestination
 
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	vs := VirtualService{
 		TrackingId: "unit-testing-uuid",
@@ -916,7 +1322,7 @@ func TestVirtualService_Update_Integrated_NonExistentMasterRoute_Percentage(t *t
 }
 
 func TestVirtualService_List_Integrated(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	vs := VirtualService{
 		TrackingId: "unit-testing-uuid",
@@ -940,7 +1346,7 @@ func TestVirtualService_List_Integrated(t *testing.T) {
 }
 
 func TestVirtualService_List_Integrated_Empty(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	vs := VirtualService{
 		TrackingId: "unit-testing-uuid",
@@ -957,7 +1363,7 @@ func TestVirtualService_List_Integrated_Empty(t *testing.T) {
 
 // Create
 func TestVirtualService_Create_Unit_EmptyHeaders(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	vs := VirtualService{
 		TrackingId: "unit-testing-uuid",
@@ -981,7 +1387,7 @@ func TestVirtualService_Create_Unit_EmptyHeaders(t *testing.T) {
 }
 
 func TestVirtualService_Create_Unit_HeadersAndWeight_Exact(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	vs := VirtualService{
 		TrackingId: "unit-testing-uuid",
@@ -1015,7 +1421,7 @@ func TestVirtualService_Create_Unit_HeadersAndWeight_Exact(t *testing.T) {
 }
 
 func TestVirtualService_Create_Unit_HeadersAndWeight_Regexp(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	vs := VirtualService{
 		TrackingId: "unit-testing-uuid",

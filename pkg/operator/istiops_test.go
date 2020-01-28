@@ -2,7 +2,7 @@ package operator
 
 import (
 	"github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
-	versionedClientFake "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
+	istioFake "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 }
 
 func TearUp() {
-	fClient = versionedClientFake.NewSimpleClientset()
+	fClient = istioFake.NewSimpleClientset()
 }
 
 type MockedResources struct {
@@ -33,7 +33,7 @@ type MockedResources struct {
 	Name       string
 	Namespace  string
 	Build      uint32
-	Istio      *versionedClientFake.Clientset
+	Istio      *istioFake.Clientset
 }
 
 type MockedErrorResources struct {
@@ -41,7 +41,7 @@ type MockedErrorResources struct {
 	Name       string
 	Namespace  string
 	Build      uint32
-	Istio      *versionedClientFake.Clientset
+	Istio      *istioFake.Clientset
 }
 
 func (m MockedResources) Create(shift router.Shift) (*router.IstioRules, error) {

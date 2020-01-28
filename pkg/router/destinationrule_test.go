@@ -2,7 +2,7 @@ package router
 
 import (
 	v1alpha32 "github.com/aspenmesh/istio-client-go/pkg/apis/networking/v1alpha3"
-	"github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
+	istioFake "github.com/aspenmesh/istio-client-go/pkg/client/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"istio.io/api/networking/v1alpha3"
@@ -52,7 +52,7 @@ func TestValidateDestinationRuleList_Unit_EmptyItems(t *testing.T) {
 }
 
 func TestDestinationRule_List_Integrated_Empty(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	dr := DestinationRule{
 		TrackingId: "unit-testing-tracking-id",
@@ -68,7 +68,7 @@ func TestDestinationRule_List_Integrated_Empty(t *testing.T) {
 }
 
 func TestDestinationRule_List_Integrated(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	dr := DestinationRule{
 		TrackingId: "unit-testing-tracking-id",
@@ -98,7 +98,7 @@ func TestDestinationRule_List_Integrated(t *testing.T) {
 }
 
 func TestDestinationRule_Validate_Unit(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	cases := []struct {
 		dr    DestinationRule
@@ -334,7 +334,7 @@ func TestDestinationRule_Create_Integrated(t *testing.T) {
 }
 
 func TestDestinationRule_Clear_Integrated_EmptyVirtualServiceRoutes(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	dr := DestinationRule{
 		TrackingId: "unit-testing-tracking-id",
@@ -379,7 +379,7 @@ func TestDestinationRule_Clear_Integrated_EmptyVirtualServiceRoutes(t *testing.T
 }
 
 func TestDestinationRule_Clear_Integrated_ExistentVirtualServiceRoutes(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 
 	dr := DestinationRule{
 		TrackingId: "unit-testing-tracking-id",
@@ -449,7 +449,7 @@ func TestDestinationRule_Clear_Integrated_ExistentVirtualServiceRoutes(t *testin
 }
 
 func TestDestinationRule_Update_Integrated(t *testing.T) {
-	fakeIstioClient = fake.NewSimpleClientset()
+	fakeIstioClient = istioFake.NewSimpleClientset()
 	dr := DestinationRule{
 		Namespace:  "integration",
 		TrackingId: "unit-testing-tracking-id",
