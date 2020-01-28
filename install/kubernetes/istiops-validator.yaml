@@ -1,0 +1,100 @@
+###############################
+# istiops-validator RBAC
+##############################
+# Cluster wide get, list access for resources
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: istiops-validator-istio-system
+rules:
+  - apiGroups: ["authentication.istio.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["config.istio.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.istio.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["rbac.istio.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["config.istio.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["extensions"]
+    resources: ["thirdpartyresources", "thirdpartyresources.extensions", "ingresses", "ingresses/status", "deployments"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["configmaps", "endpoints", "pods", "services", "namespaces"]
+    verbs: ["get", "list", "watch"]
+---
+# Grant permissions to the istiops-validator.
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: istiops-validator-istio-system
+subjects:
+  - kind: ServiceAccount
+    name: istiops-validator-service-account
+    namespace: istio-system
+roleRef:
+  kind: ClusterRole
+  name: istiops-validator-istio-system
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: istiops-validator-service-account
+  namespace: istio-system
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: istiops-validator
+  namespace: istio-system
+spec:
+  concurrencyPolicy: Replace
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    metadata:
+      creationTimestamp: null
+    spec:
+      template:
+        spec:
+          containers:
+            - env:
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      apiVersion: v1
+                      fieldPath: metadata.name
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      apiVersion: v1
+                      fieldPath: metadata.namespace
+              image: 270036487593.dkr.ecr.us-east-1.amazonaws.com/istiops:qa5
+              imagePullPolicy: Always
+              name: istiops-validator
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+          dnsPolicy: ClusterFirst
+          restartPolicy: Never
+          serviceAccountName: istiops-validator-service-account
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 31
+          tolerations:
+            - effect: NoSchedule
+              key: nodes
+              operator: Equal
+              value: pci
+  schedule: 0/1 * * * *
+  successfulJobsHistoryLimit: 3
+  suspend: false
