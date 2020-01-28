@@ -212,7 +212,7 @@ func beautified(resourceList []Resource) {
 				}
 
 				if !httpRoute.Routable {
-					color.Red.Println("               |- NON-EXISTENT SUBSET", httpRoute.Subset.Name)
+					color.LightYellow.Println("               |- NON-EXISTENT SUBSET", httpRoute.Subset.Name)
 				}
 
 			}
