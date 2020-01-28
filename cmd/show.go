@@ -119,10 +119,13 @@ func structured(trackingId string, namespace string, irl router.IstioRouteList, 
 						return []Resource{}
 					}
 
-					depItem := dep.Items[0]
-					jr.Deployment.Name = depItem.Name
-					jr.Deployment.Namespace = depItem.Namespace
-					jr.Deployment.Pods = depItem.Status.ReadyReplicas
+					if len(dep.Items) == 1 {
+						depItem := dep.Items[0]
+						jr.Deployment.Name = depItem.Name
+						jr.Deployment.Namespace = depItem.Namespace
+						jr.Deployment.Pods = depItem.Status.ReadyReplicas
+					}
+
 				}
 
 				jr.Weight = currentWeight

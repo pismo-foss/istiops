@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"istio.io/api/networking/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"regexp"
 )
 
 type VirtualService struct {
@@ -15,22 +16,26 @@ type VirtualService struct {
 	Namespace  string
 	Build      uint32
 	Istio      IstioClientInterface
-	KubeClient  KubeClientInterface
+	KubeClient KubeClientInterface
 }
 
 // Clear will remove any virtualService's routes which are not master ones given a k8s labelSelector
 func (v *VirtualService) Clear(s Shift, m string) error {
-	dr := DestinationRule{
-		TrackingId: v.TrackingId,
-		Name:       v.Name,
-		Namespace:  v.Namespace,
-		Build:      v.Build,
-		Istio:      v.Istio,
-		KubeClient: v.KubeClient,
-	}
+	//subsetName := fmt.Sprintf("%s-%v-%s", v.Name, v.Build, v.Namespace)
 
-	dss, err := dr.List(s.Selector)
-	fmt.Println(dss.DList.Items)
+	//dr := DestinationRule{
+	//	TrackingId: v.TrackingId,
+	//	Name:       v.Name,
+	//	Namespace:  v.Namespace,
+	//	Build:      v.Build,
+	//	Istio:      v.Istio,
+	//	KubeClient: v.KubeClient,
+	//}
+	//
+	//dss, err := dr.List(s.Selector)
+	//if err != nil {
+	//	return err
+	//}
 
 	vss, err := v.List(s.Selector)
 	if err != nil {
@@ -46,6 +51,10 @@ func (v *VirtualService) Clear(s Shift, m string) error {
 			logger.Info(fmt.Sprintf("removing all virtualservice '%s' rules except the master-route one (Regex: .+) due to '%s' flag", vs.Name, m), v.TrackingId)
 			for httpKey, httpValue := range vs.Spec.Http {
 				for _, matchValue := range httpValue.Match {
+					anyPrefix, _ := regexp.MatchString(`.+`, matchValue.Uri.GetPrefix())
+					if anyPrefix {
+						cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
+					}
 					if matchValue.Uri.GetRegex() == ".+" {
 						cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
 					}
@@ -55,28 +64,28 @@ func (v *VirtualService) Clear(s Shift, m string) error {
 
 		if m == "soft" {
 			logger.Info(fmt.Sprintf("removing all virtualservice '%s' rules with no pods associated due to '%s' flag", vs.Name, m), v.TrackingId)
-			//for httpKey, httpValue := range vs.Spec.Http {
-			//	// append canary rules without pods associated - based on destinationRules (?)
-			//
-			//
-			//	// append the default rule as well
-			//	for _, matchValue := range httpValue.Match {
-			//		if matchValue.Uri.GetRegex() == ".+" {
-			//			cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
-			//		}
-			//	}
-			//}
+			for httpKey, httpValue := range vs.Spec.Http {
+				// append canary rules without pods associated - based on destinationRules
+				//for _, routeValue := range httpValue.Route {
+				//	for _, d := range dss.DList.Items {
+				//		for _, subset := range d.Spec.Subsets {
+				//
+				//
+				//		}
+				//	}
+				//}
 
-			//labelString, err := Stringify(v.TrackingId, s.Selector)
-			//dep, err := v.KubeClient.AppsV1().Deployments(v.Namespace).List(metav1.ListOptions{
-			//	LabelSelector: labelString,
-			//})
-			//if err != nil {
-			//	return err
-			//}
-			//
-			//depItem := dep.Items[0]
-			//fmt.Println(depItem.Name)
+				// append the default rule as well
+				for _, matchValue := range httpValue.Match {
+					anyPrefix, _ := regexp.MatchString(`.+`, matchValue.Uri.GetPrefix())
+					if anyPrefix {
+						cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
+					}
+					if matchValue.Uri.GetRegex() == ".+" {
+						cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
+					}
+				}
+			}
 		}
 
 		if m != "hard" && m != "soft" {

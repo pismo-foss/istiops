@@ -16,7 +16,7 @@ type DestinationRule struct {
 	Namespace  string
 	Build      uint32
 	Istio      IstioClientInterface
-	KubeClient  KubeClientInterface
+	KubeClient KubeClientInterface
 }
 
 // Clear will remove any subset which are not used by a virtualService given a k8s labelSelector
