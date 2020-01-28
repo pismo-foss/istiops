@@ -20,6 +20,18 @@ type VirtualService struct {
 
 // Clear will remove any virtualService's routes which are not master ones given a k8s labelSelector
 func (v *VirtualService) Clear(s Shift, m string) error {
+	dr := DestinationRule{
+		TrackingId: v.TrackingId,
+		Name:       v.Name,
+		Namespace:  v.Namespace,
+		Build:      v.Build,
+		Istio:      v.Istio,
+		KubeClient: v.KubeClient,
+	}
+
+	dss, err := dr.List(s.Selector)
+	fmt.Println(dss.DList.Items)
+
 	vss, err := v.List(s.Selector)
 	if err != nil {
 		return err
@@ -31,7 +43,7 @@ func (v *VirtualService) Clear(s Shift, m string) error {
 		cleanedRules = []*v1alpha3.HTTPRoute{}
 
 		if m == "hard" {
-			logger.Info(fmt.Sprintf("removing all virtualservice '%s' rules except the master-route one (Regex: .+)", vs.Name), v.TrackingId)
+			logger.Info(fmt.Sprintf("removing all virtualservice '%s' rules except the master-route one (Regex: .+) due to '%s' flag", vs.Name, m), v.TrackingId)
 			for httpKey, httpValue := range vs.Spec.Http {
 				for _, matchValue := range httpValue.Match {
 					if matchValue.Uri.GetRegex() == ".+" {
@@ -42,23 +54,29 @@ func (v *VirtualService) Clear(s Shift, m string) error {
 		}
 
 		if m == "soft" {
-			logger.Info(fmt.Sprintf("removing all virtualservice '%s' rules with no pod associated", vs.Name), v.TrackingId)
-			for httpKey, httpValue := range vs.Spec.Http {
-				for _, routeValue := range httpValue.Route {
-					routeValue.Destination.Subset
-				}
-			}
+			logger.Info(fmt.Sprintf("removing all virtualservice '%s' rules with no pods associated due to '%s' flag", vs.Name, m), v.TrackingId)
+			//for httpKey, httpValue := range vs.Spec.Http {
+			//	// append canary rules without pods associated - based on destinationRules (?)
+			//
+			//
+			//	// append the default rule as well
+			//	for _, matchValue := range httpValue.Match {
+			//		if matchValue.Uri.GetRegex() == ".+" {
+			//			cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
+			//		}
+			//	}
+			//}
 
-			labelString, err := Stringify(v.TrackingId, s.Selector)
-			dep, err := v.KubeClient.AppsV1().Deployments(v.Namespace).List(metav1.ListOptions{
-				LabelSelector: labelString,
-			})
-			if err != nil {
-				return err
-			}
-
-			depItem := dep.Items[0]
-			fmt.Println(depItem.Name)
+			//labelString, err := Stringify(v.TrackingId, s.Selector)
+			//dep, err := v.KubeClient.AppsV1().Deployments(v.Namespace).List(metav1.ListOptions{
+			//	LabelSelector: labelString,
+			//})
+			//if err != nil {
+			//	return err
+			//}
+			//
+			//depItem := dep.Items[0]
+			//fmt.Println(depItem.Name)
 		}
 
 		if m != "hard" && m != "soft" {
