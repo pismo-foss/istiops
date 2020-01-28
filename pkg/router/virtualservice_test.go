@@ -115,7 +115,7 @@ func TestUpdateVirtualService_Integrated(t *testing.T) {
 	assert.Equal(t, "label-value", mockedVs.Labels["label-key"])
 }
 
-func TestVirtualService_Clear_Integrated_EmptyRoutes(t *testing.T) {
+func TestVirtualService_Clear_Hard_Integrated_EmptyRoutes(t *testing.T) {
 	fakeIstioClient = fake.NewSimpleClientset()
 
 	vs := VirtualService{
@@ -124,6 +124,7 @@ func TestVirtualService_Clear_Integrated_EmptyRoutes(t *testing.T) {
 		Namespace:  "integration",
 		Build:      1,
 		Istio:      fakeIstioClient,
+		KubeClient: fakeKubeClient,
 	}
 
 	shift := Shift{
@@ -135,26 +136,39 @@ func TestVirtualService_Clear_Integrated_EmptyRoutes(t *testing.T) {
 		Traffic: Traffic{},
 	}
 
+	labelSelector := map[string]string{
+		"app":         "api-test",
+		"environment": "integration-tests",
+	}
+
 	// create a virtualService object in memory
 	tvs := v1alpha32.VirtualService{
 		Spec: v1alpha32.VirtualServiceSpec{},
 	}
 
-	tvs.Name = "integration-testing-dr"
+	tvs.Name = "integration-testing-vs"
 	tvs.Namespace = vs.Namespace
-	labelSelector := map[string]string{
-		"app":         "api-test",
-		"environment": "integration-tests",
-	}
 	tvs.Labels = labelSelector
 
-	_, err := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&tvs)
+	// create a destinationRule object in memory
+	tdr := v1alpha32.DestinationRule{
+		Spec: v1alpha32.DestinationRuleSpec{},
+	}
+	tdr.Name = "integration-testing-dr"
+	tdr.Namespace = vs.Namespace
+	tdr.Labels = labelSelector
+
+	// try to create a virtualService with a proper destinationRule
+	_, err := fakeIstioClient.NetworkingV1alpha3().DestinationRules(vs.Namespace).Create(&tdr)
+	assert.NoError(t, err)
+	_, err = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&tvs)
+	assert.NoError(t, err)
 
 	err = vs.Clear(shift, "hard")
 	assert.EqualError(t, err, "empty routes when cleaning virtualService's rules")
 }
 
-func TestVirtualService_Clear_Integrated(t *testing.T) {
+func TestVirtualService_Clear_Hard_Integrated(t *testing.T) {
 	fakeIstioClient = fake.NewSimpleClientset()
 
 	vs := VirtualService{
@@ -163,6 +177,7 @@ func TestVirtualService_Clear_Integrated(t *testing.T) {
 		Namespace:  "integration",
 		Build:      1,
 		Istio:      fakeIstioClient,
+		KubeClient: fakeKubeClient,
 	}
 
 	shift := Shift{
@@ -192,9 +207,20 @@ func TestVirtualService_Clear_Integrated(t *testing.T) {
 	})
 
 	tvs.Spec.Http[0].Match = append(tvs.Spec.Http[0].Match, &v1alpha3.HTTPMatchRequest{Uri: &v1alpha3.StringMatch{MatchType: &v1alpha3.StringMatch_Regex{Regex: ".+"}}})
-	tvs.Spec.Http = append(tvs.Spec.Http, &v1alpha3.HTTPRoute{})
 
-	_, err := fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&tvs)
+	// create a destinationRule object in memory
+	tdr := v1alpha32.DestinationRule{
+		Spec: v1alpha32.DestinationRuleSpec{},
+	}
+	tdr.Name = "integration-testing-dr"
+	tdr.Namespace = vs.Namespace
+	tdr.Labels = labelSelector
+
+	// try to create a virtualService with a proper destinationRule
+	_, err := fakeIstioClient.NetworkingV1alpha3().DestinationRules(vs.Namespace).Create(&tdr)
+	assert.NoError(t, err)
+	_, err = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&tvs)
+	assert.NoError(t, err)
 
 	err = vs.Clear(shift, "hard")
 	assert.NoError(t, err)
@@ -203,7 +229,10 @@ func TestVirtualService_Clear_Integrated(t *testing.T) {
 
 	assert.Equal(t, "integration-testing-vs", mockedVs.Name)
 	assert.Equal(t, "integration", mockedVs.Namespace)
+	// we didn't validate any pods so the empty http route it will be kept
+	t.Log(mockedVs.Spec)
 	assert.Equal(t, 1, len(mockedVs.Spec.Http))
+
 	assert.Equal(t, ".+", mockedVs.Spec.Http[0].Match[0].GetUri().GetRegex())
 }
 
