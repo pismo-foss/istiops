@@ -21,8 +21,6 @@ type VirtualService struct {
 
 // Clear will remove any virtualService's routes which are not master ones given a k8s labelSelector
 func (v *VirtualService) Clear(s Shift, m string) error {
-	//subsetName := fmt.Sprintf("%s-%v-%s", v.Name, v.Build, v.Namespace)
-
 	dr := DestinationRule{
 		TrackingId: v.TrackingId,
 		Name:       v.Name,
