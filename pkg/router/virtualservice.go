@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"istio.io/api/networking/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"regexp"
 )
 
 type VirtualService struct {
@@ -15,10 +16,25 @@ type VirtualService struct {
 	Namespace  string
 	Build      uint32
 	Istio      IstioClientInterface
+	KubeClient KubeClientInterface
 }
 
 // Clear will remove any virtualService's routes which are not master ones given a k8s labelSelector
-func (v *VirtualService) Clear(s Shift) error {
+func (v *VirtualService) Clear(s Shift, m string) error {
+	dr := DestinationRule{
+		TrackingId: v.TrackingId,
+		Name:       v.Name,
+		Namespace:  v.Namespace,
+		Build:      v.Build,
+		Istio:      v.Istio,
+		KubeClient: v.KubeClient,
+	}
+
+	dss, err := dr.List(s.Selector)
+	if err != nil {
+		return err
+	}
+
 	vss, err := v.List(s.Selector)
 	if err != nil {
 		return err
@@ -29,13 +45,81 @@ func (v *VirtualService) Clear(s Shift) error {
 		var cleanedRules []*v1alpha3.HTTPRoute
 		cleanedRules = []*v1alpha3.HTTPRoute{}
 
-		logger.Info(fmt.Sprintf("removing all virtualservice '%s' rules except the master-route one (Regex: .+)", vs.Name), v.TrackingId)
-		for httpKey, httpValue := range vs.Spec.Http {
-			for _, matchValue := range httpValue.Match {
-				if matchValue.Uri.GetRegex() == ".+" {
-					cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
+		if m == "hard" {
+			logger.Info(fmt.Sprintf("triggering hard clear. Removing all virtualService '%s' rules except the master-route one (Regex: .+)", vs.Name), v.TrackingId)
+			for httpKey, httpValue := range vs.Spec.Http {
+				for _, matchValue := range httpValue.Match {
+					anyPrefix, _ := regexp.MatchString(`.+`, matchValue.Uri.GetPrefix())
+					if anyPrefix {
+						cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
+					}
+					if matchValue.Uri.GetRegex() == ".+" {
+						cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
+					}
 				}
 			}
+		}
+
+		if m == "soft" {
+			logger.Info(fmt.Sprintf("triggering soft clear for virtualService '%s'", vs.Name), v.TrackingId)
+			for httpKey, httpValue := range vs.Spec.Http {
+				// append canary rules without pods associated - based on destinationRules
+				for _, routeValue := range httpValue.Route {
+					// subset can be empty and won't be removed
+					if routeValue.Destination.Subset == "" {
+						logger.Debug("including a 'joker' route which does not have any subset configured", v.TrackingId)
+						cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
+					}
+
+					if routeValue.Destination.Subset != "" {
+						for _, d := range dss.DList.Items {
+							for _, subset := range d.Spec.Subsets {
+								if subset.GetName() == routeValue.Destination.Subset {
+									// finally get all deployments associated with the current subset labels
+									subsetLabelsMap := map[string]string{}
+									for labelKey, labelValue := range subset.Labels {
+										subsetLabelsMap[labelKey] = labelValue
+									}
+									subsetLabelsString, err := Stringify(v.TrackingId, subsetLabelsMap)
+									if err != nil {
+										return err
+									}
+
+									deps, err := v.KubeClient.AppsV1().Deployments(v.Namespace).List(metav1.ListOptions{
+										LabelSelector: subsetLabelsString,
+									})
+									if err != nil {
+										return err
+									}
+
+									// more than one deployment as result is not recommended
+									if len(deps.Items) > 1 {
+										logger.Error(fmt.Sprintf("more than one deployment which matches labels '%s'", subsetLabelsString), v.TrackingId)
+									}
+
+									if len(deps.Items) == 0 {
+										logger.Warn(fmt.Sprintf("removing route rule for subset '%s' due to inexistent deployment '%s'", subsetLabelsString, subset.GetName()), v.TrackingId)
+									}
+
+									if len(deps.Items) == 1 {
+										dep := deps.Items[0]
+										if dep.Status.Replicas > 0 {
+											logger.Debug(fmt.Sprintf("including route rule for subset '%s' due to existent pods ('%d') for deployment '%s'", subset.GetName(), dep.Status.Replicas, dep.Name), v.TrackingId)
+											cleanedRules = append(cleanedRules, vs.Spec.Http[httpKey])
+										} else {
+											logger.Info(fmt.Sprintf("removing route rule for subset '%s' due to inexistent pods ('%d') for deployment '%s'", subset.GetName(), dep.Status.Replicas, dep.Name), v.TrackingId)
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if m != "hard" && m != "soft" {
+			return errors.New("empty mode when trying do clear routes. Refusing to continue")
 		}
 
 		if len(cleanedRules) == 0 {

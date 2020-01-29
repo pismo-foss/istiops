@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/pismo/istiops/pkg/logger"
 	"github.com/pismo/istiops/pkg/router"
 	"github.com/spf13/cobra"
 )
@@ -9,6 +10,7 @@ import (
 func init() {
 	rulesClearCmd.PersistentFlags().StringP("namespace", "n", "default", "kubernetes' cluster namespace")
 	rulesClearCmd.PersistentFlags().StringP("label-selector", "l", "", "* labels selector to filter istio' resources")
+	rulesClearCmd.PersistentFlags().StringP("mode", "m", "soft", "if 'hard' all canary rules will be cleaned otherwise only canary rules with no pods will be cleaned")
 
 	_ = rulesClearCmd.MarkPersistentFlagRequired("namespace")
 	_ = rulesClearCmd.MarkPersistentFlagRequired("label-selector")
@@ -28,19 +30,29 @@ var rulesClearCmd = &cobra.Command{
 
 		mappedLabelSelector, err := router.Mapify(trackingId, fmt.Sprintf("%s", cmd.Flag("label-selector").Value))
 		if err != nil {
-			fmt.Println(err)
+			logger.Fatal(fmt.Sprintf("%s", err), "cmd")
+		}
+
+		clearMode := cmd.Flag("mode").Value.String()
+		if clearMode != "hard" {
+			clearMode = "soft"
+		} else {
+			// enforce any value which is not 'hard' to it
+			clearMode = "hard"
 		}
 
 		drR := &router.DestinationRule{
 			TrackingId: trackingId,
 			Namespace:  namespace,
 			Istio:      clients.Istio,
+			KubeClient: clients.Kubernetes,
 		}
 
 		vsR := &router.VirtualService{
 			TrackingId: trackingId,
 			Namespace:  namespace,
 			Istio:      clients.Istio,
+			KubeClient: clients.Kubernetes,
 		}
 
 		shift := router.Shift{
@@ -48,9 +60,9 @@ var rulesClearCmd = &cobra.Command{
 		}
 
 		op := operator(drR, vsR)
-		err = op.Clear(shift)
+		err = op.Clear(shift, clearMode)
 		if err != nil {
-			fmt.Println(err)
+			logger.Fatal(fmt.Sprintf("%s", err), "cmd")
 		}
 	},
 }

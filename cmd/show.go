@@ -52,7 +52,7 @@ type Resource struct {
 	Routes    []*Routes
 }
 
-func structured(trackingId string, namespace string, irl router.IstioRouteList, kClient kubernetes.Clientset) []Resource {
+func structured(trackingId string, namespace string, irl router.IstioRouteList, kClient kubernetes.Interface) []Resource {
 	var r Resource
 	var resourceList []Resource
 
@@ -119,10 +119,13 @@ func structured(trackingId string, namespace string, irl router.IstioRouteList, 
 						return []Resource{}
 					}
 
-					depItem := dep.Items[0]
-					jr.Deployment.Name = depItem.Name
-					jr.Deployment.Namespace = depItem.Namespace
-					jr.Deployment.Pods = depItem.Status.ReadyReplicas
+					if len(dep.Items) == 1 {
+						depItem := dep.Items[0]
+						jr.Deployment.Name = depItem.Name
+						jr.Deployment.Namespace = depItem.Namespace
+						jr.Deployment.Pods = depItem.Status.ReadyReplicas
+					}
+
 				}
 
 				jr.Weight = currentWeight
@@ -209,7 +212,7 @@ func beautified(resourceList []Resource) {
 				}
 
 				if !httpRoute.Routable {
-					color.Red.Println("               |- NON-EXISTENT SUBSET", httpRoute.Subset.Name)
+					color.LightYellow.Println("               |- NON-EXISTENT SUBSET", httpRoute.Subset.Name)
 				}
 
 			}
@@ -241,19 +244,21 @@ var showCmd = &cobra.Command{
 
 		mappedLabelSelector, err := router.Mapify(trackingId, fmt.Sprintf("%s", cmd.Flag("label-selector").Value))
 		if err != nil {
-			fmt.Println(err)
+			logger.Fatal(fmt.Sprintf("%s", err), "cmd")
 		}
 
 		drR := &router.DestinationRule{
 			TrackingId: trackingId,
 			Namespace:  namespace,
 			Istio:      clients.Istio,
+			KubeClient: clients.Kubernetes,
 		}
 
 		vsR := &router.VirtualService{
 			TrackingId: trackingId,
 			Namespace:  namespace,
 			Istio:      clients.Istio,
+			KubeClient: clients.Kubernetes,
 		}
 
 		shift := router.Shift{
@@ -267,7 +272,7 @@ var showCmd = &cobra.Command{
 		}
 
 		logger.Debug("Listing all current active routing rules", trackingId)
-		resourceList := structured(trackingId, namespace, irl, *clients.Kubernetes)
+		resourceList := structured(trackingId, namespace, irl, clients.Kubernetes)
 
 		if output == "pretty" {
 			beautified(resourceList)

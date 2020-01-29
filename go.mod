@@ -32,7 +32,7 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3 // indirect
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0 // indirect
 	istio.io/api v0.0.0-20190416154520-4a9a2a12a700
-	k8s.io/api v0.0.0-20180308224125-73d903622b73 // indirect
+	k8s.io/api v0.0.0-20180308224125-73d903622b73
 	k8s.io/apimachinery v0.0.0-20180228050457-302974c03f7e
 	k8s.io/client-go v7.0.0+incompatible
 )

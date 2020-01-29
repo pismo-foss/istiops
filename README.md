@@ -130,9 +130,17 @@ The output can be configured as `-o json`/`-o yaml` int order to get an object t
 
 ### Clear all routes
 
-2. Clear all traffic rules, except for **master-route** (default), from service api-domain
+2. Clear traffic rules based on input modes
 
-`istiops traffic clear -l app=api-domain`
+There are two modes (or "clear ways") for `clear` command:
+* `soft` (default)  
+    It will remove every routing rule with no pods (from subset's deployment based on labels) to route for
+* `hard`  
+    It will remove **every** rule except the master-route one and routes with prefix rules
+
+Example:  
+`istiops traffic clear -l app=api-domain -n namespace`  
+`istiops traffic clear -l app=api-domain -n namespace -m hard`  
 
 ### Shift to request-headers routing
 

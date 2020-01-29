@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/pismo/istiops/pkg/logger"
 	"github.com/pismo/istiops/pkg/router"
 	"github.com/spf13/cobra"
 	"strconv"
@@ -41,23 +42,23 @@ var shiftCmd = &cobra.Command{
 		destination := cmd.Flag("destination").Value.String()
 		destinationSplitted := strings.Split(destination, ":")
 		if len(destinationSplitted) != 2 {
-			panic(fmt.Sprintf("destination '%s' does not follow the format 'destination:port'", destination))
+			logger.Fatal(fmt.Sprintf("destination '%s' does not follow the format 'destination:port'", destination), "cmd")
 		}
 
 		var portUint uint64
 		portUint, err := strconv.ParseUint(destinationSplitted[1], 10, 32)
 		if err != nil {
-			panic(err)
+			logger.Fatal(fmt.Sprintf("%s", err), "cmd")
 		}
 
 		mappedLabelSelector, err := router.Mapify(trackingId, cmd.Flag("label-selector").Value.String())
 		if err != nil {
-			panic(err)
+			logger.Fatal(fmt.Sprintf("%s", err), "cmd")
 		}
 
 		mappedPodSelector, err := router.Mapify(trackingId, cmd.Flag("pod-selector").Value.String())
 		if err != nil {
-			panic(err)
+			logger.Fatal(fmt.Sprintf("%s", err), "cmd")
 		}
 
 		var headers map[string]string
@@ -66,7 +67,7 @@ var shiftCmd = &cobra.Command{
 		} else {
 			headers, err = router.Mapify(trackingId, cmd.Flag("headers").Value.String())
 			if err != nil {
-				panic(err)
+				logger.Fatal(fmt.Sprintf("%s", err), "cmd")
 			}
 		}
 
@@ -74,7 +75,7 @@ var shiftCmd = &cobra.Command{
 		if cmd.Flag("build").Value.String() != "" {
 			buildInt, err = strconv.ParseUint(cmd.Flag("build").Value.String(), 10, 32)
 			if err != nil {
-				panic(err)
+				logger.Fatal(fmt.Sprintf("%s", err), "cmd")
 			}
 		}
 
@@ -84,7 +85,7 @@ var shiftCmd = &cobra.Command{
 		} else {
 			weightInt, err = strconv.ParseInt(cmd.Flag("weight").Value.String(), 10, 32)
 			if err != nil {
-				panic(err)
+				logger.Fatal(fmt.Sprintf("%s", err), "cmd")
 			}
 		}
 
@@ -103,6 +104,7 @@ var shiftCmd = &cobra.Command{
 			Namespace:  namespace,
 			Build:      uint32(buildInt),
 			Istio:      clients.Istio,
+			KubeClient: clients.Kubernetes,
 		}
 
 		vsR := router.VirtualService{
@@ -111,6 +113,7 @@ var shiftCmd = &cobra.Command{
 			Namespace:  namespace,
 			Build:      uint32(buildInt),
 			Istio:      clients.Istio,
+			KubeClient: clients.Kubernetes,
 		}
 
 		shift := router.Shift{
@@ -129,7 +132,7 @@ var shiftCmd = &cobra.Command{
 		op := operator(&drR, &vsR)
 		err = op.Update(shift)
 		if err != nil {
-			fmt.Println(err)
+			logger.Fatal(fmt.Sprintf("%s", err), "cmd")
 		}
 	},
 }

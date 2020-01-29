@@ -6,6 +6,7 @@ import (
 )
 
 var fakeIstioClient IstioClientInterface
+var fakeKubeClient KubeClientInterface
 
 func TestStringify_Unit(t *testing.T) {
 	mapSelector := map[string]string{}
