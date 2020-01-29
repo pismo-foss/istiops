@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ## [2.1.0] - 2020-01-28
 ### Feature
-- add granular route `clear` modes: `soft` (default) & `hard`. More details at [documentation](https://github.com/pismo/istiops/blob/master/README.md).
+- add granular route `clear` modes: `soft` (default) & `hard`. More details at [documentation](https://github.com/pismo/istiops/blob/master/README.md). - [#19](https://github.com/pismo/istiops/issues/19)
 
 ### Fixes
 - istio and kubernetes clients are now supported by `InClusterConfig` for authentication
