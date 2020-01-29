@@ -642,6 +642,106 @@ func TestVirtualService_Clear_Soft_Integrated_WithoutPods(t *testing.T) {
 	assert.EqualError(t, err, "empty routes when cleaning virtualService's rules")
 }
 
+func TestVirtualService_Clear_Soft_Integrated_Without_Destination_Rules(t *testing.T){
+	fakeIstioClient = istioFake.NewSimpleClientset()
+	fakeKubeClient = kubeFake.NewSimpleClientset()
+
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      1,
+		Istio:      fakeIstioClient,
+		KubeClient: fakeKubeClient,
+	}
+
+	labelSelector := map[string]string{
+		"environment": "integration-tests",
+	}
+
+	shift := Shift{
+		Port:     0,
+		Hostname: "",
+		Selector: labelSelector,
+		Traffic: Traffic{},
+	}
+
+	err := vs.Clear(shift, "")
+	assert.EqualError(t, err,"could not find any destinationRules which matched label-selector 'environment=integration-tests'")
+}
+
+func TestVirtualService_Clear_Soft_Integrated_Without_Mode(t *testing.T) {
+	fakeIstioClient = istioFake.NewSimpleClientset()
+	fakeKubeClient = kubeFake.NewSimpleClientset()
+
+	vs := VirtualService{
+		TrackingId: "unit-testing-uuid",
+		Name:       "api-testing",
+		Namespace:  "integration",
+		Build:      1,
+		Istio:      fakeIstioClient,
+		KubeClient: fakeKubeClient,
+	}
+
+	shift := Shift{
+		Port:     0,
+		Hostname: "",
+		Selector: map[string]string{
+			"environment": "integration-tests",
+		},
+		Traffic: Traffic{},
+	}
+
+	// create a virtualService object in memory
+	tvs := v1alpha32.VirtualService{
+		Spec: v1alpha32.VirtualServiceSpec{},
+	}
+
+	tvs.Name = "integration-testing-vs"
+	tvs.Namespace = vs.Namespace
+	labels := map[string]string{
+		"app":         "api-test",
+		"environment": "integration-tests",
+	}
+	tvs.Labels = labels
+	tvs.Spec.Http = append(tvs.Spec.Http, &v1alpha3.HTTPRoute{
+		Match: nil,
+		Route: []*v1alpha3.HTTPRouteDestination{
+			{
+				Destination: &v1alpha3.Destination{
+					Host:   "api-test",
+					Subset: "subset-to-match-a-deployment",
+					Port:   &v1alpha3.PortSelector{},
+				},
+				Weight:  30,
+				Headers: nil,
+			},
+		},
+	})
+
+	// create a destinationRule object in memory
+	tdr := v1alpha32.DestinationRule{
+		Spec: v1alpha32.DestinationRuleSpec{},
+	}
+	tdr.Name = "integration-testing-dr"
+	tdr.Namespace = vs.Namespace
+	tdr.Labels = labels
+	tdr.Spec.Subsets = []*v1alpha3.Subset{}
+	tdr.Spec.Subsets = append(tdr.Spec.Subsets, &v1alpha3.Subset{
+		Name:   "subset-to-match-a-deployment",
+		Labels: labels,
+	})
+
+	// try to create a virtualService with a proper destinationRule
+	_, err := fakeIstioClient.NetworkingV1alpha3().DestinationRules(vs.Namespace).Create(&tdr)
+	assert.NoError(t, err)
+	_, err = fakeIstioClient.NetworkingV1alpha3().VirtualServices(vs.Namespace).Create(&tvs)
+	assert.NoError(t, err)
+
+	err = vs.Clear(shift, "")
+	assert.EqualError(t, err, "empty mode when trying do clear routes. Refusing to continue")
+}
+
 func TestBalance_Unit_PartialPercent(t *testing.T) {
 	shift := Shift{
 		Port:     8080,
