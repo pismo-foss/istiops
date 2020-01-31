@@ -15,6 +15,9 @@ rules:
     verbs: ["get", "list", "watch"]
   - apiGroups: ["networking.istio.io"]
     resources: ["*"]
+    verbs: ["get", "list", "watch", "patch","update"]
+  - apiGroups: ["apps"]
+    resources: ["*"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["rbac.istio.io"]
     resources: ["*"]
@@ -29,7 +32,7 @@ rules:
     resources: ["thirdpartyresources", "thirdpartyresources.extensions", "ingresses", "ingresses/status", "deployments"]
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
-    resources: ["configmaps", "endpoints", "pods", "services", "namespaces"]
+    resources: ["configmaps", "endpoints", "pods", "services", "namespaces", "deployments"]
     verbs: ["get", "list", "watch"]
 ---
 # Grant permissions to the istiops-validator.
@@ -65,20 +68,15 @@ spec:
       creationTimestamp: null
     spec:
       template:
+        metadata:
+          annotations:
+            sidecar.istio.io/inject: "false"
         spec:
           containers:
-            - env:
-                - name: POD_NAME
-                  valueFrom:
-                    fieldRef:
-                      apiVersion: v1
-                      fieldPath: metadata.name
-                - name: POD_NAMESPACE
-                  valueFrom:
-                    fieldRef:
-                      apiVersion: v1
-                      fieldPath: metadata.namespace
-              image: 270036487593.dkr.ecr.us-east-1.amazonaws.com/istiops:qa5
+            - envFrom:
+              -  configMapRef:
+                   name: istiops-config
+              image: 270036487593.dkr.ecr.us-east-1.amazonaws.com/istiops:1.0.0
               imagePullPolicy: Always
               name: istiops-validator
               resources: {}

@@ -1,4 +1,2 @@
 #!/usr/bin/env bash
-#
-kubectl -n ext get services
-/run/istiops traffic show -l app=sec-bankaccounts -n ext -o beauty
+for svc in $(kubectl get svc -n $env | awk '{print $1}'); do /run/istiops traffic clear -l app=$svc -n $env; done;
