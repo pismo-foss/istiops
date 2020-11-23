@@ -177,7 +177,7 @@ istiops traffic shift \
 
 ## Global flags
 
-You can specify a custom path to you `kubeconfig` file or a specific kube-context from it by using respective the global flags: `--kubeconfig` and `--context`:
+You can specify a custom path to your `kubeconfig` file or a specific kube-context from it by using respective the global flags: `--kubeconfig` and `--context`:
 
 ```
 istiops traffic show \
