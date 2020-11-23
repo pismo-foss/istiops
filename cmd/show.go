@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/ghodss/yaml"
 	"github.com/gookit/color"
 	"github.com/pismo/istiops/pkg/logger"
@@ -225,6 +226,9 @@ var showCmd = &cobra.Command{
 	Use:   "show",
 	Short: "Show current istio's traffic rules",
 	Run: func(cmd *cobra.Command, args []string) {
+		kubeContext, _ := rootCmd.Flags().GetString("context")
+		kubeConfigPath, _ := rootCmd.Flags().GetString("kubeconfig")
+		clientSetup(kubeContext, kubeConfigPath)
 
 		namespace := cmd.Flag("namespace").Value.String()
 		if namespace == "" {

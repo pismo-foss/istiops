@@ -276,7 +276,7 @@ func TestVirtualService_Clear_Soft_Integrated(t *testing.T) {
 	}
 
 	labelsNoPods := map[string]string{
-		"app": "api-test",
+		"app":  "api-test",
 		"pods": "0",
 	}
 	tvs.Labels = labels
@@ -642,7 +642,7 @@ func TestVirtualService_Clear_Soft_Integrated_WithoutPods(t *testing.T) {
 	assert.EqualError(t, err, "empty routes when cleaning virtualService's rules")
 }
 
-func TestVirtualService_Clear_Soft_Integrated_Without_Destination_Rules(t *testing.T){
+func TestVirtualService_Clear_Soft_Integrated_Without_Destination_Rules(t *testing.T) {
 	fakeIstioClient = istioFake.NewSimpleClientset()
 	fakeKubeClient = kubeFake.NewSimpleClientset()
 
@@ -663,11 +663,11 @@ func TestVirtualService_Clear_Soft_Integrated_Without_Destination_Rules(t *testi
 		Port:     0,
 		Hostname: "",
 		Selector: labelSelector,
-		Traffic: Traffic{},
+		Traffic:  Traffic{},
 	}
 
 	err := vs.Clear(shift, "")
-	assert.EqualError(t, err,"could not find any destinationRules which matched label-selector 'environment=integration-tests'")
+	assert.EqualError(t, err, "could not find any destinationRules which matched label-selector 'environment=integration-tests'")
 }
 
 func TestVirtualService_Clear_Soft_Integrated_Without_Mode(t *testing.T) {

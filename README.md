@@ -19,6 +19,7 @@ Istio Traffic Shifter (a.k.a `istiops`) is a tool to manage traffic for microser
     - [Clear all routes](#clear-all-routes)
     - [Headers routing](#shift-to-request-headers-routing)
     - [Weight Routing](#shift-to-weight-routing)
+* [Global Flags](#global-flags)
 * [Importing as a package](#importing-as-a-package)
 * [Contributing](#contributing)
 
@@ -173,6 +174,24 @@ istiops traffic shift \
     --label-selector "app=api-domain" \
     --pod-selector "app=api-domain,build=PR-10" \
     --weight 20
+```
+
+## Global flags
+
+You can specify a custom path to your `kubeconfig` file or a specific kube-context from it by using respective the global flags: `--kubeconfig` and `--context`:
+
+```
+istiops traffic show \
+    -l "app=api-domain" \
+    -n "default" \
+    --kubeconfig "/tmp/kube-config"
+```
+
+```
+istiops traffic show \
+    -l "app=api-domain" \
+    -n "default" \
+    --context eks_eks-my-custom-context
 ```
 
 ## Importing as a package

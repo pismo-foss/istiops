@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/pismo/istiops/pkg/logger"
 	"github.com/pismo/istiops/pkg/router"
 	"github.com/spf13/cobra"
@@ -20,6 +21,9 @@ var rulesClearCmd = &cobra.Command{
 	Use:   "clear",
 	Short: "Removes all rules & routes except the master-one",
 	Run: func(cmd *cobra.Command, args []string) {
+		kubeContext, _ := rootCmd.Flags().GetString("context")
+		kubeConfigPath, _ := rootCmd.Flags().GetString("kubeconfig")
+		clientSetup(kubeContext, kubeConfigPath)
 
 		namespace := cmd.Flag("namespace").Value.String()
 		if namespace == "" {
