@@ -175,6 +175,24 @@ istiops traffic shift \
     --weight 20
 ```
 
+## Global flags
+
+You can specify a custom path to you `kubeconfig` file or a specific kube-context from it by using respective the global flags: `--kubeconfig` and `--context`:
+
+```
+istiops traffic show \
+    -l "app=api-domain" \
+    -n "default" \
+    --kubeconfig "/tmp/kube-config"
+```
+
+```
+istiops traffic show \
+    -l "app=api-domain" \
+    -n "default" \
+    --context eks_eks-my-custom-context
+```
+
 ## Importing as a package
 
 You can assemble `istiops` as an interface for your own Golang code, to do it you just have to initialize the needed struct-dependencies and call the interface directly. You can see proper examples at `./examples`
