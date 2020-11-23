@@ -19,6 +19,7 @@ Istio Traffic Shifter (a.k.a `istiops`) is a tool to manage traffic for microser
     - [Clear all routes](#clear-all-routes)
     - [Headers routing](#shift-to-request-headers-routing)
     - [Weight Routing](#shift-to-weight-routing)
+* [Global Flags](#global-flags)
 * [Importing as a package](#importing-as-a-package)
 * [Contributing](#contributing)
 
