@@ -38,12 +38,16 @@ func ToRawKubeConfigLoader(kubeContext string, kubeConfigPath string) clientcmd.
 }
 
 // New will return a clientset with both kubernetes and istio ones
-func New(kubeContext string, kubeConfigPath string) (*Set, error) {
+func New(kubeContext string, kubeConfigPath string, inCluster bool) (*Set, error) {
 	var istioClient router.IstioClientInterface
 	var config *rest.Config
 	var err error
 
-	config, err = ToRawKubeConfigLoader(kubeContext, kubeConfigPath).ClientConfig()
+	if inCluster {
+		config, err = rest.InClusterConfig()
+	} else {
+		config, err = ToRawKubeConfigLoader(kubeContext, kubeConfigPath).ClientConfig()
+	}
 	if err != nil {
 		return &Set{}, err
 	}
