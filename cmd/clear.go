@@ -23,7 +23,8 @@ var rulesClearCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		kubeContext, _ := rootCmd.Flags().GetString("context")
 		kubeConfigPath, _ := rootCmd.Flags().GetString("kubeconfig")
-		clientSetup(kubeContext, kubeConfigPath)
+		inCluster, _ := rootCmd.Flags().GetBool("in-cluster")
+		clientSetup(kubeContext, kubeConfigPath, inCluster)
 
 		namespace := cmd.Flag("namespace").Value.String()
 		if namespace == "" {

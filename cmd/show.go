@@ -59,20 +59,19 @@ func structured(trackingId string, namespace string, irl router.IstioRouteList, 
 
 	for _, vs := range irl.VList.Items {
 		r = Resource{}
-
-		r.Name = vs.Name
-		r.Namespace = vs.Namespace
+		r.Name = vs.GetObjectMeta().GetName()
+		r.Namespace = vs.GetObjectMeta().GetNamespace()
 		r.Hosts = vs.Spec.Hosts
 
 		for _, httpValue := range vs.Spec.Http {
 			route := &Routes{}
-
 			for _, matchValue := range httpValue.Match {
 				route.Match = append(route.Match, matchValue)
 			}
 
 			// handle destination
 			var currentWeight int32
+
 			for _, httpRoute := range httpValue.Route {
 				jr := Destination{}
 				jr.Service = fmt.Sprintf("%s:%d", httpRoute.Destination.Host, httpRoute.Destination.Port.GetNumber())
@@ -85,8 +84,8 @@ func structured(trackingId string, namespace string, irl router.IstioRouteList, 
 
 				subsetExists := false
 				jr.Routable = true
-				for _, dr := range irl.DList.Items {
 
+				for _, dr := range irl.DList.Items {
 					// validate if subset is valid and routable
 					for _, subset := range dr.Spec.Subsets {
 						js := Subset{}
@@ -94,7 +93,7 @@ func structured(trackingId string, namespace string, irl router.IstioRouteList, 
 
 						if subset.Name == httpRoute.Destination.Subset {
 							subsetExists = true
-							js.Name = subset.Name
+							js.Name = subset.GetName()
 
 							// append pod labels
 							for labelKey, labelValue := range subset.Labels {
@@ -117,20 +116,23 @@ func structured(trackingId string, namespace string, irl router.IstioRouteList, 
 						LabelSelector: labelString,
 					})
 					if err != nil {
+						logger.Error(err.Error(), trackingId)
 						return []Resource{}
 					}
 
 					if len(dep.Items) == 1 {
 						depItem := dep.Items[0]
-						jr.Deployment.Name = depItem.Name
-						jr.Deployment.Namespace = depItem.Namespace
+						jr.Deployment.Name = depItem.GetObjectMeta().GetName()
+						jr.Deployment.Namespace = depItem.GetObjectMeta().GetNamespace()
 						jr.Deployment.Pods = depItem.Status.ReadyReplicas
 					}
 
 				}
 
 				jr.Weight = currentWeight
+
 				route.Destinations = append(route.Destinations, jr)
+
 			}
 
 			r.Routes = append(r.Routes, route)
@@ -228,7 +230,8 @@ var showCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		kubeContext, _ := rootCmd.Flags().GetString("context")
 		kubeConfigPath, _ := rootCmd.Flags().GetString("kubeconfig")
-		clientSetup(kubeContext, kubeConfigPath)
+		inCluster, _ := rootCmd.Flags().GetBool("in-cluster")
+		clientSetup(kubeContext, kubeConfigPath, inCluster)
 
 		namespace := cmd.Flag("namespace").Value.String()
 		if namespace == "" {

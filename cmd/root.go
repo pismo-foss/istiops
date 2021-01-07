@@ -22,15 +22,16 @@ func init() {
 	kubeConfigDefaultPath := homedir.HomeDir() + "/.kube/config"
 	rootCmd.PersistentFlags().String("context", "", "kube context (optional)")
 	rootCmd.PersistentFlags().String("kubeconfig", kubeConfigDefaultPath, "config path (optional)")
+	rootCmd.PersistentFlags().Bool("in-cluster", false, "uses the service account kubernetes gives to pods")
 
 	rootCmd.AddCommand(trafficCmd)
 	rootCmd.AddCommand(versionCmd)
 }
 
-func clientSetup(kubeContext string, kubeConfigPath string) {
+func clientSetup(kubeContext string, kubeConfigPath string, inCluster bool) {
 	var err error
 
-	clients, err = client.New(kubeContext, kubeConfigPath)
+	clients, err = client.New(kubeContext, kubeConfigPath, inCluster)
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("%s", err), "cmd")
 	}

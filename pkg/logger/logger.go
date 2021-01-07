@@ -4,7 +4,6 @@ import (
 	"os"
 
 	logJSON "github.com/sirupsen/logrus"
-	"github.com/snowzach/rotatefilehook"
 )
 
 type Fields map[string]interface{}
@@ -22,6 +21,7 @@ func init() {
 	Env = os.Getenv("ENV")
 
 	log = logJSON.New()
+	//log.SetLevel(logJSON.DebugLevel)
 	formatter := &logJSON.JSONFormatter{
 		TimestampFormat: "2006-01-02 15:04:05.000",
 		FieldMap: logJSON.FieldMap{
@@ -31,19 +31,6 @@ func init() {
 	}
 	log.SetFormatter(formatter)
 	log.SetOutput(os.Stdout)
-	rotateFileHook, err := rotatefilehook.NewRotateFileHook(rotatefilehook.RotateFileConfig{
-		Filename:   "/var/log/app/json.log",
-		MaxSize:    1000,
-		MaxBackups: 7,
-		MaxAge:     7,
-		Level:      logJSON.DebugLevel,
-		Formatter:  formatter,
-	})
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-	log.AddHook(rotateFileHook)
 }
 
 func output(cid string, fields []Fields) *logJSON.Entry {
